@@ -17,103 +17,50 @@ PWD := ${CURDIR}
 
 PACKAGE_NAME = github.com/mayadata-io/openebs-operator
 PACKAGE_VERSION ?= $(shell git describe --always --tags)
-OS = $(shell uname)
-
-ALL_SRC = $(shell find . -name "*.go" | grep -v -e vendor \
-	-e ".*/\..*" \
-	-e ".*/_.*" \
-	-e ".*/mocks.*" \
-	-e ".*/*.pb.go")
-ALL_PKGS = $(shell go list $(sort $(dir $(ALL_SRC))) | grep -v vendor)
-ALL_PKG_PATHS = $(shell go list -f '{{.Dir}}' ./...)
-FMT_SRC = $(shell echo "$(ALL_SRC)" | tr ' ' '\n')
-
-# External tools required while building this binary or 
-# to test source code, artifacts in this project
-EXT_TOOLS =\
-	github.com/golangci/golangci-lint/cmd/golangci-lint \
-	github.com/axw/gocov/gocov \
-	github.com/AlekSi/gocov-xml \
-	github.com/matm/gocov-html
-EXT_TOOLS_DIR = ext-tools/$(OS)
-
-BUILD_LDFLAGS = -X $(PACKAGE_NAME)/lib/utils/build.Hash=$(PACKAGE_VERSION)
-GO_FLAGS = -gcflags '-N -l' -ldflags "$(BUILD_LDFLAGS)"
-GO_VERSION = 1.12
 
 REGISTRY ?= quay.io/openebs
 IMG_NAME ?= openebs-operator
 
-### Targets to compile openebs-operator binaries
-.PHONY: bins lbins
-bins: $(IMG_NAME)
+all: bin
 
-$(IMG_NAME): $(ALL_SRC)
-	go build -tags bins $(GO_FLAGS) -o $@ cmd/main.go
+### Targets to compile openebs-operator binary
+.PHONY: bin
+bin: $(IMG_NAME)
 
-### linux based binary
-lbins: $(IMG_NAME).linux
+$(IMG_NAME): fmt vet
+	@echo "+ Generating $(IMG_NAME) binary"
+	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on \
+		go build -o $@ ./cmd/main.go
 
-$(IMG_NAME).linux: $(ALL_SRC)
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on \
-		go build -tags bins $(GO_FLAGS) -o $@ cmd/main.go
-
-$(ALL_SRC): ;
-
-### download modules to local cache
+# go mod download modules to local cache
+# make vendored copy of dependencies
+# install other go binaries for code generation
+.PHONY: vendor
 vendor: go.mod go.sum
-	@go mod download
+	@GO111MODULE=on go mod download
+	@GO111MODULE=on go mod vendor
 
-ext-tools: $(EXT_TOOLS)
+# Run tests
+.PHONY: test
+test: fmt vet
+	@go test ./... -coverprofile cover.out
 
-### install go based tools
-.PHONY: $(EXT_TOOLS)
-$(EXT_TOOLS):
-	@echo "Installing external tool $@"
-	@GO111MODULES=on go get -u $@
+# Run go fmt against code
+.PHONY: fmt
+fmt:
+	@go fmt ./...
 
+# Run go vet against code
+.PHONY: vet
+vet:
+	@go vet ./...
 
-### Target to build the openebs operator docker images
-.PHONY: images publish
-images:
-	docker build -t $(REGISTRY)/$(IMG_NAME):$(PACKAGE_VERSION) -f Dockerfile .
-	docker tag $(REGISTRY)/$(IMG_NAME):$(PACKAGE_VERSION) $(IMG_NAME):$(PACKAGE_VERSION)
-	docker build -t $(REGISTRY)/$(IMG_NAME)-alpine:$(PACKAGE_VERSION) -f Dockerfile.alpine .
-	docker tag $(REGISTRY)/$(IMG_NAME)-alpine:$(PACKAGE_VERSION) $(IMG_NAME)-alpine:$(PACKAGE_VERSION)
+# Build the docker image
+.PHONY: docker-build
+docker-build: test
+	docker build -t $(REGISTRY)/$(IMG_NAME):$(PACKAGE_VERSION) .
 
-publish: images
+# Push the docker image
+.PHONY: docker-push
+docker-push: docker-build
 	docker push $(REGISTRY)/$(IMG_NAME):$(PACKAGE_VERSION)
-	docker push $(REGISTRY)/$(IMG_NAME)-alpine:$(PACKAGE_VERSION)
-
-
-### Targets to test the codebase.
-.PHONY: test unit-test
-test: unit-test
-
-unit-test: $(ALL_SRC) vendor ext-tools
-	$(EXT_TOOLS_DIR)/gocov test $(ALL_PKGS) --tags "unit" | $(EXT_TOOLS_DIR)/gocov report
-
-gofmt:
-	@go fmt $(ALL_PKG_PATHS)
-
-lint: ext-tools gofmt
-	@echo "Running golangci-lint"
-	@golangci-lint run --disable-all \
-		--deadline 5m \
-		--enable=misspell \
-		--enable=structcheck \
-		--enable=golint \
-		--enable=deadcode \
-		--enable=errcheck \
-		--enable=varcheck \
-		--enable=goconst \
-		--enable=unparam \
-		--enable=ineffassign \
-		--enable=nakedret \
-		--enable=interfacer \
-		--enable=misspell \
-		--enable=gocyclo \
-		--enable=lll \
-		--enable=dupl \
-		--enable=goimports \
-		$(ALL_PKG_PATHS)

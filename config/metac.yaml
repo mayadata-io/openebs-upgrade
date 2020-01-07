@@ -1,0 +1,19 @@
+apiVersion: metac.openebs.io/v1alpha1
+kind: GenericController
+metadata:
+  name: sync-openebs
+  namespace: openebs-test
+spec:
+  updateAny: true
+  watch:
+    apiVersion: dao.mayadata.io/v1alpha1
+    resource: openebses
+  attachments:
+  - apiVersion: dao.mayadata.io/v1alpha1
+    resource: openebses
+    updateStrategy:
+      method: InPlace
+  hooks:
+    sync:
+      inline:
+        funcName: sync/openebs
