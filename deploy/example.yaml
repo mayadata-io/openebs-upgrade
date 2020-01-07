@@ -1,0 +1,180 @@
+
+# This configuration is for OpenEBS Installation, ControlPlaneUpgrade
+# and unInstallation.
+apiVersion: dao.mayadata.io/v1alpha1
+kind: OpenEBS
+metadata:
+  name: install-openebs-1.5
+  # Namespace i.e. the namespace where the OpenEBS operator and the
+  # other openebs components will be installed/needs-to-be-installed.
+  #
+  # Defaults to “openebs” namespace.
+  namespace: openebs
+  labels:
+    app.kubernetes.io/name: openebs-operator
+  annotations:
+spec:
+  # OpenEBS Version.
+  #
+  # Defaults to the latest(for instance 1.5) OpenEBS version
+  version: "1.5"
+  # defaultStoragePath is the directory which will be used by
+  # default for various OpenEBS operations i.e.,it can be used to
+  # specify the hostpath to be used for default Jiva StoragePool
+  # loaded by OpenEBS.
+  #
+  # Defaults to /var/openebs
+  defaultStoragePath: "/var/openebs"
+  # If createDefaultStorageConfig is false then OpenEBS default
+  # storage class and storage pool will not be created.
+  #
+  # Defaults to true
+  createDefaultStorageConfig: "true"
+  # A custom registry could be specified for pulling the container
+  # images.
+  # Note: This field should be used when user has pulled and pushed
+  # the images to a custom registry.
+  imagePrefix: "quay.io/openebs"
+  # Defaults to IfNotPresent
+  # Note: This policy will be applicable to all the images being used
+  # for OpenEBS components.
+  imagePullPolicy: "IfNotPresent"
+
+  # apiserver store the configuration for maya-apiserver
+  apiserver:
+    # This field decides whether this component should be installed
+    # or not, if set to false, this component will not be installed.
+    #
+    # Defaults to true.
+    enabled: "true"
+    # imageTag is the tag for the container image which will be used
+    # by this component.
+    #
+    # If not set, it will be the spec.version of the OpenEBS set
+    # above.
+    #
+    # +optional
+    imageTag:
+    # replicas specifies the number of replicas to be deployed.
+    #
+    # Defaults to 1.
+    replicas: 1
+    # sparse specifies the config for sparse pools i.e., whether it
+    # should be created by default or not when OpenEBS gets
+    # installed.
+    sparse:
+      # enabled decides whether default cstor
+      # sparse pool should be configured as a part of openebs
+      # installation.
+      # If "true" a default cstor sparse pool will be configured, if
+      # "false" it will not be configured.
+      # This value takes effect only if createDefaultStorageConfig is
+      # set to true.
+      #
+      # Defaults to false
+      enabled: "false"
+    # nodeSelector specifies on which nodes the pods of this
+    # component can be scheduled.
+    #
+    # Default to nil i.e., all the nodes present in the cluster
+    # i.e., the pods can be scheduled anywhere in the cluster.
+    nodeSelector:
+    # tolerations can be used if we want the pods of this component
+    # to tolerate some of the taints of nodes.
+    #
+    # Default to nil
+    tolerations:
+
+  # provisioner stores the configuration for OpenEBS provisioner
+  provisioner:
+    enabled: "true"
+    imageTag:
+    replicas: 1
+    nodeSelector:
+    tolerations:
+
+  # localProvisioner stores the configuration for OpenEBS local
+  # provisioner
+  localProvisioner:
+    enabled: "true"
+    imageTag:
+    replicas: 1
+    nodeSelector:
+    tolerations:
+
+  # snapshotOperator stores the configuration for snapshot operator
+  snapshotOperator:
+    enabled: "true"
+    controller:
+      imageTag:
+    provisioner:
+      imageTag:
+    replicas: 1
+    nodeSelector:
+    tolerations:
+
+  # ndm stores the configuration for node-disk-manager
+  ndm:
+    enabled: "true"
+    imageTag: "v0.4.4"
+    replicas: 1
+    sparse:
+      path:
+      size:
+      count:
+    # filters contain the config for excluding or including vendors,
+    # paths, etc.
+    #
+    # Defaults for excluding vendors will be CLOUDBYT,OpenEBS, paths
+    # will be loop,fd0,sr0,/dev/ram,/dev/dm-,/dev/md
+    filters:
+      exclude:
+        vendors: "CLOUDBYT,OpenEBS"
+        paths: "loop,fd0,sr0,/dev/ram,/dev/dm-,/dev/md"
+      include:
+        paths: ""
+    # probes can be used to configure ndm probes such as Seachest,
+    # smart, capacity, etc.
+    probes:
+      enable:
+      - seachest
+    nodeSelector:
+    tolerations:
+
+  # ndmOperator stores the configuration for ndm operator
+  ndmOperator:
+    enabled: "true"
+    imageTag: "v0.4.4"
+    replicas: 1
+    nodeSelector:
+    tolerations:
+
+  # jiva stores the configuration for CASType: Jiva
+  jiva:
+    imageTag:
+    replicas: 1
+
+  # cstor stores the configuration for CASType: cstor
+  cstor:
+    pool:
+      imageTag:
+    poolMgmt:
+      imageTag:
+    target:
+      imageTag:
+    volumeMgmt:
+      imageTag:
+
+  # Options contains the optional flags that can be passed during
+  # installation/upgrade/uninstallation i.e.Timeout can be one of the
+  # optional flags where timeout could be the maximum seconds to wait
+  # at any given step.
+  options:
+status:
+    # Init - Not yet started
+    # InProgress - Installation/Upgrade/UnInstallation is in progress
+    # Error - Installation/Upgrade/UnInstallation resulted in some
+    #         failures
+    # Success - Installation/Upgrade/UnInstallation is successful
+    phase:
+    conditions:

@@ -20,10 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=openebsoperator
-
 // OpenEBSOperator defines the intent to get
 // OpenEBS deployed on a Kubernetes setup
 type OpenEBSOperator struct {
@@ -39,7 +35,132 @@ type OpenEBSOperator struct {
 // that determines what OpenEBS (e.g. version, components, etc)
 // get deployed on a Kubernetes setup
 type OpenEBSOperatorSpec struct {
-	Version string `json:"version"`
+	Version                    string `json:"version"`
+	DefaultStoragePath         string `json:"defaultStoragePath"`
+	CreateDefaultStorageConfig string `json:"createDefaultStorageConfig"`
+	ImagePrefix                string `json:"imagePrefix"`
+	ImagePullPolicy            string `json:"imagePullPolicy"`
+	Components                 `json:",inline"`
+}
+
+// Components stores all the OpenEBS components.
+type Components struct {
+	APIServer        APIServer        `json:"apiServer"`
+	Provisioner      Provisioner      `json:"provisioner"`
+	LocalProvisioner LocalProvisioner `json:"localProvisioner"`
+	SnapshotOperator SnapshotOperator `json:"snapshotOperator"`
+	NDM              NDM              `json:"ndm"`
+	NDMOperator      NDMOperator      `json:"ndmOperator"`
+	Jiva             Jiva             `json:"jiva"`
+	Cstor            Cstor            `json:"cstor"`
+}
+
+// ComponentCommonConfig stores the configuration which are common/same
+// for most of the components.
+type ComponentCommonConfig struct {
+	Enabled      string            `json:"enabled"`
+	Replicas     int               `json:"replicas"`
+	NodeSelector map[string]string `json:"nodeSelector"`
+}
+
+// APIServer stores the configuration of maya-apiserver
+type APIServer struct {
+	ComponentCommonConfig `json:",inline"`
+	Container             `json:",inline"`
+	Sparse                SparsePools `json:"sparse"`
+}
+
+// SparsePools stores the configuration for sparse pools i.e. whether sparse
+// pools should be installed by default or not
+type SparsePools struct {
+	Enabled string `json:"enabled"`
+}
+
+// Provisioner stores the configuration of OpenEBS provisioner
+type Provisioner struct {
+	ComponentCommonConfig `json:",inline"`
+	Container             `json:",inline"`
+}
+
+// LocalProvisioner stores the configuration of OpenEBS local provisioner
+type LocalProvisioner struct {
+	ComponentCommonConfig `json:",inline"`
+	Container             `json:",inline"`
+}
+
+// SnapshotOperator stores the configuration of Snapshot Operator
+type SnapshotOperator struct {
+	ComponentCommonConfig `json:",inline"`
+	Controller            Container `json:"controller"`
+	Provisioner           Container `json:"provisioner"`
+}
+
+// NDM stores the configuration of Node disk Manager
+type NDM struct {
+	ComponentCommonConfig `json:",inline"`
+	Container             `json:",inline"`
+	Sparse                Sparse     `json:"sparse"`
+	Filters               NDMFilters `json:"filters"`
+	Probes                NDMProbes  `json:"probes"`
+}
+
+// Sparse file configuration for NDM.
+type Sparse struct {
+	Path  string `json:"path"`
+	Size  string `json:"size"`
+	Count string `json:"count"`
+}
+
+// NDMFilters stores the configuration for filters being used by NDM
+// i.e., filters contain the config for excluding or including vendors,
+// paths, etc.
+type NDMFilters struct {
+	Exclude Exclude `json:"exclude"`
+	Include Include `json:"include"`
+}
+
+// Exclude can be used to exclude something from a group i.e., it
+// could be vendor, path, etc in case of NDM.
+type Exclude struct {
+	Vendors string `json:"vendors"`
+	Paths   string `json:"paths"`
+}
+
+// Include can be used to include something to a group or set of things.
+type Include struct {
+	Paths string `json:"paths"`
+}
+
+// NDMProbes can be used to configure NDM probes i.e., it can be used to
+// enable/disable various probes used by NDM such as seachest, smart,
+// capacity, etc.
+type NDMProbes struct {
+	Enable []string `json:"enable"`
+}
+
+// NDMOperator stores the configuration of NDM operator
+type NDMOperator struct {
+	ComponentCommonConfig `json:",inline"`
+	Container             `json:",inline"`
+}
+
+// Jiva stores the configuration of jiva.
+type Jiva struct {
+	ComponentCommonConfig `json:",inline"`
+	Container             `json:",inline"`
+}
+
+// Cstor stores the configuration of cstor.
+type Cstor struct {
+	Pool       Container `json:"pool"`
+	PoolMgmt   Container `json:"poolMgmt"`
+	Target     Container `json:"target"`
+	VolumeMgmt Container `json:"volumeMgmt"`
+}
+
+// Container stores the details of a container
+type Container struct {
+	ImageTag string `json:"imageTag"`
 }
 
 // OpenEBSOperatorStatus defines the current status of
