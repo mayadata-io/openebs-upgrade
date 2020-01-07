@@ -1,5 +1,5 @@
 # Build the operator binary
-FROM golang:1.12.5 as builder
+FROM golang:1.13 as builder
 
 WORKDIR /workspace
 
@@ -21,13 +21,13 @@ COPY cmd/ cmd/
 COPY pkg/ pkg/
 
 # build the binary
-RUN make lbins
+RUN make bin
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:latest
-
+FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=builder /workspace/openebs-operator.linux .
+COPY --from=builder /workspace/openebs-operator .
+USER nonroot:nonroot
 
-ENTRYPOINT ["/openebs-operator.linux"]
+ENTRYPOINT ["/openebs-operator"]
