@@ -1,25 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app.kubernetes.io/name: openebs-operator
-  name: openebs-operator
+  name: openebs-upgrade
   namespace: openebs-test
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: openebs-operator
+      name: openebs-upgrade
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: openebs-operator
+        name: openebs-upgrade
     spec:
       containers:
-      - name: openebs-operator
-        image: sagarkrsd/openebs-operator:latest
+      - name: openebs-upgrade
+        image: sagarkrsd/openebs-upgrade:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
+        command: ["/usr/bin/openebs-upgrade"]
+        args:
+        - --logtostderr
+        - --run-as-local
+        - -v=4
+        - --discovery-interval=40s
+        - --cache-flush-interval=240s
         resources:
-      serviceAccountName: openebsoperator
+      serviceAccountName: openebsupgrade

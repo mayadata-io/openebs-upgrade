@@ -5,13 +5,13 @@ apiVersion: dao.mayadata.io/v1alpha1
 kind: OpenEBS
 metadata:
   name: install-openebs-1.5
-  # Namespace i.e. the namespace where the OpenEBS operator and the
+  # Namespace i.e. the namespace where the openebs-upgrade operator and the
   # other openebs components will be installed/needs-to-be-installed.
   #
   # Defaults to “openebs” namespace.
   namespace: openebs
   labels:
-    app.kubernetes.io/name: openebs-operator
+    name: openebs-upgrade
   annotations:
 spec:
   # OpenEBS Version.

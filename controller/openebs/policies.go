@@ -14,7 +14,7 @@ limitations under the License.
 package openebs
 
 import (
-	"github.com/mayadata-io/openebs-operator/types"
+	"mayadata.io/openebs-upgrade/types"
 )
 
 // setPoliciesDefaultsIfNotSet sets the default values for various policies

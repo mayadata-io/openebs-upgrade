@@ -22,8 +22,8 @@ import (
 	"openebs.io/metac/start"
 
 	"github.com/golang/glog"
-	"github.com/mayadata-io/openebs-operator/controller/openebs"
-	"github.com/mayadata-io/openebs-operator/k8s"
+	"mayadata.io/openebs-upgrade/controller/openebs"
+	"mayadata.io/openebs-upgrade/k8s"
 )
 
 // Command line flags

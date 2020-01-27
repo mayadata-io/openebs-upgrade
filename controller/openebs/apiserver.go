@@ -16,8 +16,8 @@ package openebs
 import (
 	"strconv"
 
-	"github.com/mayadata-io/openebs-operator/types"
 	appsv1 "k8s.io/api/apps/v1"
+	"mayadata.io/openebs-upgrade/types"
 )
 
 const (

@@ -1,7 +1,7 @@
-# Build the operator binary
-FROM golang:1.13 as builder
+# Build the openebs-upgrade binary
+FROM golang:1.13.5 as builder
 
-WORKDIR /workspace
+WORKDIR /mayadata.io/openebs-upgrade/
 
 # copy build manifests
 COPY Makefile Makefile
@@ -14,27 +14,30 @@ COPY go.sum go.sum
 # cache deps before building and copying source so that we don't need to
 # re-download as much and so that source changes don't invalidate our
 # downloaded layer
-RUN make vendor
+RUN go mod download
 
 # copy go source code
-COPY cmd/ ./cmd/
-COPY pkg/ ./pkg/
-COPY k8s/ ./k8s/
-COPY types/ ./types/
-COPY controller/ ./controller/
+COPY cmd/ cmd/
+COPY pkg/ pkg/
+COPY k8s/ k8s/
+COPY types/ types/
+COPY controller/ controller/
 
 # build the binary
-RUN make bin
+RUN make openebs-upgrade
 
-# Use debian as minimal base image to package the final binary
-FROM debian:stretch-slim
+# ---------------------------
+# Use distroless as minimal base image to package the final binary
+# Refer https://github.com/GoogleContainerTools/distroless
+# ---------------------------
+FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /
-RUN apt-get update && \
-  apt-get install --no-install-recommends -y ca-certificates && \
-  rm -rf /var/lib/apt/lists/*
+
 COPY config/metac.yaml /etc/config/metac/metac.yaml
 COPY templates/ /templates
-COPY --from=builder /workspace/openebs-operator .
+COPY --from=builder /mayadata.io/openebs-upgrade/openebs-upgrade /usr/bin
 
-ENTRYPOINT ["/openebs-operator"]
+USER nonroot:nonroot
+
+ENTRYPOINT ["/usr/bin/openebs-upgrade"]
