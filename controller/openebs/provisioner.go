@@ -14,9 +14,7 @@ limitations under the License.
 package openebs
 
 import (
-	"fmt"
-
-	"github.com/mayadata-io/openebs-operator/types"
+	"mayadata.io/openebs-upgrade/types"
 )
 
 const (
@@ -28,11 +26,9 @@ const (
 // setProvisionerDefaultsIfNotSet sets the default values for openebs-k8s-provisioner.
 func (r *Reconciler) setProvisionerDefaultsIfNotSet() error {
 	if r.OpenEBS.Spec.Provisioner == nil {
-		fmt.Println("nil provisioner")
 		r.OpenEBS.Spec.Provisioner = &types.Provisioner{}
 	}
 	if r.OpenEBS.Spec.Provisioner.Enabled == "" {
-		fmt.Println("provisioner not set")
 		r.OpenEBS.Spec.Provisioner.Enabled = types.True
 	}
 	if r.OpenEBS.Spec.Provisioner.ImageTag == "" {

@@ -16,9 +16,9 @@ package openebs
 import (
 	"encoding/json"
 
-	"github.com/mayadata-io/openebs-operator/k8s"
-	"github.com/mayadata-io/openebs-operator/pkg/utils/metac"
-	"github.com/mayadata-io/openebs-operator/types"
+	"mayadata.io/openebs-upgrade/k8s"
+	"mayadata.io/openebs-upgrade/pkg/utils/metac"
+	"mayadata.io/openebs-upgrade/types"
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"

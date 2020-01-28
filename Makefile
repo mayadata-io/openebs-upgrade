@@ -1,5 +1,4 @@
-# Copyright 2019 The MayaData Authors
-# Copyright 2018 Uber Technologies, Inc.
+# Copyright 2020 The MayaData Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,17 +14,16 @@
 
 PWD := ${CURDIR}
 
-PACKAGE_NAME = github.com/mayadata-io/openebs-operator
 PACKAGE_VERSION ?= $(shell git describe --always --tags)
 
 REGISTRY ?= quay.io/openebs
-IMG_NAME ?= openebs-operator
+IMG_NAME ?= openebs-upgrade
 
 all: bin
 
-### Targets to compile openebs-operator binary
+### Targets to compile openebs-upgrade binary
 .PHONY: bin
-bin: $(IMG_NAME)
+bin: vendor $(IMG_NAME)
 
 $(IMG_NAME): fmt vet
 	@echo "+ Generating $(IMG_NAME) binary"

@@ -13,7 +13,7 @@ limitations under the License.
 
 package openebs
 
-import "github.com/mayadata-io/openebs-operator/types"
+import "mayadata.io/openebs-upgrade/types"
 
 const (
 	// DefaultSnapshotOperatorReplicaCount is the default value of replica for

@@ -14,7 +14,7 @@ limitations under the License.
 package openebs
 
 import (
-	"github.com/mayadata-io/openebs-operator/types"
+	"mayadata.io/openebs-upgrade/types"
 )
 
 // Set the default values for helpers used by OpenEBS components
