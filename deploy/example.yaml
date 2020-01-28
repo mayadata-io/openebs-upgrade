@@ -7,17 +7,13 @@ metadata:
   name: install-openebs-1.5
   # Namespace i.e. the namespace where the openebs-upgrade operator and the
   # other openebs components will be installed/needs-to-be-installed.
-  #
-  # Defaults to “openebs” namespace.
   namespace: openebs
   labels:
     name: openebs-upgrade
-  annotations:
 spec:
-  # OpenEBS Version.
-  #
-  # Defaults to the latest(for instance 1.5) OpenEBS version
+  # OpenEBS Version to be installed.
   version: "1.5"
+
   # defaultStoragePath is the directory which will be used by
   # default for various OpenEBS operations i.e.,it can be used to
   # specify the hostpath to be used for default Jiva StoragePool
@@ -25,60 +21,76 @@ spec:
   #
   # Defaults to /var/openebs
   defaultStoragePath: "/var/openebs"
+
   # If createDefaultStorageConfig is false then OpenEBS default
   # storage class and storage pool will not be created.
   #
   # Defaults to true
-  createDefaultStorageConfig: "true"
+  createDefaultStorageConfig: true
+
   # A custom registry could be specified for pulling the container
   # images.
   # Note: This field should be used when user has pulled and pushed
   # the images to a custom registry.
   imagePrefix: "quay.io/openebs"
+
   # Defaults to IfNotPresent
   # Note: This policy will be applicable to all the images being used
   # for OpenEBS components.
   imagePullPolicy: "IfNotPresent"
 
   # apiServer store the configuration for maya-apiserver
+  #
+  # maya-apiserver helps with the creation of CAS Volumes and provides
+  # API endpoints to manage those volumes. It can also be considered as
+  # a template engine that can be easily extended to support any kind of
+  # CAS storage solutions.
+  #
+  # It is deployed as a deployment in the k8s cluster.
   apiServer:
+
     # This field decides whether this component should be installed
     # or not, if set to false, this component will not be installed.
     #
     # Defaults to true.
-    enabled: "true"
+    enabled: true
+
     # imageTag is the tag for the container image which will be used
     # by this component.
     #
     # If not set, it will be the spec.version of the OpenEBS set
     # above.
-    #
-    # +optional
     imageTag:
+
     # replicas specifies the number of replicas to be deployed.
     #
     # Defaults to 1.
     replicas: 1
-    # sparse specifies the config for sparse pools i.e., whether it
+
+    # cstorSparsePool specifies the config for cstor sparse pools i.e., whether it
     # should be created by default or not when OpenEBS gets
     # installed.
-    sparse:
+    cstorSparsePool:
+
       # enabled decides whether default cstor
       # sparse pool should be configured as a part of openebs
       # installation.
+      #
       # If "true" a default cstor sparse pool will be configured, if
       # "false" it will not be configured.
       # This value takes effect only if createDefaultStorageConfig is
       # set to true.
       #
       # Defaults to false
-      enabled: "false"
+      enabled: false
+
     # nodeSelector specifies on which nodes the pods of this
     # component can be scheduled.
     #
     # Default to nil i.e., all the nodes present in the cluster
     # i.e., the pods can be scheduled anywhere in the cluster.
     nodeSelector:
+
     # tolerations can be used if we want the pods of this component
     # to tolerate some of the taints of nodes.
     #
@@ -86,8 +98,13 @@ spec:
     tolerations:
 
   # provisioner stores the configuration for OpenEBS provisioner
+  #
+  # provisioner is an implementation of Kubernetes Dynamic Provisioner
+  # that processes the PVC requests by interacting with maya-apiserver.
+  #
+  # It is deployed as a deployment in the k8s cluster.
   provisioner:
-    enabled: "true"
+    enabled: true
     imageTag:
     replicas: 1
     nodeSelector:
@@ -95,16 +112,26 @@ spec:
 
   # localProvisioner stores the configuration for OpenEBS local
   # provisioner
+  #
+  # localProvisioner is responsible for processing the PVC requests
+  # for provisioning local persistent volumes
+  #
+  # It is deployed as a deployment in the k8s cluster.
   localProvisioner:
-    enabled: "true"
+    enabled: true
     imageTag:
     replicas: 1
     nodeSelector:
     tolerations:
 
   # snapshotOperator stores the configuration for snapshot operator
+  #
+  # Operator for the snapshot controller and provisioner.
+  # It consists of the snapshot controller and provisioner containers.
+  #
+  # It is deployed as a deployment in the k8s cluster.
   snapshotOperator:
-    enabled: "true"
+    enabled: true
     controller:
       imageTag:
     provisioner:
@@ -113,22 +140,42 @@ spec:
     nodeSelector:
     tolerations:
 
-  # ndm stores the configuration for node-disk-manager
-  ndm:
-    enabled: "true"
-    imageTag: "v0.4.5"
+  # ndmDaemon stores the configuration for node-disk-manager daemonset
+  #
+  # ndmDaemon is a daemonset that helps to manage the disks attached to
+  # the Kubernetes Nodes.
+  # It can be used to extend the capabilities of Kubernetes to provide
+  # access to disk inventory across cluster.
+  #
+  # It is deployed as a daemonset in the k8s cluster.
+  ndmDaemon:
+    enabled: true
+    imageTag:
     replicas: 1
+
+    # sparse stores the configuration for sparse files.
+    #
+    # Sparse File help simulate disk objects that can be used for testing and
+    # proto typing solutions built using node-disk-manager(NDM).Sparse files
+    # will be created if NDM is provided with the location where sparse files
+    # should be located.
     sparse:
+      # path defines a sparse directory for creating a sparse file
+      # at the specified directory and an associated BlockDevice CR
+      # gets added to Kubernetes.
       path:
+      # size define the size of created sparse file
       size:
+      # count defines the number of sparse files to be created
       count:
+
     # filters contain the config for excluding or including vendors,
     # paths, etc.
     #
     # Defaults for excluding vendors will be CLOUDBYT,OpenEBS, paths
     # will be loop,fd0,sr0,/dev/ram,/dev/dm-,/dev/md
     filters:
-      OSDisk:
+      osDisk:
         enabled:
         exclude: "/,/etc/hosts,/boot"
       vendor:
@@ -138,6 +185,7 @@ spec:
         enabled:
         exclude: "loop,fd0,sr0,/dev/ram,/dev/dm-,/dev/md"
         include: ""
+
     # probes can be used to configure ndm probes such as Seachest,
     # smart, capacity, etc.
     probes:
@@ -147,20 +195,43 @@ spec:
     tolerations:
 
   # ndmOperator stores the configuration for ndm operator
+  #
+  # ndmOperator is responsible for installation, upgrade and
+  # lifecycle-management of node-disk-manager.
+  #
+  # It is deployed as a deployment in the k8s cluster.
   ndmOperator:
-    enabled: "true"
-    imageTag: "v0.4.4"
+    enabled: true
+    imageTag:
     replicas: 1
     nodeSelector:
     tolerations:
 
-  # jiva stores the configuration for CASType: Jiva
-  jiva:
+  # jivaConfig stores the configuration for Jiva: CAS Data Engine
+  #
+  # Jiva provides highly available iSCSI block storage Persistent
+  # Volumes for Kubernetes Stateful Applications, by making use of the host filesystem.
+  #
+  # It consists of a target (or a Storage Controller) that exposes iSCSI,
+  # while synchronously replicating the data to one or more Replicas and a set of
+  # replicas that a Target uses to read/write data.
+  jivaConfig:
     imageTag:
     replicas: 1
 
-  # cstor stores the configuration for CASType: cstor
-  cstor:
+  # cstorConfig stores the configuration for Cstor: CAS Data Engine
+  #
+  # The primary function of cStor is to serve the iSCSI block storage using
+  # the underlying disks in a cloud native way.cStor is a very light weight
+  # and feature rich storage engine. It provides enterprise grade features
+  # such as synchronous data replication, snapshots, clones, thin provisioning
+  # of data, high resiliency of data, etc.
+  #
+  # It has two main components: cStor pool pods and cStor target pods.
+  #
+  # pool, poolMgmt, target and volumeMgmt are the containers which are deployed
+  # in the k8s cluster.
+  cstorConfig:
     pool:
       imageTag:
     poolMgmt:
@@ -170,6 +241,12 @@ spec:
     volumeMgmt:
       imageTag:
 
+  # admissionServer is an implementation of kubernetes validation admission webhook.
+  #
+  # It is used for validating various operations before proceeding with them like
+  # PVC delete operation, etc.
+  #
+  # It is deployed as a deployment in k8s cluster.
   admissionServer:
     enabled:
     imageTag:
@@ -179,16 +256,31 @@ spec:
     tolerations:
     affinity:
 
+  # helper consists of alpine based linux utils docker image used for
+  # launching helper jobs.
   helper:
     imageTag:
 
+  # policies consists of the various policies supported by OpenEBS such as
+  # monitoring.
+  #
+  # It stores the config such as which all policies are enabled and what are the
+  # image tags that should be used for deploying the containers in the k8s cluster.
+  #
+  # Currently, only monitoring policy is supported which is deployed as m-exporter
+  # container.
   policies:
     monitoring:
       enabled:
       imageTag:
 
+  # analytics is used for enabling/disabling google analytics. If set to true, it
+  # sends anonymous usage events to Google Analytics
+  #
+  # It is set to true by default.
   analytics:
     enabled:
+
     # Specify in hours the duration after which a ping event needs to be sent.
     pingInterval: "24h"
 
@@ -197,11 +289,8 @@ spec:
   # optional flags where timeout could be the maximum seconds to wait
   # at any given step.
   options:
+
 status:
-    # Init - Not yet started
-    # InProgress - Installation/Upgrade/UnInstallation is in progress
-    # Error - Installation/Upgrade/UnInstallation resulted in some
-    #         failures
-    # Success - Installation/Upgrade/UnInstallation is successful
+    # Online and Error could be some of the phases
     phase:
-    conditions:
+    reason:

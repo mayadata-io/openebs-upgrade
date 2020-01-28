@@ -27,8 +27,9 @@ func (r *Reconciler) setSnapshotOperatorDefaultsIfNotSet() error {
 	if r.OpenEBS.Spec.SnapshotOperator == nil {
 		r.OpenEBS.Spec.SnapshotOperator = &types.SnapshotOperator{}
 	}
-	if r.OpenEBS.Spec.SnapshotOperator.Enabled == "" {
-		r.OpenEBS.Spec.SnapshotOperator.Enabled = types.True
+	if r.OpenEBS.Spec.SnapshotOperator.Enabled == nil {
+		r.OpenEBS.Spec.SnapshotOperator.Enabled = new(bool)
+		*r.OpenEBS.Spec.SnapshotOperator.Enabled = true
 	}
 	// form the snapshot-provisioner image
 	if r.OpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag == "" {

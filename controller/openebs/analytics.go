@@ -22,8 +22,9 @@ func (r *Reconciler) setAnalyticsDefaultsIfNotSet() error {
 	if r.OpenEBS.Spec.Analytics == nil {
 		r.OpenEBS.Spec.Analytics = &types.Analytics{}
 	}
-	if r.OpenEBS.Spec.Analytics.Enabled == "" {
-		r.OpenEBS.Spec.Analytics.Enabled = types.True
+	if r.OpenEBS.Spec.Analytics.Enabled == nil {
+		r.OpenEBS.Spec.Analytics.Enabled = new(bool)
+		*r.OpenEBS.Spec.Analytics.Enabled = true
 	}
 	return nil
 }

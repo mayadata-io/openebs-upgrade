@@ -28,8 +28,9 @@ func (r *Reconciler) setProvisionerDefaultsIfNotSet() error {
 	if r.OpenEBS.Spec.Provisioner == nil {
 		r.OpenEBS.Spec.Provisioner = &types.Provisioner{}
 	}
-	if r.OpenEBS.Spec.Provisioner.Enabled == "" {
-		r.OpenEBS.Spec.Provisioner.Enabled = types.True
+	if r.OpenEBS.Spec.Provisioner.Enabled == nil {
+		r.OpenEBS.Spec.Provisioner.Enabled = new(bool)
+		*r.OpenEBS.Spec.Provisioner.Enabled = true
 	}
 	if r.OpenEBS.Spec.Provisioner.ImageTag == "" {
 		r.OpenEBS.Spec.Provisioner.ImageTag = r.OpenEBS.Spec.Version
