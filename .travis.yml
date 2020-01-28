@@ -1,0 +1,30 @@
+language: go
+
+go:
+  - 1.13.5
+
+env:
+  global:
+   - REPO=quay.io/sagarkrsd/openebs-upgrade
+   - TAG=$(git describe --always --tags)
+
+sudo: required
+
+services:
+  - docker
+
+script:
+  - make && make docker-build
+
+after_success:
+  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
+      docker login $REPO -u "$DNAME" -p "$DPASS";
+      docker tag $REPO:$TAG $REPO:ci;
+      docker push $REPO:ci;
+    fi
+  - if [ -n "$TRAVIS_TAG" ]; then
+      docker login $REPO -u "$DNAME" -p "$DPASS";
+      docker push $REPO:$TRAVIS_TAG;
+      docker tag $REPO:$TRAVIS_TAG $REPO:latest;
+      docker push $REPO:latest;
+    fi

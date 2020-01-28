@@ -16,7 +16,8 @@ PWD := ${CURDIR}
 
 PACKAGE_VERSION ?= $(shell git describe --always --tags)
 
-REGISTRY ?= quay.io/openebs
+# TODO: change it to quay.io/mayadata
+REGISTRY ?= quay.io/sagarkrsd
 IMG_NAME ?= openebs-upgrade
 
 all: bin
