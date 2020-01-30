@@ -33,8 +33,9 @@ func (r *Reconciler) setAdmissionServerDefaultsIfNotSet() error {
 	// value to true.
 	// TODO: Validate the values that can be provided for this
 	// field.
-	if r.OpenEBS.Spec.AdmissionServer.Enabled == "" {
-		r.OpenEBS.Spec.AdmissionServer.Enabled = "true"
+	if r.OpenEBS.Spec.AdmissionServer.Enabled == nil {
+		r.OpenEBS.Spec.AdmissionServer.Enabled = new(bool)
+		*r.OpenEBS.Spec.AdmissionServer.Enabled = true
 	}
 	if r.OpenEBS.Spec.AdmissionServer.ImageTag == "" {
 		r.OpenEBS.Spec.AdmissionServer.ImageTag = r.OpenEBS.Spec.Version

@@ -25,8 +25,9 @@ func (r *Reconciler) setPoliciesDefaultsIfNotSet() error {
 			Monitoring: &types.Monitoring{},
 		}
 	}
-	if r.OpenEBS.Spec.Policies.Monitoring.Enabled == "" {
-		r.OpenEBS.Spec.Policies.Monitoring.Enabled = types.True
+	if r.OpenEBS.Spec.Policies.Monitoring.Enabled == nil {
+		r.OpenEBS.Spec.Policies.Monitoring.Enabled = new(bool)
+		*r.OpenEBS.Spec.Policies.Monitoring.Enabled = true
 	}
 	// form the monitoring image which is used by cstor pool exporter
 	// and volume monitor containers.

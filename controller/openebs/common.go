@@ -58,8 +58,9 @@ func (r *Reconciler) setDefaultImagePrefixIfNotSet() error {
 // setDefaultStorageConfigIfNotSet sets the defaultStorageConfig value
 // to "true" if not already set.
 func (r *Reconciler) setDefaultStorageConfigIfNotSet() error {
-	if r.OpenEBS.Spec.CreateDefaultStorageConfig == "" {
-		r.OpenEBS.Spec.CreateDefaultStorageConfig = types.True
+	if r.OpenEBS.Spec.CreateDefaultStorageConfig == nil {
+		r.OpenEBS.Spec.CreateDefaultStorageConfig = new(bool)
+		*r.OpenEBS.Spec.CreateDefaultStorageConfig = true
 	}
 	return nil
 }
@@ -121,24 +122,24 @@ func (r *Reconciler) getManifests() (map[string]string, error) {
 // TODO: Delete the components if the components are disabled after installation.
 func (r *Reconciler) removeDisabledManifests(manifests map[string]string) (
 	map[string]string, error) {
-	if strings.ToLower(r.OpenEBS.Spec.APIServer.Enabled) == types.False {
+	if *r.OpenEBS.Spec.APIServer.Enabled == false {
 		delete(manifests, types.MayaAPIServerManifestKey)
 		delete(manifests, types.MayaAPIServerServiceManifestKey)
 	}
-	if strings.ToLower(r.OpenEBS.Spec.Provisioner.Enabled) == types.False {
+	if *r.OpenEBS.Spec.Provisioner.Enabled == false {
 		delete(manifests, types.ProvisionerManifestKey)
 	}
-	if strings.ToLower(r.OpenEBS.Spec.SnapshotOperator.Enabled) == types.False {
+	if *r.OpenEBS.Spec.SnapshotOperator.Enabled == false {
 		delete(manifests, types.SnapshotOperatorManifestKey)
 	}
-	if strings.ToLower(r.OpenEBS.Spec.NDM.Enabled) == types.False {
+	if *r.OpenEBS.Spec.NDMDaemon.Enabled == false {
 		delete(manifests, types.NDMConfigManifestKey)
 		delete(manifests, types.NDMManifestKey)
 	}
-	if strings.ToLower(r.OpenEBS.Spec.NDMOperator.Enabled) == types.False {
+	if *r.OpenEBS.Spec.NDMOperator.Enabled == false {
 		delete(manifests, types.NDMOperatorManifestKey)
 	}
-	if strings.ToLower(r.OpenEBS.Spec.LocalProvisioner.Enabled) == types.False {
+	if *r.OpenEBS.Spec.LocalProvisioner.Enabled == false {
 		delete(manifests, types.LocalProvisionerManifestKey)
 	}
 
@@ -334,7 +335,7 @@ func (r *Reconciler) updateDaemonSet(YAML string) (string, error) {
 
 	switch daemonset.Name {
 	case types.NDMNameKey:
-		image = r.OpenEBS.Spec.NDM.Image
+		image = r.OpenEBS.Spec.NDMDaemon.Image
 		r.updateNDM(daemonset)
 	}
 

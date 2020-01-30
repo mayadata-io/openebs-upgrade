@@ -72,11 +72,6 @@ const (
 	// LocalProvisionerManifestKey is used to get the manifest of local pv provisioner
 	LocalProvisionerManifestKey string = LocalProvisionerNameKey + "_" + KindDeployment
 
-	// True is the value to be set against Enabled field for enabling a component
-	True string = "true"
-	// False is the value to be set against Enabled field for disabling a component
-	False string = "false"
-
 	// OpenEBSVersion150 is the OpenEBS version 1.5.0
 	OpenEBSVersion150 string = "1.5.0"
 	// OpenEBSVersion160 is the OpenEBS version 1.6.0

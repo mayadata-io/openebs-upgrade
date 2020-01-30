@@ -24,21 +24,21 @@ const (
 
 // Set the default values for JIVA.
 func (r *Reconciler) setJIVADefaultsIfNotSet() error {
-	if r.OpenEBS.Spec.Jiva == nil {
-		r.OpenEBS.Spec.Jiva = &types.Jiva{}
+	if r.OpenEBS.Spec.JivaConfig == nil {
+		r.OpenEBS.Spec.JivaConfig = &types.JivaConfig{}
 	}
 	// form the jiva image being used by jiva-controller and
 	// replica.
-	if r.OpenEBS.Spec.Jiva.ImageTag == "" {
-		r.OpenEBS.Spec.Jiva.ImageTag = r.OpenEBS.Spec.Version
+	if r.OpenEBS.Spec.JivaConfig.ImageTag == "" {
+		r.OpenEBS.Spec.JivaConfig.ImageTag = r.OpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.Jiva.Image = r.OpenEBS.Spec.ImagePrefix +
-		"jiva:" + r.OpenEBS.Spec.Jiva.ImageTag
+	r.OpenEBS.Spec.JivaConfig.Image = r.OpenEBS.Spec.ImagePrefix +
+		"jiva:" + r.OpenEBS.Spec.JivaConfig.ImageTag
 
 	// Set the default replica count for Jiva which is 3.
-	if r.OpenEBS.Spec.Jiva.Replicas == nil {
-		r.OpenEBS.Spec.Jiva.Replicas = new(int32)
-		*r.OpenEBS.Spec.Jiva.Replicas = DefaultJivaReplicaCount
+	if r.OpenEBS.Spec.JivaConfig.Replicas == nil {
+		r.OpenEBS.Spec.JivaConfig.Replicas = new(int32)
+		*r.OpenEBS.Spec.JivaConfig.Replicas = DefaultJivaReplicaCount
 	}
 	return nil
 }

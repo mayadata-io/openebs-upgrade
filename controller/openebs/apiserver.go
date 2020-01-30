@@ -38,23 +38,25 @@ func (apiServer *MayaAPIServer) updateManifest(r *Reconciler) (*MayaAPIServer, e
 		// Update the container's ENVs.
 		for i, env := range container.Env {
 			if env.Name == "OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL" {
-				env.Value = r.OpenEBS.Spec.APIServer.Sparse.Enabled
+				env.Value = strconv.FormatBool(
+					*r.OpenEBS.Spec.APIServer.CstorSparsePool.Enabled)
 			} else if env.Name == "OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG" {
-				env.Value = r.OpenEBS.Spec.CreateDefaultStorageConfig
+				env.Value = strconv.FormatBool(
+					*r.OpenEBS.Spec.CreateDefaultStorageConfig)
 			} else if env.Name == "OPENEBS_IO_JIVA_CONTROLLER_IMAGE" {
-				env.Value = r.OpenEBS.Spec.Jiva.Image
+				env.Value = r.OpenEBS.Spec.JivaConfig.Image
 			} else if env.Name == "OPENEBS_IO_JIVA_REPLICA_IMAGE" {
-				env.Value = r.OpenEBS.Spec.Jiva.Image
+				env.Value = r.OpenEBS.Spec.JivaConfig.Image
 			} else if env.Name == "OPENEBS_IO_JIVA_REPLICA_COUNT" {
-				env.Value = strconv.FormatInt(int64(*r.OpenEBS.Spec.Jiva.Replicas), 10)
+				env.Value = strconv.FormatInt(int64(*r.OpenEBS.Spec.JivaConfig.Replicas), 10)
 			} else if env.Name == "OPENEBS_IO_CSTOR_TARGET_IMAGE" {
-				env.Value = r.OpenEBS.Spec.Cstor.Target.Image
+				env.Value = r.OpenEBS.Spec.CstorConfig.Target.Image
 			} else if env.Name == "OPENEBS_IO_CSTOR_POOL_IMAGE" {
-				env.Value = r.OpenEBS.Spec.Cstor.Pool.Image
+				env.Value = r.OpenEBS.Spec.CstorConfig.Pool.Image
 			} else if env.Name == "OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE" {
-				env.Value = r.OpenEBS.Spec.Cstor.PoolMgmt.Image
+				env.Value = r.OpenEBS.Spec.CstorConfig.PoolMgmt.Image
 			} else if env.Name == "OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE" {
-				env.Value = r.OpenEBS.Spec.Cstor.VolumeMgmt.Image
+				env.Value = r.OpenEBS.Spec.CstorConfig.VolumeMgmt.Image
 			} else if env.Name == "OPENEBS_IO_VOLUME_MONITOR_IMAGE" {
 				env.Value = r.OpenEBS.Spec.Policies.Monitoring.Image
 			} else if env.Name == "OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE" {
@@ -62,7 +64,7 @@ func (apiServer *MayaAPIServer) updateManifest(r *Reconciler) (*MayaAPIServer, e
 			} else if env.Name == "OPENEBS_IO_HELPER_IMAGE" {
 				env.Value = r.OpenEBS.Spec.Helper.Image
 			} else if env.Name == "OPENEBS_IO_ENABLE_ANALYTICS" {
-				env.Value = r.OpenEBS.Spec.Analytics.Enabled
+				env.Value = strconv.FormatBool(*r.OpenEBS.Spec.Analytics.Enabled)
 			}
 			// update container with the updated ENV
 			container.Env[i] = env
@@ -79,8 +81,9 @@ func (r *Reconciler) setAPIServerDefaultsIfNotSet() error {
 	if r.OpenEBS.Spec.APIServer == nil {
 		r.OpenEBS.Spec.APIServer = &types.APIServer{}
 	}
-	if r.OpenEBS.Spec.APIServer.Enabled == "" {
-		r.OpenEBS.Spec.APIServer.Enabled = types.True
+	if r.OpenEBS.Spec.APIServer.Enabled == nil {
+		r.OpenEBS.Spec.APIServer.Enabled = new(bool)
+		*r.OpenEBS.Spec.APIServer.Enabled = true
 	}
 	if r.OpenEBS.Spec.APIServer.ImageTag == "" {
 		r.OpenEBS.Spec.APIServer.ImageTag = r.OpenEBS.Spec.Version
@@ -89,12 +92,13 @@ func (r *Reconciler) setAPIServerDefaultsIfNotSet() error {
 	r.OpenEBS.Spec.APIServer.Image = r.OpenEBS.Spec.ImagePrefix + "m-apiserver:" +
 		r.OpenEBS.Spec.APIServer.ImageTag
 
-	if r.OpenEBS.Spec.APIServer.Sparse == nil {
-		r.OpenEBS.Spec.APIServer.Sparse = &types.SparsePools{}
+	if r.OpenEBS.Spec.APIServer.CstorSparsePool == nil {
+		r.OpenEBS.Spec.APIServer.CstorSparsePool = &types.CstorSparsePool{}
 	}
 	// Sparse pools will be disabled by default.
-	if r.OpenEBS.Spec.APIServer.Sparse.Enabled == "" {
-		r.OpenEBS.Spec.APIServer.Sparse.Enabled = types.False
+	if r.OpenEBS.Spec.APIServer.CstorSparsePool.Enabled == nil {
+		r.OpenEBS.Spec.APIServer.CstorSparsePool.Enabled = new(bool)
+		*r.OpenEBS.Spec.APIServer.CstorSparsePool.Enabled = false
 	}
 	if r.OpenEBS.Spec.APIServer.Replicas == nil {
 		r.OpenEBS.Spec.APIServer.Replicas = new(int32)
