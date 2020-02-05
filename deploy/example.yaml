@@ -32,12 +32,28 @@ spec:
   # images.
   # Note: This field should be used when user has pulled and pushed
   # the images to a custom registry.
-  imagePrefix: "quay.io/openebs"
+  imagePrefix: "quay.io/openebs/"
 
   # Defaults to IfNotPresent
   # Note: This policy will be applicable to all the images being used
   # for OpenEBS components.
   imagePullPolicy: "IfNotPresent"
+
+  # resources can be used to specify the resource requests of the containers
+  # of the OpenEBS components in terms of CPU and Memory
+  #
+  # resources provided at this level i.e., .spec.resources will be applicable
+  # to all the containers of all the components.
+  #
+  # This can be overrided by providing it for a particular component in the
+  # component's specified section, for example, inside apiServer.
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "250m"
+    limits:
+      memory: "128Mi"
+      cpu: "500m"
 
   # apiServer store the configuration for maya-apiserver
   #
@@ -67,6 +83,21 @@ spec:
     # Defaults to 1.
     replicas: 1
 
+    # resources can be used to specify the resource requests of the containers
+    # of the OpenEBS components in terms of CPU and Memory
+    #
+    # resources provided at this level i.e., .spec.apiServer.resources will
+    # override the resource requests if provided at the .spec.resources level
+    # for this component.
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "250m"
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+
+
     # cstorSparsePool specifies the config for cstor sparse pools i.e., whether it
     # should be created by default or not when OpenEBS gets
     # installed.
@@ -87,15 +118,21 @@ spec:
     # nodeSelector specifies on which nodes the pods of this
     # component can be scheduled.
     #
-    # Default to nil i.e., all the nodes present in the cluster
-    # i.e., the pods can be scheduled anywhere in the cluster.
+    # If not provided, pods of the component can be scheduled on all
+    # the available nodes.
     nodeSelector:
 
     # tolerations can be used if we want the pods of this component
-    # to tolerate some of the taints of nodes.
+    # to tolerate some or all of the taints of nodes.
     #
-    # Default to nil
+    # If not provided, it will not tolerate any of the taints on the node.
     tolerations:
+
+    # affinity should be provided in the same way we provide affinity for a
+    # deployment/daemonset. It can also be used for scheduling nodes on a
+    # particular set of nodes or even for not scheduling nodes on a particular
+    # set of nodes.
+    affinity:
 
   # provisioner stores the configuration for OpenEBS provisioner
   #
@@ -107,8 +144,10 @@ spec:
     enabled: true
     imageTag:
     replicas: 1
+    resources:
     nodeSelector:
     tolerations:
+    affinity:
 
   # localProvisioner stores the configuration for OpenEBS local
   # provisioner
@@ -121,8 +160,10 @@ spec:
     enabled: true
     imageTag:
     replicas: 1
+    resources:
     nodeSelector:
     tolerations:
+    affinity:
 
   # snapshotOperator stores the configuration for snapshot operator
   #
@@ -137,8 +178,10 @@ spec:
     provisioner:
       imageTag:
     replicas: 1
+    resources:
     nodeSelector:
     tolerations:
+    affinity:
 
   # ndmDaemon stores the configuration for node-disk-manager daemonset
   #
@@ -152,6 +195,7 @@ spec:
     enabled: true
     imageTag:
     replicas: 1
+    resources:
 
     # sparse stores the configuration for sparse files.
     #
@@ -189,10 +233,15 @@ spec:
     # probes can be used to configure ndm probes such as Seachest,
     # smart, capacity, etc.
     probes:
-      enable:
-      - seachest
+      udev:
+        enabled: true
+      smart:
+        enabled: true
+      seachest:
+        enabled: false
     nodeSelector:
     tolerations:
+    affinity:
 
   # ndmOperator stores the configuration for ndm operator
   #
@@ -204,8 +253,10 @@ spec:
     enabled: true
     imageTag:
     replicas: 1
+    resources:
     nodeSelector:
     tolerations:
+    affinity:
 
   # jivaConfig stores the configuration for Jiva: CAS Data Engine
   #
@@ -252,6 +303,7 @@ spec:
     imageTag:
     failurePolicy:
     replicas:
+    resources:
     nodeSelector:
     tolerations:
     affinity:

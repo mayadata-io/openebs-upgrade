@@ -197,6 +197,9 @@ func (r *Reconciler) updateDeployment(YAML string) (string, error) {
 		controllerImage  string
 	)
 	nodeSelector := make(map[string]string)
+	tolerations := []corev1.Toleration{}
+	affinity := &corev1.Affinity{}
+	resources := &corev1.ResourceRequirements{}
 	deployment := &appsv1.Deployment{}
 	err := yaml.Unmarshal([]byte(YAML), deployment)
 	if err != nil {
@@ -219,34 +222,51 @@ func (r *Reconciler) updateDeployment(YAML string) (string, error) {
 			return "", err
 		}
 		deployment = mayaAPIServer.Object
+		resources = r.OpenEBS.Spec.APIServer.Resources
 		nodeSelector = r.OpenEBS.Spec.APIServer.NodeSelector
+		tolerations = r.OpenEBS.Spec.APIServer.Tolerations
+		affinity = r.OpenEBS.Spec.APIServer.Affinity
 
 	case types.ProvisionerNameKey:
 		replicas = r.OpenEBS.Spec.Provisioner.Replicas
 		image = r.OpenEBS.Spec.Provisioner.Image
+		resources = r.OpenEBS.Spec.Provisioner.Resources
 		nodeSelector = r.OpenEBS.Spec.Provisioner.NodeSelector
+		tolerations = r.OpenEBS.Spec.Provisioner.Tolerations
+		affinity = r.OpenEBS.Spec.Provisioner.Affinity
 
 	case types.SnapshotOperatorNameKey:
 		replicas = r.OpenEBS.Spec.SnapshotOperator.Replicas
 		provisionerImage = r.OpenEBS.Spec.SnapshotOperator.Provisioner.Image
 		controllerImage = r.OpenEBS.Spec.SnapshotOperator.Controller.Image
+		resources = r.OpenEBS.Spec.SnapshotOperator.Resources
 		nodeSelector = r.OpenEBS.Spec.SnapshotOperator.NodeSelector
+		tolerations = r.OpenEBS.Spec.SnapshotOperator.Tolerations
+		affinity = r.OpenEBS.Spec.SnapshotOperator.Affinity
 
 	case types.NDMOperatorNameKey:
 		replicas = r.OpenEBS.Spec.NDMOperator.Replicas
 		image = r.OpenEBS.Spec.NDMOperator.Image
+		resources = r.OpenEBS.Spec.NDMOperator.Resources
 		nodeSelector = r.OpenEBS.Spec.NDMOperator.NodeSelector
+		tolerations = r.OpenEBS.Spec.NDMOperator.Tolerations
+		affinity = r.OpenEBS.Spec.NDMOperator.Affinity
 
 	case types.LocalProvisionerNameKey:
 		replicas = r.OpenEBS.Spec.LocalProvisioner.Replicas
 		image = r.OpenEBS.Spec.LocalProvisioner.Image
+		resources = r.OpenEBS.Spec.LocalProvisioner.Resources
 		nodeSelector = r.OpenEBS.Spec.LocalProvisioner.NodeSelector
+		tolerations = r.OpenEBS.Spec.LocalProvisioner.Tolerations
+		affinity = r.OpenEBS.Spec.LocalProvisioner.Affinity
 
 	case types.AdmissionServerNameKey:
 		replicas = r.OpenEBS.Spec.AdmissionServer.Replicas
 		image = r.OpenEBS.Spec.AdmissionServer.Image
+		resources = r.OpenEBS.Spec.AdmissionServer.Resources
 		nodeSelector = r.OpenEBS.Spec.AdmissionServer.NodeSelector
-
+		tolerations = r.OpenEBS.Spec.AdmissionServer.Tolerations
+		affinity = r.OpenEBS.Spec.AdmissionServer.Affinity
 	}
 
 	// update the replica count only if it is greater than 1 since the
@@ -258,6 +278,11 @@ func (r *Reconciler) updateDeployment(YAML string) (string, error) {
 	}
 	for i, container := range deployment.Spec.Template.Spec.Containers {
 		container.ImagePullPolicy = r.OpenEBS.Spec.ImagePullPolicy
+		if resources != nil {
+			container.Resources = *resources
+		} else if r.OpenEBS.Spec.Resources != nil {
+			container.Resources = *r.OpenEBS.Spec.Resources
+		}
 		// Explicitly checking for openebs-snapshot-operator in order to update
 		// its multiple containers.
 		// TODO: handle multiple container update cases in a better way, this seems
@@ -276,6 +301,14 @@ func (r *Reconciler) updateDeployment(YAML string) (string, error) {
 	// update the nodeSelector value
 	if nodeSelector != nil {
 		deployment.Spec.Template.Spec.NodeSelector = nodeSelector
+	}
+	// update the tolerations if any
+	if len(tolerations) > 0 {
+		deployment.Spec.Template.Spec.Tolerations = tolerations
+	}
+	// update affinity if set
+	if affinity != nil {
+		deployment.Spec.Template.Spec.Affinity = affinity
 	}
 
 	rawDeployment, err := yaml.Marshal(deployment)
@@ -326,6 +359,10 @@ func (r *Reconciler) updateDaemonSet(YAML string) (string, error) {
 	var (
 		image string
 	)
+	resources := &corev1.ResourceRequirements{}
+	nodeSelector := make(map[string]string)
+	tolerations := []corev1.Toleration{}
+	affinity := &corev1.Affinity{}
 	daemonset := &appsv1.DaemonSet{}
 	err := yaml.Unmarshal([]byte(YAML), daemonset)
 	if err != nil {
@@ -336,6 +373,10 @@ func (r *Reconciler) updateDaemonSet(YAML string) (string, error) {
 	switch daemonset.Name {
 	case types.NDMNameKey:
 		image = r.OpenEBS.Spec.NDMDaemon.Image
+		resources = r.OpenEBS.Spec.NDMDaemon.Resources
+		nodeSelector = r.OpenEBS.Spec.NDMDaemon.NodeSelector
+		tolerations = r.OpenEBS.Spec.NDMDaemon.Tolerations
+		affinity = r.OpenEBS.Spec.NDMDaemon.Affinity
 		r.updateNDM(daemonset)
 	}
 
@@ -343,8 +384,26 @@ func (r *Reconciler) updateDaemonSet(YAML string) (string, error) {
 	for i, container := range daemonset.Spec.Template.Spec.Containers {
 		container.ImagePullPolicy = r.OpenEBS.Spec.ImagePullPolicy
 		container.Image = image
+		if resources != nil {
+			container.Resources = *resources
+		} else if r.OpenEBS.Spec.Resources != nil {
+			container.Resources = *r.OpenEBS.Spec.Resources
+		}
 
 		daemonset.Spec.Template.Spec.Containers[i] = container
+	}
+
+	// update the nodeSelector value
+	if nodeSelector != nil {
+		daemonset.Spec.Template.Spec.NodeSelector = nodeSelector
+	}
+	// update the tolerations if any
+	if len(tolerations) > 0 {
+		daemonset.Spec.Template.Spec.Tolerations = tolerations
+	}
+	// update affinity if set
+	if affinity != nil {
+		daemonset.Spec.Template.Spec.Affinity = affinity
 	}
 
 	rawDaemonSet, err := yaml.Marshal(daemonset)

@@ -61,6 +61,16 @@ type OpenEBSSpec struct {
 	// for OpenEBS components.
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy"`
 
+	// Resources can be used to specify the resource requests of the containers
+	// of the OpenEBS components in terms of CPU and Memory
+	//
+	// resources provided at this level i.e., .spec.resources will be applicable
+	// to all the containers of all the components.
+	//
+	// This can be overrided by providing it for a particular component in the
+	// component's specified section, for example, inside apiServer.
+	Resources *corev1.ResourceRequirements `json:"resources"`
+
 	// All the OpenEBS components that will get installed/updated.
 	Components `json:",inline"`
 }
@@ -118,11 +128,12 @@ type Analytics struct {
 // component such as it it is enabled or not, no of
 // replicas, nodeselector, etc.
 type Component struct {
-	Enabled      *bool               `json:"enabled"`
-	Replicas     *int32              `json:"replicas"`
-	NodeSelector map[string]string   `json:"nodeSelector"`
-	Tolerations  []corev1.Toleration `json:"tolerations"`
-	Affinity     *corev1.Affinity    `json:"affinity"`
+	Enabled      *bool                        `json:"enabled"`
+	Replicas     *int32                       `json:"replicas"`
+	Resources    *corev1.ResourceRequirements `json:"resources"`
+	NodeSelector map[string]string            `json:"nodeSelector"`
+	Tolerations  []corev1.Toleration          `json:"tolerations"`
+	Affinity     *corev1.Affinity             `json:"affinity"`
 }
 
 // APIServer store the configuration for maya-apiserver
