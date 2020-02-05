@@ -48,9 +48,13 @@ func (r *Reconciler) setDefaultStoragePathIfNotSet() error {
 
 // setDefaultImagePrefixIfNotSet sets the default registry prefix for
 // all the container images if not already set.
+// It also checks if the given image registry ends with a forward slash
+// or not, if not then it adds one.
 func (r *Reconciler) setDefaultImagePrefixIfNotSet() error {
 	if r.OpenEBS.Spec.ImagePrefix == "" {
 		r.OpenEBS.Spec.ImagePrefix = "quay.io/openebs/"
+	} else if !strings.HasSuffix(r.OpenEBS.Spec.ImagePrefix, "/") {
+		r.OpenEBS.Spec.ImagePrefix = r.OpenEBS.Spec.ImagePrefix + "/"
 	}
 	return nil
 }
