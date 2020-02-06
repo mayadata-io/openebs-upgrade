@@ -332,9 +332,9 @@ type OpenEBSStatus struct {
 type OpenEBSStatusPhase string
 
 const (
-	// OpenEBSStatusPhaseError indicates error in
+	// OpenEBSStatusPhaseFailed indicates error in
 	// OpenEBS
-	OpenEBSStatusPhaseError OpenEBSStatusPhase = "Error"
+	OpenEBSStatusPhaseFailed OpenEBSStatusPhase = "Failed"
 
 	// OpenEBSStatusPhaseOnline indicates
 	// OpenEBS in Online state i.e. no error or warning

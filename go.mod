@@ -9,7 +9,7 @@ require (
 	k8s.io/api v0.17.0
 	k8s.io/apimachinery v0.17.0
 	k8s.io/client-go v0.17.0
-	openebs.io/metac v0.1.1-0.20200122022231-6cec7468b84a
+	openebs.io/metac v0.1.1-0.20200207112147-5bfc4b3f4af9
 )
 
-replace openebs.io/metac => github.com/AmitKumarDas/metac v0.1.1-0.20200122022231-6cec7468b84a
+replace openebs.io/metac => github.com/AmitKumarDas/metac v0.1.1-0.20200207112147-5bfc4b3f4af9
