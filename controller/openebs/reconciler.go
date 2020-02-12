@@ -16,7 +16,6 @@ package openebs
 import (
 	"encoding/json"
 
-	"mayadata.io/openebs-upgrade/k8s"
 	"mayadata.io/openebs-upgrade/pkg/utils/metac"
 	"mayadata.io/openebs-upgrade/types"
 
@@ -27,6 +26,11 @@ import (
 )
 
 type reconcileErrHandler struct {
+	openebs      *unstructured.Unstructured
+	hookResponse *generic.SyncHookResponse
+}
+
+type reconcileSuccessHandler struct {
 	openebs      *unstructured.Unstructured
 	hookResponse *generic.SyncHookResponse
 }
@@ -42,32 +46,21 @@ func (h *reconcileErrHandler) handle(err error) {
 		"Failed to reconcile OpenEBS %s %s: %+v",
 		h.openebs.GetNamespace(), h.openebs.GetName(), err,
 	)
-
-	conds, mergeErr :=
-		k8s.MergeStatusConditions(
-			h.openebs, types.MakeOpenEBSReconcileErrCond(err),
-		)
-	if mergeErr != nil {
-		glog.Errorf(
-			"Failed to reconcile OpenEBS %s %s: Can't set status conditions: %+v",
-			h.openebs.GetNamespace(), h.openebs.GetName(), mergeErr,
-		)
-		// Note: Merge error will reset the conditions which will make
-		// things worse since various controllers will be reconciling
-		// based on these conditions.
-		//
-		// Hence it is better to set response status as nil to let metac
-		// preserve old status conditions if any.
-		h.hookResponse.Status = nil
-	} else {
-		// response status will be set against the watch's status by metac
-		h.hookResponse.Status = map[string]interface{}{}
-		h.hookResponse.Status["phase"] = types.OpenEBSStatusPhaseError
-		h.hookResponse.Status["conditions"] = conds
-	}
+	// response status will be set against the watch's status by metac
+	h.hookResponse.Status = map[string]interface{}{}
+	h.hookResponse.Status["phase"] = types.OpenEBSStatusPhaseFailed
+	h.hookResponse.Status["reason"] = err.Error()
 	// this will stop further reconciliation at metac since there was
 	// an error
 	h.hookResponse.SkipReconcile = true
+}
+
+// This method is being used for setting the success response
+// against watch's status by metac.
+func (h *reconcileSuccessHandler) handle() {
+	// response status will be set against the watch's status by metac
+	h.hookResponse.Status = map[string]interface{}{}
+	h.hookResponse.Status["phase"] = types.OpenEBSStatusPhaseOnline
 }
 
 // Sync implements the idempotent logic to reconcile OpenEBS
@@ -163,6 +156,13 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		request.Watch.GetNamespace(), request.Watch.GetName(),
 		metac.GetDetailsFromResponse(response),
 	)
+
+	// construct the success handler
+	successHandler := &reconcileSuccessHandler{
+		openebs:      request.Watch,
+		hookResponse: response,
+	}
+	successHandler.handle()
 
 	return nil
 }

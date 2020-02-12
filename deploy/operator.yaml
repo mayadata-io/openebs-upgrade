@@ -23,7 +23,7 @@ spec:
         args:
         - --logtostderr
         - --run-as-local
-        - -v=4
+        - -v=5
         - --discovery-interval=40s
         - --cache-flush-interval=240s
         resources:
