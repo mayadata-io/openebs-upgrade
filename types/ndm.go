@@ -18,6 +18,8 @@ const (
 	NDMVersion045 string = "v0.4.5"
 	// NDMVersion046 is the NDM version 0.4.6
 	NDMVersion046 string = "v0.4.6"
+	// NDMVersion047 is the NDM version 0.4.7
+	NDMVersion047 string = "v0.4.7"
 	// DefaultNDMSparseSize is the default size for NDM Sparse
 	DefaultNDMSparseSize string = "10737418240"
 	// DefaultNDMSparseCount is the default count for NDM sparse
