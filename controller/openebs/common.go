@@ -90,6 +90,8 @@ func (r *Reconciler) getManifests() (map[string]string, error) {
 		yamlFile = "/templates/openebs-operator-1.6.0.yaml"
 	case types.OpenEBSVersion170:
 		yamlFile = "/templates/openebs-operator-1.7.0.yaml"
+	case types.OpenEBSVersion180:
+		yamlFile = "/templates/openebs-operator-1.8.0.yaml"
 	default:
 		return componentsYAMLMap, errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", r.OpenEBS.Spec.Version)
