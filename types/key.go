@@ -78,4 +78,6 @@ const (
 	OpenEBSVersion160 string = "1.6.0"
 	// OpenEBSVersion170 is the OpenEBS version 1.7.0
 	OpenEBSVersion170 string = "1.7.0"
+	// OpenEBSVersion180 is the OpenEBS version 1.8.0
+	OpenEBSVersion180 string = "1.8.0"
 )
