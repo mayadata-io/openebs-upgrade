@@ -112,7 +112,7 @@ func (p *Planner) getManifests() error {
 
 	// append the cstor csi yaml in openebs operator yaml.
 	yamlData := string(data) + cStorCSIYaml
-	
+
 	// form the mapping from component's "name_kind" as key to YAML
 	// string as value using operator yaml.
 	componentsYAML := strings.Split(yamlData, "---")
@@ -150,15 +150,13 @@ func (r *Reconciler) getCStorCSIManifests() (string, error) {
 
 	switch true {
 	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES12)):
-		yamlFile = "/templates/csi-operator-" + r.OpenEBS.Spec.Version + "-sles-12.yaml"
+		yamlFile = types.CSIOperatorFilePrefix + r.OpenEBS.Spec.Version + types.CSIOperatorSUSE12FileSuffix
 	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES15)):
-		yamlFile = "/templates/csi-operator-" + r.OpenEBS.Spec.Version + "-sles-15.yaml"
-	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageUbuntu1604)):
-		yamlFile = "/templates/csi-operator-" + r.OpenEBS.Spec.Version + ".yaml"
+		yamlFile = types.CSIOperatorFilePrefix + r.OpenEBS.Spec.Version + types.CSIOperatorSUSE15FileSuffix
 	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageUbuntu1804)):
-		yamlFile = "/templates/csi-operator-" + r.OpenEBS.Spec.Version + "-ubuntu-18.04.yaml"
+		yamlFile = types.CSIOperatorFilePrefix + r.OpenEBS.Spec.Version + types.CSIOperatorUbuntu1804FileSuffix
 	default:
-		yamlFile = "/templates/csi-operator-" + r.OpenEBS.Spec.Version + ".yaml"
+		yamlFile = types.CSIOperatorFilePrefix + r.OpenEBS.Spec.Version + types.CSIOperatorFileSuffix
 	}
 
 	data, err := ioutil.ReadFile(yamlFile)

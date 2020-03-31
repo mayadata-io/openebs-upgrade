@@ -161,10 +161,19 @@ const (
 
 	// OSImageUbuntu1804 is the OS Image value of a Node.
 	OSImageUbuntu1804 string = "Ubuntu 18.04"
-	// OSImageUbuntu1604 is the OS Image value of a Node.
-	OSImageUbuntu1604 string = "Ubuntu 16.04"
 	// OSImageSLES12 is the OS Image value of a Node.
 	OSImageSLES12 string = "SUSE Linux Enterprise Server 12"
 	// OSImageSLES15 is the OS Image value of a Node.
 	OSImageSLES15 string = "SUSE Linux Enterprise Server 15"
+
+	// CSIOperatorFilePrefix is the csi operator file path prefix.
+	CSIOperatorFilePrefix = "/templates/csi-operator-"
+	// CSIOperatorFileSuffix is the csi operator file path suffix.
+	CSIOperatorFileSuffix = ".yaml"
+	// CSIOperatorSUSE12FileSuffix is the csi operator file for suse 12 path suffix.
+	CSIOperatorSUSE12FileSuffix = "-sles-12.yaml"
+	// CSIOperatorSUSE15FileSuffix is the csi operator file for suse 15 path suffix.
+	CSIOperatorSUSE15FileSuffix = "-sles-15.yaml"
+	// CSIOperatorUbuntu1804FileSuffix is the csi operator file for ubuntu 18.04 path suffix.
+	CSIOperatorUbuntu1804FileSuffix = "-ubuntu-18.04.yaml"
 )
