@@ -81,6 +81,8 @@ type BasicComponentDetails struct {
 func (p *Planner) getManifests() error {
 	componentsYAMLMap := make(map[string]*unstructured.Unstructured)
 	var yamlFile string
+	var cStorCSIYaml string
+	var err error
 
 	switch p.ObservedOpenEBS.Spec.Version {
 	case types.OpenEBSVersion150:
@@ -91,6 +93,13 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-1.7.0.yaml"
 	case types.OpenEBSVersion180:
 		yamlFile = "/templates/openebs-operator-1.8.0.yaml"
+	case types.OpenEBSVersion190:
+		yamlFile = "/templates/openebs-operator-1.9.0.yaml"
+		cStorCSIYaml, err = r.getCStorCSIManifests()
+		if err != nil {
+			return componentsYAMLMap, errors.Errorf(
+				"Error getting CStor CSI YAML file for version %s: %+v", r.OpenEBS.Spec.Version, err)
+		}
 	default:
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
@@ -100,9 +109,13 @@ func (p *Planner) getManifests() error {
 		return errors.Errorf(
 			"Error reading YAML file for version %s: %+v", p.ObservedOpenEBS.Spec.Version, err)
 	}
+
+	// append the cstor csi yaml in openebs operator yaml.
+	yamlData := string(data) + cStorCSIYaml
+	
 	// form the mapping from component's "name_kind" as key to YAML
 	// string as value using operator yaml.
-	componentsYAML := strings.Split(string(data), "---")
+	componentsYAML := strings.Split(yamlData, "---")
 	for _, componentYAML := range componentsYAML {
 		if componentYAML == "" {
 			continue
@@ -123,6 +136,38 @@ func (p *Planner) getManifests() error {
 	}
 	p.ComponentManifests = componentsYAMLMap
 	return nil
+}
+
+// getCStorCSIManifests returns the yaml of cstor csi operator and driver.
+// TODO: add logic for OS images above ubuntu 18.04 means return the same yaml for ubuntu 18.04 and above.
+func (r *Reconciler) getCStorCSIManifests() (string, error) {
+	osImage, err := k8s.GetOSImageOfNode()
+	if err != nil {
+		return "", errors.Errorf("Error getting OS Image of a Node, error: %+v", err)
+	}
+
+	var yamlFile string
+
+	switch true {
+	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES12)):
+		yamlFile = "/templates/csi-operator-" + r.OpenEBS.Spec.Version + "-sles-12.yaml"
+	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES15)):
+		yamlFile = "/templates/csi-operator-" + r.OpenEBS.Spec.Version + "-sles-15.yaml"
+	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageUbuntu1604)):
+		yamlFile = "/templates/csi-operator-" + r.OpenEBS.Spec.Version + ".yaml"
+	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageUbuntu1804)):
+		yamlFile = "/templates/csi-operator-" + r.OpenEBS.Spec.Version + "-ubuntu-18.04.yaml"
+	default:
+		yamlFile = "/templates/csi-operator-" + r.OpenEBS.Spec.Version + ".yaml"
+	}
+
+	data, err := ioutil.ReadFile(yamlFile)
+	if err != nil {
+		return "", errors.Errorf(
+			"Error reading cStor CSI YAML file for OS Image %s: %+v", osImage, err)
+	}
+
+	return string(data), nil
 }
 
 // removeDisabledManifests removes the manifests which are disabled so that
@@ -151,6 +196,28 @@ func (p *Planner) removeDisabledManifests() error {
 	}
 	if *p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled == false {
 		delete(p.ComponentManifests, types.LocalProvisionerManifestKey)
+	}
+	if *r.OpenEBS.Spec.CstorConfig.CStorCSI.Enabled == false {
+		delete(manifests, types.CSINodeInfoCRDManifestKey)
+		delete(manifests, types.CSIVolumeCRDManifestKey)
+		delete(manifests, types.VolumeSnapshotClassCRDManifestKey)
+		delete(manifests, types.VolumeSnapshotContentCRDManifestKey)
+		delete(manifests, types.VolumeSnapshotCRDManifestKey)
+		delete(manifests, types.CStorCSISnapshottterBindingManifestKey)
+		delete(manifests, types.CStorCSISnapshottterRoleManifestKey)
+		delete(manifests, types.CStorCSIControllerSAManifestKey)
+		delete(manifests, types.CStorCSIProvisionerRoleManifestKey)
+		delete(manifests, types.CStorCSIProvisionerBindingManifestKey)
+		delete(manifests, types.CStorCSIControllerManifestKey)
+		delete(manifests, types.CStorCSIAttacherRoleManifestKey)
+		delete(manifests, types.CStorCSIAttacherBindingManifestKey)
+		delete(manifests, types.CStorCSIClusterRegistrarRoleManifestKey)
+		delete(manifests, types.CStorCSIClusterRegistrarBindingManifestKey)
+		delete(manifests, types.CStorCSIRegistrarRoleManifestKey)
+		delete(manifests, types.CStorCSIRegistrarBindingManifestKey)
+		delete(manifests, types.CStorCSINodeManifestKey)
+		delete(manifests, types.CStorCSIDriverManifestKey)
+		delete(manifests, types.CStorCSISnapshotClassManifestKey)
 	}
 
 	return nil

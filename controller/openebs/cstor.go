@@ -50,5 +50,10 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-volume-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag
 
+	if r.OpenEBS.Spec.CstorConfig.CStorCSI.Enabled == nil {
+		r.OpenEBS.Spec.CstorConfig.CStorCSI.Enabled = new(bool)
+		*r.OpenEBS.Spec.CstorConfig.CStorCSI.Enabled = true
+	}
+
 	return nil
 }

@@ -298,11 +298,13 @@ type JivaConfig struct {
 //
 // pool, poolMgmt, target and volumeMgmt are the containers which are deployed
 // in the k8s cluster.
+// CStorCSI is the configuration for deploying cstor csi operator and driver.
 type CstorConfig struct {
 	Pool       Container `json:"pool"`
 	PoolMgmt   Container `json:"poolMgmt"`
 	Target     Container `json:"target"`
 	VolumeMgmt Container `json:"volumeMgmt"`
+	CStorCSI   CStorCSI  `json:"cstorCSI"`
 }
 
 // Container stores the details of a container
@@ -346,4 +348,9 @@ type OpenEBSStatusCondition struct {
 	Status           ConditionState `json:"status"`
 	Reason           string         `json:"reason,omitempty"`
 	LastObservedTime string         `json:"lastObservedTime"`
+}
+
+// CStorCSI stores the configuration for cstor csi operator and driver.
+type CStorCSI struct {
+	Enabled *bool `json:"enabled"`
 }
