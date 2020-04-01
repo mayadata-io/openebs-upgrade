@@ -16,8 +16,9 @@ package openebs
 import (
 	"strconv"
 
-	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
+	"mayadata.io/openebs-upgrade/unstruct"
 )
 
 const (
@@ -26,83 +27,118 @@ const (
 	DefaultAPIServerReplicaCount int32 = 1
 )
 
-// MayaAPIServer is a wrapper over k8s deployment structure.
-type MayaAPIServer struct {
-	Object *appsv1.Deployment `json:"object"`
-}
-
-// updateManifest updates the MayaAPIServer manifest as per the reconciler.OpenEBS values.
-func (apiServer *MayaAPIServer) updateManifest(r *Reconciler) (*MayaAPIServer, error) {
-	// Update the container values
-	for i, container := range apiServer.Object.Spec.Template.Spec.Containers {
-		// Update the container's ENVs.
-		for i, env := range container.Env {
-			if env.Name == "OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL" {
-				env.Value = strconv.FormatBool(
-					*r.OpenEBS.Spec.APIServer.CstorSparsePool.Enabled)
-			} else if env.Name == "OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG" {
-				env.Value = strconv.FormatBool(
-					*r.OpenEBS.Spec.CreateDefaultStorageConfig)
-			} else if env.Name == "OPENEBS_IO_JIVA_CONTROLLER_IMAGE" {
-				env.Value = r.OpenEBS.Spec.JivaConfig.Image
-			} else if env.Name == "OPENEBS_IO_JIVA_REPLICA_IMAGE" {
-				env.Value = r.OpenEBS.Spec.JivaConfig.Image
-			} else if env.Name == "OPENEBS_IO_JIVA_REPLICA_COUNT" {
-				env.Value = strconv.FormatInt(int64(*r.OpenEBS.Spec.JivaConfig.Replicas), 10)
-			} else if env.Name == "OPENEBS_IO_CSTOR_TARGET_IMAGE" {
-				env.Value = r.OpenEBS.Spec.CstorConfig.Target.Image
-			} else if env.Name == "OPENEBS_IO_CSTOR_POOL_IMAGE" {
-				env.Value = r.OpenEBS.Spec.CstorConfig.Pool.Image
-			} else if env.Name == "OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE" {
-				env.Value = r.OpenEBS.Spec.CstorConfig.PoolMgmt.Image
-			} else if env.Name == "OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE" {
-				env.Value = r.OpenEBS.Spec.CstorConfig.VolumeMgmt.Image
-			} else if env.Name == "OPENEBS_IO_VOLUME_MONITOR_IMAGE" {
-				env.Value = r.OpenEBS.Spec.Policies.Monitoring.Image
-			} else if env.Name == "OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE" {
-				env.Value = r.OpenEBS.Spec.Policies.Monitoring.Image
-			} else if env.Name == "OPENEBS_IO_HELPER_IMAGE" {
-				env.Value = r.OpenEBS.Spec.Helper.Image
-			} else if env.Name == "OPENEBS_IO_ENABLE_ANALYTICS" {
-				env.Value = strconv.FormatBool(*r.OpenEBS.Spec.Analytics.Enabled)
-			}
-			// update container with the updated ENV
-			container.Env[i] = env
-		}
-		// Update the APIServer container with updated container values
-		apiServer.Object.Spec.Template.Spec.Containers[i] = container
+// updateMayaAPIServer updates the MayaAPIServer manifest as per the reconcile.ObservedOpenEBS values.
+func (p *Planner) updateMayaAPIServer(deploy *unstructured.Unstructured) error {
+	// get the containers of the maya-apiserver and update the desired fields
+	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
 	}
-	return apiServer, nil
+	// update the env value of containers
+	updateEnv := func(env *unstructured.Unstructured) error {
+		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if envName == "OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL" {
+			unstructured.SetNestedField(env.Object, strconv.FormatBool(
+				*p.ObservedOpenEBS.Spec.APIServer.CstorSparsePool.Enabled), "spec", "value")
+		} else if envName == "OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG" {
+			unstructured.SetNestedField(env.Object, strconv.FormatBool(
+				*p.ObservedOpenEBS.Spec.CreateDefaultStorageConfig), "spec", "value")
+		} else if envName == "OPENEBS_IO_JIVA_CONTROLLER_IMAGE" {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.JivaConfig.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_JIVA_REPLICA_IMAGE" {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.JivaConfig.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_JIVA_REPLICA_COUNT" {
+			envValue := strconv.FormatInt(int64(*p.ObservedOpenEBS.Spec.JivaConfig.Replicas), 10)
+			unstructured.SetNestedField(env.Object, envValue, "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_TARGET_IMAGE" {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.Target.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_POOL_IMAGE" {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.Pool.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE" {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE" {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_VOLUME_MONITOR_IMAGE" {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.Policies.Monitoring.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE" {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.Policies.Monitoring.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_HELPER_IMAGE" {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.Helper.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_ENABLE_ANALYTICS" {
+			envValue := strconv.FormatBool(*p.ObservedOpenEBS.Spec.Analytics.Enabled)
+			unstructured.SetNestedField(env.Object, envValue, "spec", "value")
+		}
+
+		return nil
+	}
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
+		err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
+		if err != nil {
+			return err
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+	err = unstructured.SetNestedSlice(deploy.Object,
+		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // setAPIServerDefaultsIfNotSet sets the default values for APIServer if not
 // set.
-func (r *Reconciler) setAPIServerDefaultsIfNotSet() error {
-	if r.OpenEBS.Spec.APIServer == nil {
-		r.OpenEBS.Spec.APIServer = &types.APIServer{}
+func (p *Planner) setAPIServerDefaultsIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.APIServer == nil {
+		p.ObservedOpenEBS.Spec.APIServer = &types.APIServer{}
 	}
-	if r.OpenEBS.Spec.APIServer.Enabled == nil {
-		r.OpenEBS.Spec.APIServer.Enabled = new(bool)
-		*r.OpenEBS.Spec.APIServer.Enabled = true
+	if p.ObservedOpenEBS.Spec.APIServer.Enabled == nil {
+		p.ObservedOpenEBS.Spec.APIServer.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.APIServer.Enabled = true
 	}
-	if r.OpenEBS.Spec.APIServer.ImageTag == "" {
-		r.OpenEBS.Spec.APIServer.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.APIServer.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.APIServer.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
 	// form the container image as per the image prefix and image tag.
-	r.OpenEBS.Spec.APIServer.Image = r.OpenEBS.Spec.ImagePrefix + "m-apiserver:" +
-		r.OpenEBS.Spec.APIServer.ImageTag
+	p.ObservedOpenEBS.Spec.APIServer.Image = p.ObservedOpenEBS.Spec.ImagePrefix + "m-apiserver:" +
+		p.ObservedOpenEBS.Spec.APIServer.ImageTag
 
-	if r.OpenEBS.Spec.APIServer.CstorSparsePool == nil {
-		r.OpenEBS.Spec.APIServer.CstorSparsePool = &types.CstorSparsePool{}
+	if p.ObservedOpenEBS.Spec.APIServer.CstorSparsePool == nil {
+		p.ObservedOpenEBS.Spec.APIServer.CstorSparsePool = &types.CstorSparsePool{}
 	}
 	// Sparse pools will be disabled by default.
-	if r.OpenEBS.Spec.APIServer.CstorSparsePool.Enabled == nil {
-		r.OpenEBS.Spec.APIServer.CstorSparsePool.Enabled = new(bool)
-		*r.OpenEBS.Spec.APIServer.CstorSparsePool.Enabled = false
+	if p.ObservedOpenEBS.Spec.APIServer.CstorSparsePool.Enabled == nil {
+		p.ObservedOpenEBS.Spec.APIServer.CstorSparsePool.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.APIServer.CstorSparsePool.Enabled = false
 	}
-	if r.OpenEBS.Spec.APIServer.Replicas == nil {
-		r.OpenEBS.Spec.APIServer.Replicas = new(int32)
-		*r.OpenEBS.Spec.APIServer.Replicas = DefaultAPIServerReplicaCount
+	if p.ObservedOpenEBS.Spec.APIServer.Replicas == nil {
+		p.ObservedOpenEBS.Spec.APIServer.Replicas = new(int32)
+		*p.ObservedOpenEBS.Spec.APIServer.Replicas = DefaultAPIServerReplicaCount
 	}
 	return nil
 }

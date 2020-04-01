@@ -22,6 +22,8 @@ COPY pkg/ pkg/
 COPY k8s/ k8s/
 COPY types/ types/
 COPY controller/ controller/
+COPY unstruct/ unstruct/
+COPY util/ util/
 
 # build the binary
 RUN make openebs-upgrade

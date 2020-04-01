@@ -22,6 +22,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"openebs.io/metac/controller/generic"
 )
 
@@ -108,21 +109,35 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		hookResponse: response,
 	}
 
-	var openebsObj *unstructured.Unstructured
+	var observedOpenEBS *unstructured.Unstructured
+	var observedOpenEBSComponents []*unstructured.Unstructured
+	// We will use watchNamespace to verify if the various attachments are from the
+	// same namespace or not as of watched resource.
+	watchNamepace := request.Watch.GetNamespace()
 	for _, attachment := range request.Attachments.List() {
 		// this watch resource must be present in the list of attachments
 		if request.Watch.GetUID() == attachment.GetUID() &&
 			attachment.GetKind() == string(types.KindOpenEBS) {
 			// this is the required OpenEBS
-			openebsObj = attachment
+			observedOpenEBS = attachment
 			// add this to the response later after completion of its
 			// reconcile logic
 			continue
 		}
+		if attachment.GetKind() != string(types.KindOpenEBS) {
+			// verify further if this belongs to the current watch
+			// i.e. OpenEBS
+			//
+			// Check if its from the same namespace as OpenEBS
+			if attachment.GetNamespace() != watchNamepace {
+				continue
+			}
+			observedOpenEBSComponents = append(observedOpenEBSComponents, attachment)
+		}
 		response.Attachments = append(response.Attachments, attachment)
 	}
 
-	if openebsObj == nil {
+	if observedOpenEBS == nil {
 		errHandler.handle(
 			errors.Errorf("Can't reconcile: OpenEBS not found in attachments"),
 		)
@@ -133,19 +148,25 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 	// OpenEBS resource
 	reconciler, err :=
 		NewReconciler(
-			openebsObj,
-			request.Attachments.List(),
-		)
+			ReconcilerConfig{
+				ObservedOpenEBS:           observedOpenEBS,
+				observedOpenEBSComponents: observedOpenEBSComponents,
+			})
 	if err != nil {
 		errHandler.handle(err)
 		return nil
 	}
-	_, err = reconciler.Reconcile()
+	resp, err := reconciler.Reconcile()
 	if err != nil {
 		errHandler.handle(err)
 		return nil
 	}
-
+	// add all the desired OpenEBS components as attachments in the response
+	if resp.DesiredOpenEBSComponets != nil {
+		for _, desiredOpenEBSComponent := range resp.DesiredOpenEBSComponets {
+			response.Attachments = append(response.Attachments, desiredOpenEBSComponent)
+		}
+	}
 	// Note: We are not updating the updated response back to the OpenEBS
 	// object.
 	// add updated OpenEBS to response
@@ -169,28 +190,38 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 
 // Reconciler enables reconciliation of OpenEBS instance
 type Reconciler struct {
-	OpenEBS   *types.OpenEBS
-	Resources []*unstructured.Unstructured
+	ObservedOpenEBS           *types.OpenEBS
+	observedOpenEBSComponents []*unstructured.Unstructured
+}
+
+// ReconcilerConfig is a helper structure used to create a
+// new instance of Reconciler
+type ReconcilerConfig struct {
+	ObservedOpenEBS           *unstructured.Unstructured
+	observedOpenEBSComponents []*unstructured.Unstructured
 }
 
 // ReconcileResponse is a helper struct used to form the response
 // of a successful reconciliation
 type ReconcileResponse struct {
-	OpenEBS *unstructured.Unstructured
+	DesiredOpenEBS          *unstructured.Unstructured
+	DesiredOpenEBSComponets []*unstructured.Unstructured
+}
+
+// Planner ensures if any of the instances need
+// to be created, or updated.
+type Planner struct {
+	ObservedOpenEBS           *types.OpenEBS
+	observedOpenEBSComponents []*unstructured.Unstructured
+
+	ComponentManifests map[string]*unstructured.Unstructured
 }
 
 // NewReconciler returns a new instance of Reconciler
-func NewReconciler(
-	openebs *unstructured.Unstructured,
-	resources []*unstructured.Unstructured,
-) (*Reconciler, error) {
-	r := &Reconciler{
-		Resources: resources,
-	}
-
+func NewReconciler(config ReconcilerConfig) (*Reconciler, error) {
 	// transform OpenEBS from unstructured to typed
 	var openebsTyped types.OpenEBS
-	openebsRaw, err := openebs.MarshalJSON()
+	openebsRaw, err := config.ObservedOpenEBS.MarshalJSON()
 	if err != nil {
 		return nil, errors.Wrapf(err, "Can't marshal OpenEBS")
 	}
@@ -198,11 +229,11 @@ func NewReconciler(
 	if err != nil {
 		return nil, errors.Wrapf(err, "Can't unmarshal OpenEBS")
 	}
-
-	// update the reconciler instance with config & related fields
-	r.OpenEBS = &openebsTyped
-
-	return r, nil
+	// use above constructed object to build Reconciler instance
+	return &Reconciler{
+		ObservedOpenEBS:           &openebsTyped,
+		observedOpenEBSComponents: config.observedOpenEBSComponents,
+	}, nil
 }
 
 // Reconcile runs through the reconciliation logic
@@ -210,109 +241,62 @@ func NewReconciler(
 // NOTE:
 //	Due care has been taken to let this logic be idempotent
 func (r *Reconciler) Reconcile() (ReconcileResponse, error) {
-	// Updating the previousOpenEBS field so that it can be used
-	// in order to return the reconciler response.
-	syncFns := []func() error{
-		r.validateOpenEBSAndSetDefaultsIfNotSet,
-		r.createOrUpdateComponents,
+	planner := Planner{
+		ObservedOpenEBS:           r.ObservedOpenEBS,
+		observedOpenEBSComponents: r.observedOpenEBSComponents,
 	}
-	for _, syncFn := range syncFns {
-		err := syncFn()
-		if err != nil {
-			return ReconcileResponse{}, err
+	return planner.Plan()
+}
+
+// Plan builds the desired instances/components of OpenEBS
+func (p *Planner) Plan() (ReconcileResponse, error) {
+	err := p.init()
+	if err != nil {
+		return ReconcileResponse{}, err
+	}
+	return p.getDesiredOpenEBSComponents(), nil
+}
+
+// getDesiredOpenEBSComponents gets all the desired OpenEBS components which
+// needs to be created or updated.
+func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
+	response := ReconcileResponse{}
+	for key, value := range p.ComponentManifests {
+		if key == "_" {
+			continue
 		}
+		response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets, value)
 	}
-	// reset previous errors if any
-	r.resetOpenEBSReconcileErrorIfAny()
-	return r.makeReconcileResponse()
+	return response
 }
 
-// makeReconcileResponse builds reconcile response
-func (r *Reconciler) makeReconcileResponse() (ReconcileResponse, error) {
-	// convert updated OpenEBS from typed to unstruct
-	openebsRaw, err := json.Marshal(r.OpenEBS)
-	if err != nil {
-		return ReconcileResponse{},
-			errors.Wrapf(err, "Can't marshal OpenEBS")
+func (p *Planner) init() error {
+	var initFuncs = []func() error{
+		p.setDefaultImagePullPolicyIfNotSet,
+		p.setDefaultStoragePathIfNotSet,
+		p.setDefaultImagePrefixIfNotSet,
+		p.setDefaultStorageConfigIfNotSet,
+		p.setAPIServerDefaultsIfNotSet,
+		p.setProvisionerDefaultsIfNotSet,
+		p.setLocalProvisionerDefaultsIfNotSet,
+		p.setSnapshotOperatorDefaultsIfNotSet,
+		p.setAdmissionServerDefaultsIfNotSet,
+		p.setNDMDefaultsIfNotSet,
+		p.setNDMOperatorDefaultsIfNotSet,
+		p.setJIVADefaultsIfNotSet,
+		p.setCStorDefaultsIfNotSet,
+		p.setHelperDefaultsIfNotSet,
+		p.setPoliciesDefaultsIfNotSet,
+		p.setAnalyticsDefaultsIfNotSet,
+		p.getManifests,
+		p.removeDisabledManifests,
+		p.getDesiredManifests,
 	}
-	var openebs unstructured.Unstructured
-	err = json.Unmarshal(openebsRaw, &openebs)
-	if err != nil {
-		return ReconcileResponse{},
-			errors.Wrapf(err, "Can't unmarshal OpenEBS")
-	}
-
-	return ReconcileResponse{
-		OpenEBS: &openebs,
-	}, nil
-}
-
-// resetOpenEBSReconcileErrorIfAny removes ReconcileError
-// if any associated with OpenEBS. This removes
-// ReconcileError if it ever happened during previous
-// reconciliations.
-func (r *Reconciler) resetOpenEBSReconcileErrorIfAny() {
-	types.MergeNoReconcileErrorOnOpenEBS(r.OpenEBS)
-}
-
-func (r *Reconciler) validateOpenEBSAndSetDefaultsIfNotSet() error {
-	// set all the defaults for all the components
-	// if not already set.
-	setDefaultFns := []func() error{
-		r.setDefaultImagePullPolicyIfNotSet,
-		r.setDefaultStoragePathIfNotSet,
-		r.setDefaultImagePrefixIfNotSet,
-		r.setDefaultStorageConfigIfNotSet,
-		r.setAPIServerDefaultsIfNotSet,
-		r.setProvisionerDefaultsIfNotSet,
-		r.setLocalProvisionerDefaultsIfNotSet,
-		r.setSnapshotOperatorDefaultsIfNotSet,
-		r.setAdmissionServerDefaultsIfNotSet,
-		r.setNDMDefaultsIfNotSet,
-		r.setNDMOperatorDefaultsIfNotSet,
-		r.setJIVADefaultsIfNotSet,
-		r.setCStorDefaultsIfNotSet,
-		r.setHelperDefaultsIfNotSet,
-		r.setPoliciesDefaultsIfNotSet,
-		r.setAnalyticsDefaultsIfNotSet,
-	}
-	for _, setDefaultFn := range setDefaultFns {
-		err := setDefaultFn()
+	for _, fn := range initFuncs {
+		err := fn()
 		if err != nil {
 			return err
 		}
 	}
-	return nil
-}
-
-// createOrUpdateComponents createsupdates all the required OpenEBS components
-// as per the manifests for a given OpenEBS version.
-func (r *Reconciler) createOrUpdateComponents() error {
-	// get the manifest which can be used to install/update
-	// OpenEBS components.
-	manifests, err := r.getManifests()
-	if err != nil {
-		return errors.Errorf(
-			"Error getting manifests for creating/updating components: %+v", err)
-	}
-	// remove manifests which are disabled or should not be installed
-	// TODO: Delete the components which are disabled after installation.
-	manifests, err = r.removeDisabledManifests(manifests)
-	if err != nil {
-		return err
-	}
-	// update the manifests as per the given configuration in the
-	// OpenEBS CR.
-	manifests, err = r.updateManifests(manifests)
-	if err != nil {
-		return err
-	}
-	// create/update all the OpenEBS components as per the
-	// updated manifests.
-	err = deployComponents(manifests)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }

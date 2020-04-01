@@ -18,37 +18,37 @@ import (
 )
 
 // Set the default values for Cstor if not already given.
-func (r *Reconciler) setCStorDefaultsIfNotSet() error {
-	if r.OpenEBS.Spec.CstorConfig == nil {
-		r.OpenEBS.Spec.CstorConfig = &types.CstorConfig{}
+func (p *Planner) setCStorDefaultsIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.CstorConfig == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig = &types.CstorConfig{}
 	}
 	// form the cstor-pool image
-	if r.OpenEBS.Spec.CstorConfig.Pool.ImageTag == "" {
-		r.OpenEBS.Spec.CstorConfig.Pool.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.CstorConfig.Pool.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.CstorConfig.Pool.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.CstorConfig.Pool.Image = r.OpenEBS.Spec.ImagePrefix +
-		"cstor-pool:" + r.OpenEBS.Spec.CstorConfig.Pool.ImageTag
+	p.ObservedOpenEBS.Spec.CstorConfig.Pool.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"cstor-pool:" + p.ObservedOpenEBS.Spec.CstorConfig.Pool.ImageTag
 
 	// form the cstor-pool-mgmt image
-	if r.OpenEBS.Spec.CstorConfig.PoolMgmt.ImageTag == "" {
-		r.OpenEBS.Spec.CstorConfig.PoolMgmt.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.CstorConfig.PoolMgmt.Image = r.OpenEBS.Spec.ImagePrefix +
-		"cstor-pool-mgmt:" + r.OpenEBS.Spec.CstorConfig.PoolMgmt.ImageTag
+	p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"cstor-pool-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.ImageTag
 
 	// form the cstor-istgt image
-	if r.OpenEBS.Spec.CstorConfig.Target.ImageTag == "" {
-		r.OpenEBS.Spec.CstorConfig.Target.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.CstorConfig.Target.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.CstorConfig.Target.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.CstorConfig.Target.Image = r.OpenEBS.Spec.ImagePrefix +
-		"cstor-istgt:" + r.OpenEBS.Spec.CstorConfig.Target.ImageTag
+	p.ObservedOpenEBS.Spec.CstorConfig.Target.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"cstor-istgt:" + p.ObservedOpenEBS.Spec.CstorConfig.Target.ImageTag
 
 	// form the cstor-volume-mgmt image
-	if r.OpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag == "" {
-		r.OpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.CstorConfig.VolumeMgmt.Image = r.OpenEBS.Spec.ImagePrefix +
-		"cstor-volume-mgmt:" + r.OpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag
+	p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"cstor-volume-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag
 
 	return nil
 }

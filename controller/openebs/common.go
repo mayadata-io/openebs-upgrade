@@ -19,29 +19,28 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"mayadata.io/openebs-upgrade/k8s"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
+	"mayadata.io/openebs-upgrade/unstruct"
 )
 
 // setDefaultImagePullPolicyIfNotSet sets the default imagePullPolicy
 // to "IfNotPresent" for all the components.
 // TODO: See if this is required component wise and not at the global
 // level.
-func (r *Reconciler) setDefaultImagePullPolicyIfNotSet() error {
-	if r.OpenEBS.Spec.ImagePullPolicy == "" {
-		r.OpenEBS.Spec.ImagePullPolicy = corev1.PullIfNotPresent
+func (p *Planner) setDefaultImagePullPolicyIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.ImagePullPolicy == "" {
+		p.ObservedOpenEBS.Spec.ImagePullPolicy = "IfNotPresent"
 	}
 	return nil
 }
 
 // setDefaultStoragePathIfNotSet sets the default storage path for
 // OpenEBS to "/var/openebs" if not already set.
-func (r *Reconciler) setDefaultStoragePathIfNotSet() error {
-	if r.OpenEBS.Spec.DefaultStoragePath == "" {
-		r.OpenEBS.Spec.DefaultStoragePath = "/var/openebs"
+func (p *Planner) setDefaultStoragePathIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.DefaultStoragePath == "" {
+		p.ObservedOpenEBS.Spec.DefaultStoragePath = "/var/openebs"
 	}
 	return nil
 }
@@ -50,21 +49,21 @@ func (r *Reconciler) setDefaultStoragePathIfNotSet() error {
 // all the container images if not already set.
 // It also checks if the given image registry ends with a forward slash
 // or not, if not then it adds one.
-func (r *Reconciler) setDefaultImagePrefixIfNotSet() error {
-	if r.OpenEBS.Spec.ImagePrefix == "" {
-		r.OpenEBS.Spec.ImagePrefix = "quay.io/openebs/"
-	} else if !strings.HasSuffix(r.OpenEBS.Spec.ImagePrefix, "/") {
-		r.OpenEBS.Spec.ImagePrefix = r.OpenEBS.Spec.ImagePrefix + "/"
+func (p *Planner) setDefaultImagePrefixIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.ImagePrefix == "" {
+		p.ObservedOpenEBS.Spec.ImagePrefix = "quay.io/openebs/"
+	} else if !strings.HasSuffix(p.ObservedOpenEBS.Spec.ImagePrefix, "/") {
+		p.ObservedOpenEBS.Spec.ImagePrefix = p.ObservedOpenEBS.Spec.ImagePrefix + "/"
 	}
 	return nil
 }
 
 // setDefaultStorageConfigIfNotSet sets the defaultStorageConfig value
 // to "true" if not already set.
-func (r *Reconciler) setDefaultStorageConfigIfNotSet() error {
-	if r.OpenEBS.Spec.CreateDefaultStorageConfig == nil {
-		r.OpenEBS.Spec.CreateDefaultStorageConfig = new(bool)
-		*r.OpenEBS.Spec.CreateDefaultStorageConfig = true
+func (p *Planner) setDefaultStorageConfigIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.CreateDefaultStorageConfig == nil {
+		p.ObservedOpenEBS.Spec.CreateDefaultStorageConfig = new(bool)
+		*p.ObservedOpenEBS.Spec.CreateDefaultStorageConfig = true
 	}
 	return nil
 }
@@ -79,11 +78,11 @@ type BasicComponentDetails struct {
 // the respective components based on a particular version.
 // Note: This method makes use of the various operator YAMLs to form this
 // mapping.
-func (r *Reconciler) getManifests() (map[string]string, error) {
-	componentsYAMLMap := make(map[string]string)
+func (p *Planner) getManifests() error {
+	componentsYAMLMap := make(map[string]*unstructured.Unstructured)
 	var yamlFile string
 
-	switch r.OpenEBS.Spec.Version {
+	switch p.ObservedOpenEBS.Spec.Version {
 	case types.OpenEBSVersion150:
 		yamlFile = "/templates/openebs-operator-1.5.0.yaml"
 	case types.OpenEBSVersion160:
@@ -93,15 +92,14 @@ func (r *Reconciler) getManifests() (map[string]string, error) {
 	case types.OpenEBSVersion180:
 		yamlFile = "/templates/openebs-operator-1.8.0.yaml"
 	default:
-		return componentsYAMLMap, errors.Errorf(
-			"Unsupported OpenEBS version provided, version: %+v", r.OpenEBS.Spec.Version)
+		return errors.Errorf(
+			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
 	}
 	data, err := ioutil.ReadFile(yamlFile)
 	if err != nil {
-		return componentsYAMLMap, errors.Errorf(
-			"Error reading YAML file for version %s: %+v", r.OpenEBS.Spec.Version, err)
+		return errors.Errorf(
+			"Error reading YAML file for version %s: %+v", p.ObservedOpenEBS.Spec.Version, err)
 	}
-
 	// form the mapping from component's "name_kind" as key to YAML
 	// string as value using operator yaml.
 	componentsYAML := strings.Split(string(data), "---")
@@ -109,347 +107,300 @@ func (r *Reconciler) getManifests() (map[string]string, error) {
 		if componentYAML == "" {
 			continue
 		}
-		componentBasicDetails := BasicComponentDetails{}
-		if err = yaml.Unmarshal([]byte(componentYAML), &componentBasicDetails); err != nil {
-			return componentsYAMLMap, errors.Errorf("Error unmarshalling YAML string:%s, Error: %+v", componentYAML, err)
+		unstructuredYAML := unstructured.Unstructured{}
+		if err = yaml.Unmarshal([]byte(componentYAML), &unstructuredYAML.Object); err != nil {
+			return errors.Errorf("Error unmarshalling YAML string:%s, Error: %+v", componentYAML, err)
 		}
-		kind := componentBasicDetails.Kind
-		name := componentBasicDetails.Name
+		kind := unstructuredYAML.GetKind()
+		name := unstructuredYAML.GetName()
+
 		// Form the key using component's Name and kind separated
 		// by underscore
 		keyForStoringYaml := name + "_" + kind
 		// Store the latest yaml of each component in a map where the key
 		// is componentName_kind
-		componentsYAMLMap[keyForStoringYaml] = componentYAML
+		componentsYAMLMap[keyForStoringYaml] = &unstructuredYAML
 	}
-	return componentsYAMLMap, nil
+	p.ComponentManifests = componentsYAMLMap
+	return nil
 }
 
 // removeDisabledManifests removes the manifests which are disabled so that
 // these components does not get installed.
 // TODO: Delete the components if the components are disabled after installation.
-func (r *Reconciler) removeDisabledManifests(manifests map[string]string) (
-	map[string]string, error) {
-	if *r.OpenEBS.Spec.APIServer.Enabled == false {
-		delete(manifests, types.MayaAPIServerManifestKey)
-		delete(manifests, types.MayaAPIServerServiceManifestKey)
+func (p *Planner) removeDisabledManifests() error {
+	if *p.ObservedOpenEBS.Spec.APIServer.Enabled == false {
+		delete(p.ComponentManifests, types.MayaAPIServerManifestKey)
+		delete(p.ComponentManifests, types.MayaAPIServerServiceManifestKey)
 	}
-	if *r.OpenEBS.Spec.Provisioner.Enabled == false {
-		delete(manifests, types.ProvisionerManifestKey)
+	if *p.ObservedOpenEBS.Spec.Provisioner.Enabled == false {
+		delete(p.ComponentManifests, types.ProvisionerManifestKey)
 	}
-	if *r.OpenEBS.Spec.SnapshotOperator.Enabled == false {
-		delete(manifests, types.SnapshotOperatorManifestKey)
+	if *p.ObservedOpenEBS.Spec.SnapshotOperator.Enabled == false {
+		delete(p.ComponentManifests, types.SnapshotOperatorManifestKey)
 	}
-	if *r.OpenEBS.Spec.NDMDaemon.Enabled == false {
-		delete(manifests, types.NDMConfigManifestKey)
-		delete(manifests, types.NDMManifestKey)
+	if *p.ObservedOpenEBS.Spec.NDMDaemon.Enabled == false {
+		delete(p.ComponentManifests, types.NDMConfigManifestKey)
+		delete(p.ComponentManifests, types.NDMManifestKey)
 	}
-	if *r.OpenEBS.Spec.NDMOperator.Enabled == false {
-		delete(manifests, types.NDMOperatorManifestKey)
+	if *p.ObservedOpenEBS.Spec.NDMOperator.Enabled == false {
+		delete(p.ComponentManifests, types.NDMOperatorManifestKey)
 	}
-	if *r.OpenEBS.Spec.LocalProvisioner.Enabled == false {
-		delete(manifests, types.LocalProvisionerManifestKey)
+	if *p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled == false {
+		delete(p.ComponentManifests, types.LocalProvisionerManifestKey)
 	}
 
-	return manifests, nil
+	return nil
 }
 
-// updateManifests updates all the component's manifest as per the provided
+// getDesiredManifests updates all the component's manifest as per the provided
 // or the default values.
-func (r *Reconciler) updateManifests(manifests map[string]string) (
-	map[string]string, error) {
+func (p *Planner) getDesiredManifests() error {
 	var err error
 
-	for key, value := range manifests {
+	for key, value := range p.ComponentManifests {
 		kind := strings.Split(key, "_")[1]
 		switch kind {
 		case types.KindNamespace:
-			value, err = r.updateNamespace(value)
+			value, err = p.getDesiredNamespace(value)
 		case types.KindServiceAccount:
-			value, err = r.updateServiceAccount(value)
+			value, err = p.getDesiredServiceAccount(value)
 		case types.KindClusterRole:
 			// Note: nothing to be updated for now
 			continue
-			//r.updateClusterRole(value)
+			//p.updateClusterRole(value)
 		case types.KindClusterRoleBinding:
-			value, err = r.updateClusterRoleBinding(value)
+			value, err = p.getDesiredClusterRoleBinding(value)
 		case types.KindDeployment:
-			value, err = r.updateDeployment(value)
+			value, err = p.getDesiredDeployment(value)
 		case types.KindDaemonSet:
-			value, err = r.updateDaemonSet(value)
+			value, err = p.getDesiredDaemonSet(value)
 		case types.KindConfigMap:
-			value, err = r.updateConfigmap(value)
+			value, err = p.getDesiredConfigmap(value)
 		case types.KindService:
-			value, err = r.updateService(value)
+			value, err = p.getDesiredService(value)
 		default:
 			// Doing nothing if an unknown kind
 			continue
 		}
 		if err != nil {
-			return manifests, errors.Errorf("Error updating manifests: %+v", err)
+			return errors.Errorf("Error updating manifests: %+v", err)
 		}
 		// update manifest with the updated values
-		manifests[key] = value
+		p.ComponentManifests[key] = value
 	}
-	return manifests, nil
+	return nil
 }
 
-// updateDeployment updates the deployment manifest as per the given configuration.
+// getDesiredDeployment updates the deployment manifest as per the given configuration.
 // TODO: Make this method modular, it is a big method which seems to be doing multiple
 // things.
-func (r *Reconciler) updateDeployment(YAML string) (string, error) {
+func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	var (
 		replicas         *int32
 		image            string
 		provisionerImage string
 		controllerImage  string
+		err              error
 	)
 	nodeSelector := make(map[string]string)
-	tolerations := []corev1.Toleration{}
-	affinity := &corev1.Affinity{}
-	resources := &corev1.ResourceRequirements{}
-	deployment := &appsv1.Deployment{}
-	err := yaml.Unmarshal([]byte(YAML), deployment)
-	if err != nil {
-		return "", errors.Errorf("Error unmarshalling deployment YAML: %+v, Error: %+v", YAML, err)
-	}
+	tolerations := make([]interface{}, 0)
+	affinity := make(map[string]interface{})
+	resources := make(map[string]interface{})
 	// update the namespace
-	deployment.Namespace = r.OpenEBS.Namespace
+	deploy.SetNamespace(p.ObservedOpenEBS.Namespace)
 
-	switch deployment.Name {
+	switch deploy.GetName() {
 	case types.MayaAPIServerNameKey:
-		replicas = r.OpenEBS.Spec.APIServer.Replicas
-		image = r.OpenEBS.Spec.APIServer.Image
-
-		// get desired maya-apiserver as per given configuration
-		mayaAPIServer := &MayaAPIServer{
-			Object: deployment,
-		}
-		mayaAPIServer, err = mayaAPIServer.updateManifest(r)
-		if err != nil {
-			return "", err
-		}
-		deployment = mayaAPIServer.Object
-		resources = r.OpenEBS.Spec.APIServer.Resources
-		nodeSelector = r.OpenEBS.Spec.APIServer.NodeSelector
-		tolerations = r.OpenEBS.Spec.APIServer.Tolerations
-		affinity = r.OpenEBS.Spec.APIServer.Affinity
+		replicas = p.ObservedOpenEBS.Spec.APIServer.Replicas
+		image = p.ObservedOpenEBS.Spec.APIServer.Image
+		resources = p.ObservedOpenEBS.Spec.APIServer.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.APIServer.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.APIServer.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.APIServer.Affinity
+		p.updateMayaAPIServer(deploy)
 
 	case types.ProvisionerNameKey:
-		replicas = r.OpenEBS.Spec.Provisioner.Replicas
-		image = r.OpenEBS.Spec.Provisioner.Image
-		resources = r.OpenEBS.Spec.Provisioner.Resources
-		nodeSelector = r.OpenEBS.Spec.Provisioner.NodeSelector
-		tolerations = r.OpenEBS.Spec.Provisioner.Tolerations
-		affinity = r.OpenEBS.Spec.Provisioner.Affinity
+		replicas = p.ObservedOpenEBS.Spec.Provisioner.Replicas
+		image = p.ObservedOpenEBS.Spec.Provisioner.Image
+		resources = p.ObservedOpenEBS.Spec.Provisioner.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.Provisioner.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.Provisioner.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.Provisioner.Affinity
 
 	case types.SnapshotOperatorNameKey:
-		replicas = r.OpenEBS.Spec.SnapshotOperator.Replicas
-		provisionerImage = r.OpenEBS.Spec.SnapshotOperator.Provisioner.Image
-		controllerImage = r.OpenEBS.Spec.SnapshotOperator.Controller.Image
-		resources = r.OpenEBS.Spec.SnapshotOperator.Resources
-		nodeSelector = r.OpenEBS.Spec.SnapshotOperator.NodeSelector
-		tolerations = r.OpenEBS.Spec.SnapshotOperator.Tolerations
-		affinity = r.OpenEBS.Spec.SnapshotOperator.Affinity
+		replicas = p.ObservedOpenEBS.Spec.SnapshotOperator.Replicas
+		provisionerImage = p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.Image
+		controllerImage = p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.Image
+		resources = p.ObservedOpenEBS.Spec.SnapshotOperator.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.SnapshotOperator.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.SnapshotOperator.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.SnapshotOperator.Affinity
 
 	case types.NDMOperatorNameKey:
-		replicas = r.OpenEBS.Spec.NDMOperator.Replicas
-		image = r.OpenEBS.Spec.NDMOperator.Image
-		resources = r.OpenEBS.Spec.NDMOperator.Resources
-		nodeSelector = r.OpenEBS.Spec.NDMOperator.NodeSelector
-		tolerations = r.OpenEBS.Spec.NDMOperator.Tolerations
-		affinity = r.OpenEBS.Spec.NDMOperator.Affinity
+		replicas = p.ObservedOpenEBS.Spec.NDMOperator.Replicas
+		image = p.ObservedOpenEBS.Spec.NDMOperator.Image
+		resources = p.ObservedOpenEBS.Spec.NDMOperator.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.NDMOperator.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.NDMOperator.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.NDMOperator.Affinity
+		p.updateNDMOperator(deploy)
 
 	case types.LocalProvisionerNameKey:
-		replicas = r.OpenEBS.Spec.LocalProvisioner.Replicas
-		image = r.OpenEBS.Spec.LocalProvisioner.Image
-		resources = r.OpenEBS.Spec.LocalProvisioner.Resources
-		nodeSelector = r.OpenEBS.Spec.LocalProvisioner.NodeSelector
-		tolerations = r.OpenEBS.Spec.LocalProvisioner.Tolerations
-		affinity = r.OpenEBS.Spec.LocalProvisioner.Affinity
+		replicas = p.ObservedOpenEBS.Spec.LocalProvisioner.Replicas
+		image = p.ObservedOpenEBS.Spec.LocalProvisioner.Image
+		resources = p.ObservedOpenEBS.Spec.LocalProvisioner.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.LocalProvisioner.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.LocalProvisioner.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.LocalProvisioner.Affinity
+		p.updateLocalProvisioner(deploy)
 
 	case types.AdmissionServerNameKey:
-		replicas = r.OpenEBS.Spec.AdmissionServer.Replicas
-		image = r.OpenEBS.Spec.AdmissionServer.Image
-		resources = r.OpenEBS.Spec.AdmissionServer.Resources
-		nodeSelector = r.OpenEBS.Spec.AdmissionServer.NodeSelector
-		tolerations = r.OpenEBS.Spec.AdmissionServer.Tolerations
-		affinity = r.OpenEBS.Spec.AdmissionServer.Affinity
+		replicas = p.ObservedOpenEBS.Spec.AdmissionServer.Replicas
+		image = p.ObservedOpenEBS.Spec.AdmissionServer.Image
+		resources = p.ObservedOpenEBS.Spec.AdmissionServer.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.AdmissionServer.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.AdmissionServer.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.AdmissionServer.Affinity
 	}
-
 	// update the replica count only if it is greater than 1 since the
 	// default value itself is 1.
 	// TODO: Validate the replica count value and throw error or take
 	// some action based on that.
 	if *replicas > 1 {
-		deployment.Spec.Replicas = replicas
+		unstructured.SetNestedField(deploy.Object, int64(*replicas), "spec", "replicas")
 	}
-	for i, container := range deployment.Spec.Template.Spec.Containers {
-		container.ImagePullPolicy = r.OpenEBS.Spec.ImagePullPolicy
+	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec",
+		"template", "spec", "containers")
+	if err != nil {
+		return deploy, err
+	}
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		unstructured.SetNestedField(obj.Object,
+			p.ObservedOpenEBS.Spec.ImagePullPolicy, "spec", "imagePullPolicy")
 		if resources != nil {
-			container.Resources = *resources
-		} else if r.OpenEBS.Spec.Resources != nil {
-			container.Resources = *r.OpenEBS.Spec.Resources
+			unstructured.SetNestedField(obj.Object, resources, "spec", "resources")
+		} else if p.ObservedOpenEBS.Spec.Resources != nil {
+			unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
 		}
 		// Explicitly checking for openebs-snapshot-operator in order to update
 		// its multiple containers.
 		// TODO: handle multiple container update cases in a better way, this seems
 		// to be a very naive way.
-		if deployment.Name == types.SnapshotOperatorNameKey {
-			if container.Name == types.SnapshotControllerContainerKey {
-				container.Image = controllerImage
-			} else if container.Name == types.SnapshotProvisionerContainerKey {
-				container.Image = provisionerImage
+		if deploy.GetName() == types.SnapshotOperatorNameKey {
+			if obj.GetName() == types.SnapshotControllerContainerKey {
+				unstructured.SetNestedField(obj.Object, controllerImage, "spec", "image")
+			} else if obj.GetName() == types.SnapshotProvisionerContainerKey {
+				unstructured.SetNestedField(obj.Object, provisionerImage, "spec", "image")
 			}
 		} else {
-			container.Image = image
+			unstructured.SetNestedField(obj.Object, image, "spec", "image")
 		}
-		deployment.Spec.Template.Spec.Containers[i] = container
+		return nil
+	}
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return deploy, err
+	}
+
+	err = unstructured.SetNestedSlice(deploy.Object, containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return deploy, err
 	}
 	// update the nodeSelector value
 	if nodeSelector != nil {
-		deployment.Spec.Template.Spec.NodeSelector = nodeSelector
+		unstructured.SetNestedStringMap(deploy.Object, nodeSelector, "spec",
+			"template", "spec", "nodeSelector")
 	}
 	// update the tolerations if any
 	if len(tolerations) > 0 {
-		deployment.Spec.Template.Spec.Tolerations = tolerations
+		unstructured.SetNestedSlice(deploy.Object, tolerations, "spec",
+			"template", "spec", "tolerations")
 	}
 	// update affinity if set
 	if affinity != nil {
-		deployment.Spec.Template.Spec.Affinity = affinity
+		unstructured.SetNestedField(deploy.Object, affinity, "spec",
+			"template", "spec", "affinity")
 	}
-
-	rawDeployment, err := yaml.Marshal(deployment)
-	if err != nil {
-		return "", errors.Errorf("Error marshalling deployment struct: %+v", err)
-	}
-	return string(rawDeployment), nil
+	return deploy, nil
 }
 
-// updateConfigmap updates the configmap manifest as per the given configuration.
-func (r *Reconciler) updateConfigmap(YAML string) (string, error) {
-	configmap := &corev1.ConfigMap{}
-	err := yaml.Unmarshal([]byte(YAML), configmap)
-	if err != nil {
-		return "", errors.Errorf("Error unmarshalling configmap YAML: %+v", err)
-	}
-	configmap.Namespace = r.OpenEBS.Namespace
-
-	switch configmap.Name {
+// getDesiredConfigmap updates the configmap manifest as per the given configuration.
+func (p *Planner) getDesiredConfigmap(configmap *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	configmap.SetNamespace(p.ObservedOpenEBS.Namespace)
+	switch configmap.GetName() {
 	case types.NDMConfigNameKey:
-		r.updateNDMConfig(configmap)
+		p.updateNDMConfig(configmap)
 	}
-	rawConfigmap, err := yaml.Marshal(configmap)
-	if err != nil {
-		return "", errors.Errorf("Error marshalling configmap struct: %+v", err)
-	}
-	return string(rawConfigmap), nil
+	return configmap, nil
 }
 
-// updateService updates the service manifest as per the given configuration.
-func (r *Reconciler) updateService(YAML string) (string, error) {
-	service := corev1.Service{}
-	err := yaml.Unmarshal([]byte(YAML), &service)
-	if err != nil {
-		return "", errors.Errorf("Error unmarshalling service YAML: %+v", err)
-	}
-	service.Namespace = r.OpenEBS.Namespace
-
-	rawService, err := yaml.Marshal(service)
-	if err != nil {
-		return "", errors.Errorf("Error marshalling service struct: %+v", err)
-	}
-	return string(rawService), nil
+// getDesiredService updates the service manifest as per the given configuration.
+func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	svc.SetNamespace(p.ObservedOpenEBS.Namespace)
+	return svc, nil
 }
 
-// updateDaemonSet updates the daemonset manifest as per the given configuration.
-func (r *Reconciler) updateDaemonSet(YAML string) (string, error) {
+// getDesiredDaemonSet updates the daemonset manifest as per the given configuration.
+func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	var (
 		image string
 	)
-	resources := &corev1.ResourceRequirements{}
+	resources := make(map[string]interface{})
 	nodeSelector := make(map[string]string)
-	tolerations := []corev1.Toleration{}
-	affinity := &corev1.Affinity{}
-	daemonset := &appsv1.DaemonSet{}
-	err := yaml.Unmarshal([]byte(YAML), daemonset)
-	if err != nil {
-		return "", errors.Errorf("Error unmarshalling daemonSet YAML: %+v", err)
-	}
-	daemonset.Namespace = r.OpenEBS.Namespace
+	tolerations := make([]interface{}, 0)
+	affinity := make(map[string]interface{})
 
-	switch daemonset.Name {
+	daemon.SetNamespace(p.ObservedOpenEBS.Namespace)
+	switch daemon.GetName() {
 	case types.NDMNameKey:
-		image = r.OpenEBS.Spec.NDMDaemon.Image
-		resources = r.OpenEBS.Spec.NDMDaemon.Resources
-		nodeSelector = r.OpenEBS.Spec.NDMDaemon.NodeSelector
-		tolerations = r.OpenEBS.Spec.NDMDaemon.Tolerations
-		affinity = r.OpenEBS.Spec.NDMDaemon.Affinity
-		r.updateNDM(daemonset)
+		image = p.ObservedOpenEBS.Spec.NDMDaemon.Image
+		resources = p.ObservedOpenEBS.Spec.NDMDaemon.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.NDMDaemon.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.NDMDaemon.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.NDMDaemon.Affinity
+		p.updateNDM(daemon)
 	}
-
 	// update the daemonset containers with the images and imagePullPolicy
-	for i, container := range daemonset.Spec.Template.Spec.Containers {
-		container.ImagePullPolicy = r.OpenEBS.Spec.ImagePullPolicy
-		container.Image = image
-		if resources != nil {
-			container.Resources = *resources
-		} else if r.OpenEBS.Spec.Resources != nil {
-			container.Resources = *r.OpenEBS.Spec.Resources
-		}
-
-		daemonset.Spec.Template.Spec.Containers[i] = container
+	containers, err := unstruct.GetNestedSliceOrError(daemon, "spec", "template", "spec", "containers")
+	if err != nil {
+		return daemon, err
 	}
-
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		unstructured.SetNestedField(obj.Object, image, "spec", "image")
+		unstructured.SetNestedField(obj.Object,
+			p.ObservedOpenEBS.Spec.ImagePullPolicy, "spec", "imagePullPolicy")
+		if resources != nil {
+			unstructured.SetNestedField(obj.Object, resources, "spec", "resources")
+		} else if p.ObservedOpenEBS.Spec.Resources != nil {
+			unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
+		}
+		return nil
+	}
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return daemon, err
+	}
+	err = unstructured.SetNestedSlice(daemon.Object, containers, "spec",
+		"template", "spec", "containers")
+	if err != nil {
+		return daemon, err
+	}
 	// update the nodeSelector value
 	if nodeSelector != nil {
-		daemonset.Spec.Template.Spec.NodeSelector = nodeSelector
+		unstructured.SetNestedStringMap(daemon.Object, nodeSelector, "spec",
+			"template", "spec", "nodeSelector")
 	}
 	// update the tolerations if any
 	if len(tolerations) > 0 {
-		daemonset.Spec.Template.Spec.Tolerations = tolerations
+		unstructured.SetNestedSlice(daemon.Object, tolerations, "spec", "template", "spec",
+			"tolerations")
 	}
 	// update affinity if set
 	if affinity != nil {
-		daemonset.Spec.Template.Spec.Affinity = affinity
+		unstructured.SetNestedField(daemon.Object, affinity, "spec", "template", "spec",
+			"affinity")
 	}
-
-	rawDaemonSet, err := yaml.Marshal(daemonset)
-	if err != nil {
-		return "", errors.Errorf("Error marshalling daemonSet struct: %+v", err)
-	}
-	return string(rawDaemonSet), nil
-}
-
-// deployComponents deploys all the components which is part of the
-// given manifest.
-func deployComponents(manifests map[string]string) error {
-	var (
-		err error
-	)
-	for key, value := range manifests {
-		kind := strings.Split(key, "_")[1]
-		switch kind {
-		case types.KindNamespace:
-			err = k8s.DeployNamespace(value)
-		case types.KindServiceAccount:
-			err = k8s.DeployServiceAccount(value)
-		case types.KindClusterRole:
-			err = k8s.DeployClusterRole(value)
-		case types.KindClusterRoleBinding:
-			err = k8s.DeployClusterRoleBinding(value)
-		case types.KindDeployment:
-			err = k8s.DeployDeployment(value)
-		case types.KindDaemonSet:
-			err = k8s.DeployDaemonSet(value)
-		case types.KindConfigMap:
-			err = k8s.DeployConfigMap(value)
-		case types.KindService:
-			err = k8s.DeployService(value)
-		}
-		if err != nil {
-			return errors.Errorf("Error deploying components: %+v", err)
-		}
-	}
-	return nil
+	return daemon, nil
 }

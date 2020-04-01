@@ -14,7 +14,9 @@ limitations under the License.
 package openebs
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
+	"mayadata.io/openebs-upgrade/unstruct"
 )
 
 const (
@@ -24,23 +26,69 @@ const (
 )
 
 // setLocalProvisionerDefaultsIfNotSet sets the default values for local-provisioner
-func (r *Reconciler) setLocalProvisionerDefaultsIfNotSet() error {
-	if r.OpenEBS.Spec.LocalProvisioner == nil {
-		r.OpenEBS.Spec.LocalProvisioner = &types.LocalProvisioner{}
+func (p *Planner) setLocalProvisionerDefaultsIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.LocalProvisioner == nil {
+		p.ObservedOpenEBS.Spec.LocalProvisioner = &types.LocalProvisioner{}
 	}
-	if r.OpenEBS.Spec.LocalProvisioner.Enabled == nil {
-		r.OpenEBS.Spec.LocalProvisioner.Enabled = new(bool)
-		*r.OpenEBS.Spec.LocalProvisioner.Enabled = true
+	if p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled == nil {
+		p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled = true
 	}
-	if r.OpenEBS.Spec.LocalProvisioner.ImageTag == "" {
-		r.OpenEBS.Spec.LocalProvisioner.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.LocalProvisioner.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.LocalProvisioner.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.LocalProvisioner.Image = r.OpenEBS.Spec.ImagePrefix +
-		"provisioner-localpv:" + r.OpenEBS.Spec.LocalProvisioner.ImageTag
+	p.ObservedOpenEBS.Spec.LocalProvisioner.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"provisioner-localpv:" + p.ObservedOpenEBS.Spec.LocalProvisioner.ImageTag
 
-	if r.OpenEBS.Spec.LocalProvisioner.Replicas == nil {
-		r.OpenEBS.Spec.LocalProvisioner.Replicas = new(int32)
-		*r.OpenEBS.Spec.LocalProvisioner.Replicas = DefaultLocalProvisionerReplicaCount
+	if p.ObservedOpenEBS.Spec.LocalProvisioner.Replicas == nil {
+		p.ObservedOpenEBS.Spec.LocalProvisioner.Replicas = new(int32)
+		*p.ObservedOpenEBS.Spec.LocalProvisioner.Replicas = DefaultLocalProvisionerReplicaCount
 	}
+	return nil
+}
+
+// updateLocalProvisioner updates the localProvisioner structure as per the provided
+// values otherwise default values.
+func (p *Planner) updateLocalProvisioner(deploy *unstructured.Unstructured) error {
+	// update the daemonset containers
+	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+	updateEnv := func(env *unstructured.Unstructured) error {
+		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if envName == "OPENEBS_IO_HELPER_IMAGE" {
+			unstructured.SetNestedField(env.Object, p.ObservedOpenEBS.Spec.Helper.Image, "spec", "value")
+		}
+		return nil
+	}
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
+		err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
+		if err != nil {
+			return err
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+	err = unstructured.SetNestedSlice(deploy.Object, containers,
+		"spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -11,6 +11,56 @@ spec:
   attachments:
   - apiVersion: dao.mayadata.io/v1alpha1
     resource: openebses
+  - apiVersion: apps/v1
+    resource: daemonsets
+    updateStrategy:
+      method: InPlace
+    advancedSelector:
+      selectorTerms:
+      - matchLabelExpressions:
+        - key: openebs.io/component-name
+          operator: Exists
+  - apiVersion: apps/v1
+    resource: deployments
+    updateStrategy:
+      method: InPlace
+    advancedSelector:
+      selectorTerms:
+      - matchLabelExpressions:
+        - key: openebs.io/component-name
+          operator: Exists
+  - apiVersion: v1
+    resource: configmaps
+    updateStrategy:
+      method: InPlace
+    advancedSelector:
+      selectorTerms:
+      - matchLabelExpressions:
+        - key: openebs.io/component-name
+          operator: Exists
+  - apiVersion: v1
+    resource: services
+    updateStrategy:
+      method: InPlace
+    advancedSelector:
+      selectorTerms:
+      - matchLabelExpressions:
+        - key: openebs.io/component-name
+          operator: Exists
+  - apiVersion: rbac.authorization.k8s.io/v1
+    resource: clusterrolebindings
+    updateStrategy:
+      method: InPlace
+  - apiVersion: rbac.authorization.k8s.io/v1
+    resource: clusterroles
+    updateStrategy:
+      method: InPlace
+  - apiVersion: v1
+    resource: serviceaccounts
+    updateStrategy:
+      method: InPlace
+  - apiVersion: v1
+    resource: namespaces
     updateStrategy:
       method: InPlace
   hooks:

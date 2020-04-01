@@ -24,24 +24,24 @@ const (
 )
 
 // setProvisionerDefaultsIfNotSet sets the default values for openebs-k8s-provisioner.
-func (r *Reconciler) setProvisionerDefaultsIfNotSet() error {
-	if r.OpenEBS.Spec.Provisioner == nil {
-		r.OpenEBS.Spec.Provisioner = &types.Provisioner{}
+func (p *Planner) setProvisionerDefaultsIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.Provisioner == nil {
+		p.ObservedOpenEBS.Spec.Provisioner = &types.Provisioner{}
 	}
-	if r.OpenEBS.Spec.Provisioner.Enabled == nil {
-		r.OpenEBS.Spec.Provisioner.Enabled = new(bool)
-		*r.OpenEBS.Spec.Provisioner.Enabled = true
+	if p.ObservedOpenEBS.Spec.Provisioner.Enabled == nil {
+		p.ObservedOpenEBS.Spec.Provisioner.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.Provisioner.Enabled = true
 	}
-	if r.OpenEBS.Spec.Provisioner.ImageTag == "" {
-		r.OpenEBS.Spec.Provisioner.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.Provisioner.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.Provisioner.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
 	// form the image for openebs-k8s-provisioner.
-	r.OpenEBS.Spec.Provisioner.Image = r.OpenEBS.Spec.ImagePrefix +
-		"openebs-k8s-provisioner:" + r.OpenEBS.Spec.Provisioner.ImageTag
+	p.ObservedOpenEBS.Spec.Provisioner.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"openebs-k8s-provisioner:" + p.ObservedOpenEBS.Spec.Provisioner.ImageTag
 
-	if r.OpenEBS.Spec.Provisioner.Replicas == nil {
-		r.OpenEBS.Spec.Provisioner.Replicas = new(int32)
-		*r.OpenEBS.Spec.Provisioner.Replicas = DefaultProvisionerReplicaCount
+	if p.ObservedOpenEBS.Spec.Provisioner.Replicas == nil {
+		p.ObservedOpenEBS.Spec.Provisioner.Replicas = new(int32)
+		*p.ObservedOpenEBS.Spec.Provisioner.Replicas = DefaultProvisionerReplicaCount
 	}
 	return nil
 }

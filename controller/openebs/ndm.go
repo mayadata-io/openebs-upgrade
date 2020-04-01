@@ -18,9 +18,9 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
+	"mayadata.io/openebs-upgrade/unstruct"
 )
 
 // supportedNDMVersionForOpenEBSVersion stores the mapping for
@@ -37,232 +37,234 @@ var supportedNDMVersionForOpenEBSVersion = map[string]string{
 }
 
 // add/update NDM defaults if not already provided
-func (r *Reconciler) setNDMDefaultsIfNotSet() error {
+func (p *Planner) setNDMDefaultsIfNotSet() error {
 	// Check if NDM field is set or not, if not then
 	// initialize it.
-	if r.OpenEBS.Spec.NDMDaemon == nil {
-		r.OpenEBS.Spec.NDMDaemon = &types.NDMDaemon{}
+	if p.ObservedOpenEBS.Spec.NDMDaemon == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon = &types.NDMDaemon{}
 	}
 	// Check if NDM enabling field is set or not,
 	// if not then set it to true.
 	// Note: By default, NDM will always be enabled i.e.
 	// will be installed alongwith other OpenEBS components.
-	if r.OpenEBS.Spec.NDMDaemon.Enabled == nil {
-		r.OpenEBS.Spec.NDMDaemon.Enabled = new(bool)
-		*r.OpenEBS.Spec.NDMDaemon.Enabled = true
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Enabled == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Enabled = true
 	}
 	// Check if imageTag fiels is set or not, if not
 	// then set the NDM image tag as per the OpenEBS version
 	// given.
-	if r.OpenEBS.Spec.NDMDaemon.ImageTag == "" {
+	if p.ObservedOpenEBS.Spec.NDMDaemon.ImageTag == "" {
 		if ndmVersion, exist :=
-			supportedNDMVersionForOpenEBSVersion[r.OpenEBS.Spec.Version]; exist {
-			r.OpenEBS.Spec.NDMDaemon.ImageTag = ndmVersion
+			supportedNDMVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+			p.ObservedOpenEBS.Spec.NDMDaemon.ImageTag = ndmVersion
 		} else {
 			return errors.Errorf("Failed to get NDM version for the given OpenEBS version: %s",
-				r.OpenEBS.Spec.Version)
+				p.ObservedOpenEBS.Spec.Version)
 		}
 	}
 	// Form the container image for NDM components based on the image prefix
 	// and image tag.
-	r.OpenEBS.Spec.NDMDaemon.Image = r.OpenEBS.Spec.ImagePrefix +
-		"node-disk-manager-amd64:" + r.OpenEBS.Spec.NDMDaemon.ImageTag
+	p.ObservedOpenEBS.Spec.NDMDaemon.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"node-disk-manager-amd64:" + p.ObservedOpenEBS.Spec.NDMDaemon.ImageTag
 	// set the default values for NDM probes if not already set.
-	err := r.setNDMProbeDefaultsIfNotSet()
+	err := p.setNDMProbeDefaultsIfNotSet()
 	if err != nil {
 		return errors.Errorf("Error setting NDM probe default values: %+v", err)
 	}
 	// set the default values for NDM filters if not already set.
-	err = r.setNDMFilterDefaultsIfNotSet()
+	err = p.setNDMFilterDefaultsIfNotSet()
 	if err != nil {
 		return errors.Errorf("Error setting NDM filter default values: %+v", err)
 	}
 	// Initialize sparse field if not already set.
-	if r.OpenEBS.Spec.NDMDaemon.Sparse == nil {
-		r.OpenEBS.Spec.NDMDaemon.Sparse = &types.Sparse{}
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Sparse == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Sparse = &types.Sparse{}
 	}
 	// set the sparse path if not already set as per the default storage path
 	// given.
-	if r.OpenEBS.Spec.NDMDaemon.Sparse.Path == "" {
-		r.OpenEBS.Spec.NDMDaemon.Sparse.Path = r.OpenEBS.Spec.DefaultStoragePath + "/sparse"
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Path == "" {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Path = p.ObservedOpenEBS.Spec.DefaultStoragePath + "/sparse"
 	}
 	// set the default sparse size if not already set
 	// TODO: See if this needs to be handled based on OpenEBS version.
-	if r.OpenEBS.Spec.NDMDaemon.Sparse.Size == "" {
-		r.OpenEBS.Spec.NDMDaemon.Sparse.Size = types.DefaultNDMSparseSize
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Size == "" {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Size = types.DefaultNDMSparseSize
 	}
 	// set the default sparse count if not already set
 	// TODO: See if this needs to be handled based on OpenEBS version.
-	if r.OpenEBS.Spec.NDMDaemon.Sparse.Count == "" {
-		r.OpenEBS.Spec.NDMDaemon.Sparse.Count = types.DefaultNDMSparseCount
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Count == "" {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Count = types.DefaultNDMSparseCount
 	}
 	return nil
 }
 
 // Set the NDM probes default if not already set
-func (r *Reconciler) setNDMProbeDefaultsIfNotSet() error {
+func (p *Planner) setNDMProbeDefaultsIfNotSet() error {
 	// Check if NDM probes field is set or not, if not
 	// then initialize it in order to fill the defaults.
-	if r.OpenEBS.Spec.NDMDaemon.Probes == nil {
-		r.OpenEBS.Spec.NDMDaemon.Probes = &types.NDMProbes{}
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Probes == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Probes = &types.NDMProbes{}
 	}
 	// Initialize Udev probe if not set
-	if r.OpenEBS.Spec.NDMDaemon.Probes.Udev == nil {
-		r.OpenEBS.Spec.NDMDaemon.Probes.Udev = &types.ProbeState{}
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Udev == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Udev = &types.ProbeState{}
 	}
 	// Enable Udev probe if the field is not set i.e. set the
 	// value to true.
 	// TODO: Validate the values that can be provided for this
 	// field.
-	if r.OpenEBS.Spec.NDMDaemon.Probes.Udev.Enabled == nil {
-		r.OpenEBS.Spec.NDMDaemon.Probes.Udev.Enabled = new(bool)
-		*r.OpenEBS.Spec.NDMDaemon.Probes.Udev.Enabled = true
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Udev.Enabled == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Udev.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Udev.Enabled = true
 	}
 	// Initialize Smart probe if not set
-	if r.OpenEBS.Spec.NDMDaemon.Probes.Smart == nil {
-		r.OpenEBS.Spec.NDMDaemon.Probes.Smart = &types.ProbeState{}
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Smart == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Smart = &types.ProbeState{}
 	}
 	// Enable Smart probe if the field is not set i.e. set the
 	// value to true.
 	// TODO: Validate the values that can be provided for this
 	// field.
-	if r.OpenEBS.Spec.NDMDaemon.Probes.Smart.Enabled == nil {
-		r.OpenEBS.Spec.NDMDaemon.Probes.Smart.Enabled = new(bool)
-		*r.OpenEBS.Spec.NDMDaemon.Probes.Smart.Enabled = true
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Smart.Enabled == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Smart.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Smart.Enabled = true
 	}
 	// Initialize Seachest probe if not set
-	if r.OpenEBS.Spec.NDMDaemon.Probes.Seachest == nil {
-		r.OpenEBS.Spec.NDMDaemon.Probes.Seachest = &types.ProbeState{}
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Seachest == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Seachest = &types.ProbeState{}
 	}
 	// Disable Seachest probe if the field is not set i.e. set the
 	// value to false.
 	// TODO: Validate the values that can be provided for this
 	// field.
-	if r.OpenEBS.Spec.NDMDaemon.Probes.Seachest.Enabled == nil {
-		r.OpenEBS.Spec.NDMDaemon.Probes.Seachest.Enabled = new(bool)
-		*r.OpenEBS.Spec.NDMDaemon.Probes.Seachest.Enabled = false
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Seachest.Enabled == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Seachest.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Seachest.Enabled = false
 	}
 
 	return nil
 }
 
 // Set the NDM filters default if not already set
-func (r *Reconciler) setNDMFilterDefaultsIfNotSet() error {
+func (p *Planner) setNDMFilterDefaultsIfNotSet() error {
 	// Initialize NDM filters field if not already set
-	if r.OpenEBS.Spec.NDMDaemon.Filters == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters = &types.NDMFilters{}
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters = &types.NDMFilters{}
 	}
 	// Initialize OS Disk filter if not already set
-	if r.OpenEBS.Spec.NDMDaemon.Filters.OSDisk == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.OSDisk = &types.FilterConfigs{}
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.OSDisk == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.OSDisk = &types.FilterConfigs{}
 	}
 	// Enable OS disk filter if the field is not set i.e. set the
 	// value to true.
 	// TODO: Validate the values that can be provided for this
 	// field.
-	if r.OpenEBS.Spec.NDMDaemon.Filters.OSDisk.Enabled == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.OSDisk.Enabled = new(bool)
-		*r.OpenEBS.Spec.NDMDaemon.Filters.OSDisk.Enabled = true
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.OSDisk.Enabled == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.OSDisk.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.OSDisk.Enabled = true
 	}
 	// Set the OS disk filter's exclude value if not set
-	if r.OpenEBS.Spec.NDMDaemon.Filters.OSDisk.Exclude == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.OSDisk.Exclude = new(string)
-		*r.OpenEBS.Spec.NDMDaemon.Filters.OSDisk.Exclude = "/,/etc/hosts,/boot"
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.OSDisk.Exclude == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.OSDisk.Exclude = new(string)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.OSDisk.Exclude = "/,/etc/hosts,/boot"
 	}
 	// Initialize Vendor filter if not already set
-	if r.OpenEBS.Spec.NDMDaemon.Filters.Vendor == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.Vendor = &types.FilterConfigs{}
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor = &types.FilterConfigs{}
 	}
 	// Enable vendor filter if the field is not set i.e. set the
 	// value to true.
 	// TODO: Validate the values that can be provided for this
 	// field.
-	if r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Enabled == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Enabled = new(bool)
-		*r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Enabled = true
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Enabled == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Enabled = true
 	}
 	// Set the vendor filter's exclude value if not set
-	if r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Exclude == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Exclude = new(string)
-		*r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Exclude = "CLOUDBYT,OpenEBS"
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Exclude == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Exclude = new(string)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Exclude = "CLOUDBYT,OpenEBS"
 	}
 	// Set the vendor filter's include value if not set
-	if r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Include == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Include = new(string)
-		*r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Include = ""
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Include == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Include = new(string)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Include = ""
 	}
 	// Initialize Path filter if not already set
-	if r.OpenEBS.Spec.NDMDaemon.Filters.Path == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.Path = &types.FilterConfigs{}
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path = &types.FilterConfigs{}
 	}
 	// Enable path filter if the field is not set i.e. set the
 	// value to true.
 	// TODO: Validate the values that can be provided for this
 	// field.
-	if r.OpenEBS.Spec.NDMDaemon.Filters.Path.Enabled == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.Path.Enabled = new(bool)
-		*r.OpenEBS.Spec.NDMDaemon.Filters.Path.Enabled = true
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Enabled == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Enabled = true
 	}
 	// Set the path filter's exclude value if not set
-	if r.OpenEBS.Spec.NDMDaemon.Filters.Path.Exclude == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.Path.Exclude = new(string)
-		*r.OpenEBS.Spec.NDMDaemon.Filters.Path.Exclude =
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Exclude == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Exclude = new(string)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Exclude =
 			"loop,/dev/fd0,/dev/sr0,/dev/ram,/dev/dm-,/dev/md"
 	}
 	// Set the path filter's include value if not set
-	if r.OpenEBS.Spec.NDMDaemon.Filters.Path.Include == nil {
-		r.OpenEBS.Spec.NDMDaemon.Filters.Path.Include = new(string)
-		*r.OpenEBS.Spec.NDMDaemon.Filters.Path.Include = ""
+	if p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Include == nil {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Include = new(string)
+		*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Include = ""
 	}
 	return nil
 }
 
 // Set the NDM operator default values if not set
-func (r *Reconciler) setNDMOperatorDefaultsIfNotSet() error {
+func (p *Planner) setNDMOperatorDefaultsIfNotSet() error {
 	// Initialize NDM operator field if not already set
-	if r.OpenEBS.Spec.NDMOperator == nil {
-		r.OpenEBS.Spec.NDMOperator = &types.NDMOperator{}
+	if p.ObservedOpenEBS.Spec.NDMOperator == nil {
+		p.ObservedOpenEBS.Spec.NDMOperator = &types.NDMOperator{}
 	}
 	// Enable NDM operator if the field is not set i.e. set the
 	// value to true
-	// TODO: Validate the values that can be provided for this
-	// field.
-	if r.OpenEBS.Spec.NDMOperator.Enabled == nil {
-		r.OpenEBS.Spec.NDMOperator.Enabled = new(bool)
-		*r.OpenEBS.Spec.NDMOperator.Enabled = true
+	if p.ObservedOpenEBS.Spec.NDMOperator.Enabled == nil {
+		p.ObservedOpenEBS.Spec.NDMOperator.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.NDMOperator.Enabled = true
 	}
 	// set the NDM operator image as per the given config values
-	if r.OpenEBS.Spec.NDMOperator.ImageTag == "" {
+	if p.ObservedOpenEBS.Spec.NDMOperator.ImageTag == "" {
 		if ndmOperatorVersion, exist :=
-			supportedNDMVersionForOpenEBSVersion[r.OpenEBS.Spec.Version]; exist {
-			r.OpenEBS.Spec.NDMOperator.ImageTag = ndmOperatorVersion
+			supportedNDMVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+			p.ObservedOpenEBS.Spec.NDMOperator.ImageTag = ndmOperatorVersion
 		} else {
 			return errors.Errorf(
 				"Failed to get NDM Operator version for the given OpenEBS version: %s",
-				r.OpenEBS.Spec.Version)
+				p.ObservedOpenEBS.Spec.Version)
 		}
 	}
 	// Form the NDM operator image as per the image prefix and image tag.
-	r.OpenEBS.Spec.NDMOperator.Image = r.OpenEBS.Spec.ImagePrefix +
-		"node-disk-operator-amd64:" + r.OpenEBS.Spec.NDMOperator.ImageTag
+	p.ObservedOpenEBS.Spec.NDMOperator.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"node-disk-operator-amd64:" + p.ObservedOpenEBS.Spec.NDMOperator.ImageTag
 	// set the replicas value for NDM operator to 1
-	if r.OpenEBS.Spec.NDMOperator.Replicas == nil {
-		r.OpenEBS.Spec.NDMOperator.Replicas = new(int32)
-		*r.OpenEBS.Spec.NDMOperator.Replicas = types.DefaultNDMOperatorReplicaCount
+	if p.ObservedOpenEBS.Spec.NDMOperator.Replicas == nil {
+		p.ObservedOpenEBS.Spec.NDMOperator.Replicas = new(int32)
+		*p.ObservedOpenEBS.Spec.NDMOperator.Replicas = types.DefaultNDMOperatorReplicaCount
 	}
 	return nil
 }
 
 // updateNDMConfig updates/sets the default values for ndm configmap
 // as per the values provided in the OpenEBS CR.
-func (r *Reconciler) updateNDMConfig(configmap *corev1.ConfigMap) error {
+func (p *Planner) updateNDMConfig(configmap *unstructured.Unstructured) error {
 	// Initialize NDM config data structure i.e., data field of the configmap
 	// in order to form the data to be put in the configmap with the updated values.
 	ndmConfigData := &types.NDMConfig{}
 	// get the configmap template which we will use as a structure to fill
 	// in the given/default values.
-	ndmConfigDataTemplate := configmap.Data["node-disk-manager.config"]
-	err := yaml.Unmarshal([]byte(ndmConfigDataTemplate), ndmConfigData)
+	dataMap, _, err := unstructured.NestedMap(configmap.Object, "data")
+	if err != nil {
+		return err
+	}
+	ndmConfigDataTemplate := dataMap["node-disk-manager.config"]
+	err = yaml.Unmarshal([]byte(ndmConfigDataTemplate.(string)), ndmConfigData)
 	if err != nil {
 		return errors.Errorf("Error unmarshalling NDM config data: %+v, Error: %+v", ndmConfigDataTemplate, err)
 	}
@@ -271,13 +273,13 @@ func (r *Reconciler) updateNDMConfig(configmap *corev1.ConfigMap) error {
 	for i, probeConfig := range ndmConfigData.ProbeConfigs {
 		if probeConfig.Key == types.UdevProbeKey {
 			probeConfig.State = strconv.FormatBool(
-				*r.OpenEBS.Spec.NDMDaemon.Probes.Udev.Enabled)
+				*p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Udev.Enabled)
 		} else if probeConfig.Key == types.SmartProbeKey {
 			probeConfig.State = strconv.FormatBool(
-				*r.OpenEBS.Spec.NDMDaemon.Probes.Smart.Enabled)
+				*p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Smart.Enabled)
 		} else if probeConfig.Key == types.SeachestProbeKey {
 			probeConfig.State = strconv.FormatBool(
-				*r.OpenEBS.Spec.NDMDaemon.Probes.Seachest.Enabled)
+				*p.ObservedOpenEBS.Spec.NDMDaemon.Probes.Seachest.Enabled)
 		}
 		// update the updates probes in the NDM configmap
 		ndmConfigData.ProbeConfigs[i] = probeConfig
@@ -287,19 +289,19 @@ func (r *Reconciler) updateNDMConfig(configmap *corev1.ConfigMap) error {
 	for i, filterConfig := range ndmConfigData.FilterConfigs {
 		if filterConfig.Key == types.OSDiskFilterKey {
 			filterConfig.State = strconv.FormatBool(
-				*r.OpenEBS.Spec.NDMDaemon.Filters.OSDisk.Enabled)
-			filterConfig.Exclude = r.OpenEBS.Spec.NDMDaemon.Filters.OSDisk.Exclude
+				*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.OSDisk.Enabled)
+			filterConfig.Exclude = p.ObservedOpenEBS.Spec.NDMDaemon.Filters.OSDisk.Exclude
 
 		} else if filterConfig.Key == types.VendorFilterKey {
 			filterConfig.State = strconv.FormatBool(
-				*r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Enabled)
-			filterConfig.Exclude = r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Exclude
-			filterConfig.Include = r.OpenEBS.Spec.NDMDaemon.Filters.Vendor.Include
+				*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Enabled)
+			filterConfig.Exclude = p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Exclude
+			filterConfig.Include = p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Vendor.Include
 		} else if filterConfig.Key == types.PathFilterKey {
 			filterConfig.State = strconv.FormatBool(
-				*r.OpenEBS.Spec.NDMDaemon.Filters.Path.Enabled)
-			filterConfig.Exclude = r.OpenEBS.Spec.NDMDaemon.Filters.Path.Exclude
-			filterConfig.Include = r.OpenEBS.Spec.NDMDaemon.Filters.Path.Include
+				*p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Enabled)
+			filterConfig.Exclude = p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Exclude
+			filterConfig.Include = p.ObservedOpenEBS.Spec.NDMDaemon.Filters.Path.Include
 		}
 		// update the updated filters in the NDM configmap
 		ndmConfigData.FilterConfigs[i] = filterConfig
@@ -308,39 +310,158 @@ func (r *Reconciler) updateNDMConfig(configmap *corev1.ConfigMap) error {
 	if err != nil {
 		return errors.Errorf("Error marshalling configmap data: %+v", err)
 	}
-	configmap.Data["node-disk-manager.config"] = string(ndmConfigDataString)
+	dataMap["node-disk-manager.config"] = string(ndmConfigDataString)
+	unstructured.SetNestedMap(configmap.Object, dataMap, "data")
 
 	return nil
 }
 
 // updateNDM updates the NDM structure as per the provided values otherwise
 // default values.
-func (r *Reconciler) updateNDM(daemonset *appsv1.DaemonSet) error {
-	// Update the volume details
-	for i, volume := range daemonset.Spec.Template.Spec.Volumes {
-		if volume.Name == "sparsepath" {
-			volume.HostPath.Path = r.OpenEBS.Spec.NDMDaemon.Sparse.Path
-		}
-		daemonset.Spec.Template.Spec.Volumes[i] = volume
+func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
+	volumes, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "volumes")
+	if err != nil {
+		return err
 	}
-	// update the containers as per the values given
-	for i, container := range daemonset.Spec.Template.Spec.Containers {
-		for _, vm := range container.VolumeMounts {
-			if vm.Name == "sparsepath" {
-				vm.MountPath = r.OpenEBS.Spec.NDMDaemon.Sparse.Path
-			}
+	updateVolume := func(obj *unstructured.Unstructured) error {
+		volumeName, err := unstruct.GetString(obj, "spec", "name")
+		if err != nil {
+			return err
 		}
-		// update the ENVs
-		for _, env := range container.Env {
-			if env.Name == types.SparseFileDirectoryEnv {
-				env.Value = r.OpenEBS.Spec.NDMDaemon.Sparse.Path
-			} else if env.Name == types.SparseFileSizeEnv {
-				env.Value = r.OpenEBS.Spec.NDMDaemon.Sparse.Size
-			} else if env.Name == types.SparseFileCountEnv {
-				env.Value = r.OpenEBS.Spec.NDMDaemon.Sparse.Count
-			}
+		if volumeName == "sparsepath" {
+			unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Path, "spec", "hostPath", "path")
 		}
-		daemonset.Spec.Template.Spec.Containers[i] = container
+		return nil
 	}
+	err = unstruct.SliceIterator(volumes).ForEachUpdate(updateVolume)
+	if err != nil {
+		return err
+	}
+
+	err = unstructured.SetNestedSlice(daemonset.Object, volumes,
+		"spec", "template", "spec", "volumes")
+	if err != nil {
+		return err
+	}
+
+	// update the daemonset containers
+	containers, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+	updateEnv := func(env *unstructured.Unstructured) error {
+		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if envName == types.SparseFileDirectoryEnv {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Path, "spec", "value")
+		} else if envName == types.SparseFileSizeEnv {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Size, "spec", "value")
+		} else if envName == types.SparseFileCountEnv {
+			unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Count, "spec", "value")
+		}
+
+		return nil
+	}
+	updateVolumeMount := func(vm *unstructured.Unstructured) error {
+		vmName, _, err := unstructured.NestedString(vm.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if vmName == "sparsepath" {
+			unstructured.SetNestedField(vm.Object,
+				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Path, "spec", "mountPath")
+		}
+		return nil
+	}
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
+		err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
+		if err != nil {
+			return err
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
+		}
+		volumeMounts, _, err := unstruct.GetSlice(obj, "spec", "volumeMounts")
+		if err != nil {
+			return err
+		}
+		err = unstruct.SliceIterator(volumeMounts).ForEachUpdate(updateVolumeMount)
+		if err != nil {
+			return err
+		}
+		err = unstructured.SetNestedSlice(obj.Object, volumeMounts, "spec", "volumeMounts")
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+	err = unstructured.SetNestedSlice(daemonset.Object, containers,
+		"spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateNDMOperator updates the NDM Operator structure as per the provided values otherwise
+// default values.
+func (p *Planner) updateNDMOperator(deploy *unstructured.Unstructured) error {
+	// update the daemonset containers
+	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+	updateEnv := func(env *unstructured.Unstructured) error {
+		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if envName == types.CleanupJobImageEnv {
+			unstructured.SetNestedField(env.Object, p.ObservedOpenEBS.Spec.Helper.Image, "spec", "value")
+		}
+		return nil
+	}
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
+		err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
+		if err != nil {
+			return err
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+
+	err = unstructured.SetNestedSlice(deploy.Object, containers,
+		"spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
