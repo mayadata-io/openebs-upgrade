@@ -14,7 +14,17 @@ limitations under the License.
 package openebs
 
 import (
+	appsv1 "k8s.io/api/apps/v1"
 	"mayadata.io/openebs-upgrade/types"
+)
+
+const (
+	// ContainerOpenEBSCSIPlugin is the name of the container openebs csi plugin
+	ContainerOpenEBSCSIPluginName string = "openebs-csi-plugin"
+	// EnvOpenEBSNamespaceKey is the env key for openebs namespace
+	EnvOpenEBSNamespaceKey string = "OPENEBS_NAMESPACE"
+	// NamespaceKubeSystem is the value of kube-system namespace
+	NamespaceKubeSystem string = "kube-system"
 )
 
 // Set the default values for Cstor if not already given.
@@ -56,4 +66,38 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	}
 
 	return nil
+}
+
+func (r *Reconciler) updateOpenEBSCStorCSINode(daemonset *appsv1.DaemonSet) {
+	daemonset.Namespace = NamespaceKubeSystem
+
+	for i, container := range daemonset.Spec.Template.Spec.Containers {
+
+		if container.Name == ContainerOpenEBSCSIPluginName {
+			for j, env := range container.Env {
+				if env.Name == EnvOpenEBSNamespaceKey {
+					env.Value = r.OpenEBS.Namespace
+				}
+				container.Env[j] = env
+			}
+		}
+		daemonset.Spec.Template.Spec.Containers[i] = container
+	}
+}
+
+func (r *Reconciler) updateOpenEBSCStorCSIController(statefulset *appsv1.StatefulSet) {
+	statefulset.Namespace = NamespaceKubeSystem
+
+	for i, container := range statefulset.Spec.Template.Spec.Containers {
+
+		if container.Name == ContainerOpenEBSCSIPluginName {
+			for j, env := range container.Env {
+				if env.Name == EnvOpenEBSNamespaceKey {
+					env.Value = r.OpenEBS.Namespace
+				}
+				container.Env[j] = env
+			}
+		}
+		statefulset.Spec.Template.Spec.Containers[i] = container
+	}
 }

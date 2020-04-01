@@ -473,6 +473,8 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		tolerations = p.ObservedOpenEBS.Spec.NDMDaemon.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.NDMDaemon.Affinity
 		p.updateNDM(daemon)
+	case types.CStorCSINodeNameKey:
+		r.updateOpenEBSCStorCSINode(daemonset)
 	}
 	// update the daemonset containers with the images and imagePullPolicy
 	containers, err := unstruct.GetNestedSliceOrError(daemon, "spec", "template", "spec", "containers")

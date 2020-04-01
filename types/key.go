@@ -167,13 +167,13 @@ const (
 	OSImageSLES15 string = "SUSE Linux Enterprise Server 15"
 
 	// CSIOperatorFilePrefix is the csi operator file path prefix.
-	CSIOperatorFilePrefix = "/templates/csi-operator-"
+	CSIOperatorFilePrefix string = "/templates/csi-operator-"
 	// CSIOperatorFileSuffix is the csi operator file path suffix.
-	CSIOperatorFileSuffix = ".yaml"
+	CSIOperatorFileSuffix string = ".yaml"
 	// CSIOperatorSUSE12FileSuffix is the csi operator file for suse 12 path suffix.
-	CSIOperatorSUSE12FileSuffix = "-sles-12.yaml"
+	CSIOperatorSUSE12FileSuffix string = "-sles-12.yaml"
 	// CSIOperatorSUSE15FileSuffix is the csi operator file for suse 15 path suffix.
-	CSIOperatorSUSE15FileSuffix = "-sles-15.yaml"
+	CSIOperatorSUSE15FileSuffix string = "-sles-15.yaml"
 	// CSIOperatorUbuntu1804FileSuffix is the csi operator file for ubuntu 18.04 path suffix.
-	CSIOperatorUbuntu1804FileSuffix = "-ubuntu-18.04.yaml"
+	CSIOperatorUbuntu1804FileSuffix string = "-ubuntu-18.04.yaml"
 )
