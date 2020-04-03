@@ -18,12 +18,6 @@ pipeline {
         }
         stage('Dependencies'){
 	     when { expression { env.CHANGE_ID == null } }
-            //when {
-               // allOf {
-                 //   expression { env.CHANGE_ID != null }
-                  //  expression { env.CHANGE_TARGET != null }
-                //}
-            //}  //This is to run a stage only when not building a PR
             steps {   
                 script {
                     sh """
