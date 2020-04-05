@@ -497,7 +497,7 @@ status:
 
 ---
 kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-cstor-csi-snapshotter-binding
 subjects:
@@ -512,7 +512,7 @@ roleRef:
 ---
 
 kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-cstor-csi-snapshotter-role
 rules:
@@ -568,7 +568,7 @@ metadata:
 
 ---
 kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-cstor-csi-provisioner-role
 rules:
@@ -612,7 +612,7 @@ rules:
 ---
 
 kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-cstor-csi-provisioner-binding
 subjects:
@@ -749,7 +749,7 @@ spec:
 # Attacher must be able to work with PVs, nodes and VolumeAttachments
 
 kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-cstor-csi-attacher-role
 rules:
@@ -768,7 +768,7 @@ rules:
 
 ---
 kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-cstor-csi-attacher-binding
 subjects:
@@ -783,7 +783,7 @@ roleRef:
 ---
 
 kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-cstor-csi-cluster-registrar-role
 rules:
@@ -794,7 +794,7 @@ rules:
 ---
 
 kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-cstor-csi-cluster-registrar-binding
 subjects:
@@ -823,7 +823,7 @@ metadata:
 ---
 
 kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-cstor-csi-registrar-role
 rules:
@@ -840,7 +840,7 @@ rules:
 ---
 
 kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-cstor-csi-registrar-binding
 subjects:
@@ -996,7 +996,6 @@ kind: VolumeSnapshotClass
 apiVersion: snapshot.storage.k8s.io/v1beta1
 metadata:
   name: csi-cstor-snapshotclass
-  namespace: kube-system
   annotations:
     snapshot.storage.kubernetes.io/is-default-class: "true"
 driver: cstor.csi.openebs.io

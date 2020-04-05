@@ -29,6 +29,15 @@ spec:
       - matchReferenceExpressions:
         - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
           refKey: metadata.uid # match this ann value against watch UID
+  - apiVersion: apps/v1
+    resource: statefulsets
+    updateStrategy:
+      method: InPlace
+    advancedSelector:
+      selectorTerms:
+      - matchReferenceExpressions:
+        - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
+          refKey: metadata.uid # match this ann value against watch UID
   - apiVersion: v1
     resource: configmaps
     updateStrategy:
@@ -53,18 +62,47 @@ spec:
       method: InPlace
     advancedSelector:
       selectorTerms:
-      - matchFields:
-          metadata.name: "openebs-maya-operator"
+      - matchReferenceExpressions:
+        - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
+          refKey: metadata.uid # match this ann value against watch UID
   - apiVersion: rbac.authorization.k8s.io/v1beta1
     resource: clusterroles
     updateStrategy:
       method: InPlace
     advancedSelector:
       selectorTerms:
-      - matchFields:
-          metadata.name: "openebs-maya-operator"
+      - matchReferenceExpressions:
+        - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
+          refKey: metadata.uid # match this ann value against watch UID
   - apiVersion: v1
     resource: serviceaccounts
+    updateStrategy:
+      method: InPlace
+    advancedSelector:
+      selectorTerms:
+      - matchReferenceExpressions:
+        - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
+          refKey: metadata.uid # match this ann value against watch UID
+  - apiVersion: apiextensions.k8s.io/v1beta1
+    resource: customresourcedefinitions
+    updateStrategy:
+      method: InPlace
+    advancedSelector:
+      selectorTerms:
+      - matchReferenceExpressions:
+        - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
+          refKey: metadata.uid # match this ann value against watch UID
+  - apiVersion: snapshot.storage.k8s.io/v1beta1
+    resource: volumesnapshotclasses
+    updateStrategy:
+      method: InPlace
+    advancedSelector:
+      selectorTerms:
+      - matchReferenceExpressions:
+        - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
+          refKey: metadata.uid # match this ann value against watch UID
+  - apiVersion: storage.k8s.io/v1beta1
+    resource: csidrivers
     updateStrategy:
       method: InPlace
     advancedSelector:

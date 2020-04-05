@@ -105,18 +105,18 @@ func (p *Planner) getManifests() error {
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
 	}
-	data, err := ioutil.ReadFile(yamlFile)
+	openEBSOperatorYaml, err := ioutil.ReadFile(yamlFile)
 	if err != nil {
 		return errors.Errorf(
 			"Error reading YAML file for version %s: %+v", p.ObservedOpenEBS.Spec.Version, err)
 	}
 
 	// append the cstor csi yaml in openebs operator yaml.
-	yamlData := string(data) + cStorCSIYaml
+	completeYaml := string(openEBSOperatorYaml) + cStorCSIYaml
 
 	// form the mapping from component's "name_kind" as key to YAML
 	// string as value using operator yaml.
-	componentsYAML := strings.Split(yamlData, "---")
+	componentsYAML := strings.Split(completeYaml, "---")
 	for _, componentYAML := range componentsYAML {
 		if componentYAML == "" {
 			continue
@@ -142,9 +142,14 @@ func (p *Planner) getManifests() error {
 // getCStorCSIManifests returns the yaml of cstor csi operator and driver.
 // TODO: add logic for OS images above ubuntu 18.04 means return the same yaml for ubuntu 18.04 and above.
 func (p *Planner) getCStorCSIManifests() (string, error) {
-	osImage, err := k8s.GetOSImageOfNode()
+	osImage, err := k8s.GetOSImage()
 	if err != nil {
 		return "", errors.Errorf("Error getting OS Image of a Node, error: %+v", err)
+	}
+
+	ubuntuVersion, err := k8s.GetUbuntuVersion()
+	if err != nil {
+		return "", errors.Errorf("Error getting Ubuntu Version of a Node, error: %+v", err)
 	}
 
 	var yamlFile string
@@ -155,6 +160,8 @@ func (p *Planner) getCStorCSIManifests() (string, error) {
 	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES15)):
 		yamlFile = types.CSIOperatorFilePrefix + p.ObservedOpenEBS.Spec.Version + types.CSIOperatorSUSE15FileSuffix
 	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageUbuntu1804)):
+		yamlFile = types.CSIOperatorFilePrefix + p.ObservedOpenEBS.Spec.Version + types.CSIOperatorUbuntu1804FileSuffix
+	case (ubuntuVersion != 0) && ubuntuVersion >= 18.04:
 		yamlFile = types.CSIOperatorFilePrefix + p.ObservedOpenEBS.Spec.Version + types.CSIOperatorUbuntu1804FileSuffix
 	default:
 		yamlFile = types.CSIOperatorFilePrefix + p.ObservedOpenEBS.Spec.Version + types.CSIOperatorFileSuffix
@@ -246,6 +253,14 @@ func (p *Planner) getDesiredManifests() error {
 			value, err = p.getDesiredConfigmap(value)
 		case types.KindService:
 			value, err = p.getDesiredService(value)
+		case types.KindStatefulset:
+			value, err = p.getDesiredStatefulSet(value)
+		case types.KindCustomResourceDefinition:
+			value, err = p.getDesiredCustomResourceDefinition(value)
+		case types.KindVolumeSnapshotClass:
+			value, err = p.getDesiredVolumeSnapshotClass(value)
+		case types.KindCSIDriver:
+			value, err = p.getDesiredCSIDriver(value)
 		default:
 			// Doing nothing if an unknown kind
 			continue
@@ -474,7 +489,10 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		affinity = p.ObservedOpenEBS.Spec.NDMDaemon.Affinity
 		p.updateNDM(daemon)
 	case types.CStorCSINodeNameKey:
-		r.updateOpenEBSCStorCSINode(daemonset)
+		err := p.updateOpenEBSCStorCSINode(daemon)
+		if err != nil {
+			return daemon, err
+		}
 	}
 	// update the daemonset containers with the images and imagePullPolicy
 	containers, err := unstruct.GetNestedSliceOrError(daemon, "spec", "template", "spec", "containers")
@@ -482,9 +500,11 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		return daemon, err
 	}
 	updateContainer := func(obj *unstructured.Unstructured) error {
-		err = unstructured.SetNestedField(obj.Object, image, "spec", "image")
-		if err != nil {
-			return err
+		if image != "" {
+			err = unstructured.SetNestedField(obj.Object, image, "spec", "image")
+			if err != nil {
+				return err
+			}
 		}
 		err = unstructured.SetNestedField(obj.Object,
 			p.ObservedOpenEBS.Spec.ImagePullPolicy, "spec", "imagePullPolicy")
@@ -543,4 +563,68 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		},
 	)
 	return daemon, nil
+}
+
+// getDesiredStatefulSet updates the statefulset manifest as per the given configuration.
+func (p *Planner) getDesiredStatefulSet(statefulset *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+
+	switch statefulset.GetName() {
+	case types.CStorCSIControllerNameKey:
+		err := p.updateOpenEBSCStorCSIController(statefulset)
+		if err != nil {
+			return statefulset, err
+		}
+	}
+
+	// create annotations that refers to the instance which
+	// triggered creation of this StatefulSet
+	statefulset.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+
+	return statefulset, nil
+}
+
+// getDesiredStatefulSet updates the customresourcedefinition manifest as per the given configuration.
+func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+
+	// create annotations that refers to the instance which
+	// triggered creation of this DaemonSet
+	crd.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+
+	return crd, nil
+}
+
+// getDesiredVolumeSnapshotClass updates the volumesnapshotclasses manifest as per the given configuration.
+func (p *Planner) getDesiredVolumeSnapshotClass(vsc *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+
+	// create annotations that refers to the instance which
+	// triggered creation of this DaemonSet
+	vsc.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+
+	return vsc, nil
+}
+
+// getDesiredCSIDriver updates the csidrivers manifest as per the given configuration.
+func (p *Planner) getDesiredCSIDriver(driver *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+
+	// create annotations that refers to the instance which
+	// triggered creation of this CSIDriver
+	driver.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+
+	return driver, nil
 }

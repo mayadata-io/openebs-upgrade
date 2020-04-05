@@ -14,8 +14,9 @@ limitations under the License.
 package openebs
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
+	"mayadata.io/openebs-upgrade/unstruct"
 )
 
 const (
@@ -60,44 +61,126 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-volume-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag
 
-	if r.OpenEBS.Spec.CstorConfig.CStorCSI.Enabled == nil {
-		r.OpenEBS.Spec.CstorConfig.CStorCSI.Enabled = new(bool)
-		*r.OpenEBS.Spec.CstorConfig.CStorCSI.Enabled = true
+	if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled = true
 	}
 
 	return nil
 }
 
-func (r *Reconciler) updateOpenEBSCStorCSINode(daemonset *appsv1.DaemonSet) {
-	daemonset.Namespace = NamespaceKubeSystem
+func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured) error {
+	daemonset.SetNamespace(NamespaceKubeSystem)
 
-	for i, container := range daemonset.Spec.Template.Spec.Containers {
+	containers, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
 
-		if container.Name == ContainerOpenEBSCSIPluginName {
-			for j, env := range container.Env {
-				if env.Name == EnvOpenEBSNamespaceKey {
-					env.Value = r.OpenEBS.Namespace
-				}
-				container.Env[j] = env
+	// update the env value of openebs-csi-plugin container
+	updateEnv := func(env *unstructured.Unstructured) error {
+		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if envName == EnvOpenEBSNamespaceKey {
+			unstructured.SetNestedField(env.Object, p.ObservedOpenEBS.Namespace, "spec", "value")
+		}
+		return nil
+	}
+
+	// update the containers
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if containerName == ContainerOpenEBSCSIPluginName {
+			envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+			if err != nil {
+				return err
+			}
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
+			if err != nil {
+				return err
+			}
+			err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+			if err != nil {
+				return err
 			}
 		}
-		daemonset.Spec.Template.Spec.Containers[i] = container
+
+		return nil
 	}
+
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+
+	err = unstructured.SetNestedSlice(daemonset.Object,
+		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (r *Reconciler) updateOpenEBSCStorCSIController(statefulset *appsv1.StatefulSet) {
-	statefulset.Namespace = NamespaceKubeSystem
+func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unstructured) error {
+	statefulset.SetNamespace(NamespaceKubeSystem)
 
-	for i, container := range statefulset.Spec.Template.Spec.Containers {
+	containers, err := unstruct.GetNestedSliceOrError(statefulset, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
 
-		if container.Name == ContainerOpenEBSCSIPluginName {
-			for j, env := range container.Env {
-				if env.Name == EnvOpenEBSNamespaceKey {
-					env.Value = r.OpenEBS.Namespace
-				}
-				container.Env[j] = env
+	// update the env value of openebs-csi-plugin container
+	updateEnv := func(env *unstructured.Unstructured) error {
+		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if envName == EnvOpenEBSNamespaceKey {
+			unstructured.SetNestedField(env.Object, p.ObservedOpenEBS.Namespace, "spec", "value")
+		}
+		return nil
+	}
+
+	// update the containers
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if containerName == ContainerOpenEBSCSIPluginName {
+			envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+			if err != nil {
+				return err
+			}
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
+			if err != nil {
+				return err
+			}
+			err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+			if err != nil {
+				return err
 			}
 		}
-		statefulset.Spec.Template.Spec.Containers[i] = container
+
+		return nil
 	}
+
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+
+	err = unstructured.SetNestedSlice(statefulset.Object,
+		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
