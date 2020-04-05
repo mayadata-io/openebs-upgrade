@@ -15,13 +15,21 @@ package openebs
 
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"mayadata.io/openebs-upgrade/types"
 	"mayadata.io/openebs-upgrade/unstruct"
 )
 
 // getDesiredNamespace updates the namespace manifest as per the given configuration
 // in OpenEBS CR.
 func (p *Planner) getDesiredNamespace(namespace *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	namespace.SetNamespace(p.ObservedOpenEBS.Namespace)
+	namespace.SetName(p.ObservedOpenEBS.Namespace)
+	// create annotations that refers to the instance which
+	// triggered creation of this namespace
+	namespace.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
 	return namespace, nil
 }
 
@@ -29,14 +37,37 @@ func (p *Planner) getDesiredNamespace(namespace *unstructured.Unstructured) (*un
 // given configuration in OpenEBS CR.
 func (p *Planner) getDesiredServiceAccount(sa *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	sa.SetNamespace(p.ObservedOpenEBS.Namespace)
+	// create annotations that refers to the instance which
+	// triggered creation of this ServiceAccount
+	sa.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
 	return sa, nil
+}
+
+// getDesiredClusterRole updates the cluster role manifest as per the
+// given configuration in OpenEBS CR.
+func (p *Planner) getDesiredClusterRole(cr *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	// create annotations that refers to the instance which
+	// triggered creation of this ClusterRole
+	cr.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+	return cr, nil
 }
 
 // getDesiredClusterRoleBinding updates the clusterRoleBinding manifest as per the
 // given configuration in OpenEBS CR.
 func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	setNamespaceOfEachSubject := func(obj *unstructured.Unstructured) error {
-		unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Namespace, "spec", "namespace")
+		err := unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Namespace, "spec", "namespace")
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 	crbSubjects, _, err := unstruct.GetSlice(crb, "subjects")
@@ -51,5 +82,12 @@ func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (
 	if err != nil {
 		return crb, err
 	}
+	// create annotations that refers to the instance which
+	// triggered creation of this ClusterRoleBinding
+	crb.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
 	return crb, nil
 }

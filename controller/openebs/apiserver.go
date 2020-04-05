@@ -35,62 +35,74 @@ func (p *Planner) updateMayaAPIServer(deploy *unstructured.Unstructured) error {
 		return err
 	}
 	// update the env value of containers
-	updateEnv := func(env *unstructured.Unstructured) error {
+	updateMayaAPIServerEnv := func(env *unstructured.Unstructured) error {
 		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
 		if err != nil {
 			return err
 		}
 		if envName == "OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL" {
-			unstructured.SetNestedField(env.Object, strconv.FormatBool(
+			err = unstructured.SetNestedField(env.Object, strconv.FormatBool(
 				*p.ObservedOpenEBS.Spec.APIServer.CstorSparsePool.Enabled), "spec", "value")
 		} else if envName == "OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG" {
-			unstructured.SetNestedField(env.Object, strconv.FormatBool(
+			err = unstructured.SetNestedField(env.Object, strconv.FormatBool(
 				*p.ObservedOpenEBS.Spec.CreateDefaultStorageConfig), "spec", "value")
 		} else if envName == "OPENEBS_IO_JIVA_CONTROLLER_IMAGE" {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.JivaConfig.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_JIVA_REPLICA_IMAGE" {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.JivaConfig.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_JIVA_REPLICA_COUNT" {
 			envValue := strconv.FormatInt(int64(*p.ObservedOpenEBS.Spec.JivaConfig.Replicas), 10)
-			unstructured.SetNestedField(env.Object, envValue, "spec", "value")
+			err = unstructured.SetNestedField(env.Object, envValue, "spec", "value")
 		} else if envName == "OPENEBS_IO_CSTOR_TARGET_IMAGE" {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.CstorConfig.Target.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_CSTOR_POOL_IMAGE" {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.CstorConfig.Pool.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE" {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE" {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_VOLUME_MONITOR_IMAGE" {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.Policies.Monitoring.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE" {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.Policies.Monitoring.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_HELPER_IMAGE" {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.Helper.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_ENABLE_ANALYTICS" {
 			envValue := strconv.FormatBool(*p.ObservedOpenEBS.Spec.Analytics.Enabled)
-			unstructured.SetNestedField(env.Object, envValue, "spec", "value")
+			err = unstructured.SetNestedField(env.Object, envValue, "spec", "value")
+		}
+		if err != nil {
+			return err
 		}
 
 		return nil
 	}
 	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
 		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
 		if err != nil {
 			return err
 		}
-		err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
-		if err != nil {
-			return err
+		// update the envs of maya-apiserver container
+		// In order to update envs of other containers, just write an updateEnv
+		// function for specific containers.
+		if containerName == "maya-apiserver" {
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateMayaAPIServerEnv)
+			if err != nil {
+				return err
+			}
 		}
 		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {

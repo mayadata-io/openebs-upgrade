@@ -111,9 +111,6 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 
 	var observedOpenEBS *unstructured.Unstructured
 	var observedOpenEBSComponents []*unstructured.Unstructured
-	// We will use watchNamespace to verify if the various attachments are from the
-	// same namespace or not as of watched resource.
-	watchNamepace := request.Watch.GetNamespace()
 	for _, attachment := range request.Attachments.List() {
 		// this watch resource must be present in the list of attachments
 		if request.Watch.GetUID() == attachment.GetUID() &&
@@ -124,17 +121,11 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 			// reconcile logic
 			continue
 		}
+		// If the attachments are not of Kind: OpenEBS then it will be
+		// considered as an OpenEBS component.
 		if attachment.GetKind() != string(types.KindOpenEBS) {
-			// verify further if this belongs to the current watch
-			// i.e. OpenEBS
-			//
-			// Check if its from the same namespace as OpenEBS
-			if attachment.GetNamespace() != watchNamepace {
-				continue
-			}
 			observedOpenEBSComponents = append(observedOpenEBSComponents, attachment)
 		}
-		response.Attachments = append(response.Attachments, attachment)
 	}
 
 	if observedOpenEBS == nil {
@@ -167,10 +158,6 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 			response.Attachments = append(response.Attachments, desiredOpenEBSComponent)
 		}
 	}
-	// Note: We are not updating the updated response back to the OpenEBS
-	// object.
-	// add updated OpenEBS to response
-	//response.Attachments = append(response.Attachments, op.OpenEBS)
 
 	glog.V(2).Infof(
 		"OpenEBS %s %s reconciled successfully: %s",

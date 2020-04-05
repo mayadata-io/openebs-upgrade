@@ -55,24 +55,34 @@ func (p *Planner) updateLocalProvisioner(deploy *unstructured.Unstructured) erro
 	if err != nil {
 		return err
 	}
-	updateEnv := func(env *unstructured.Unstructured) error {
+	updateProvisionerHostPathEnv := func(env *unstructured.Unstructured) error {
 		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
 		if err != nil {
 			return err
 		}
 		if envName == "OPENEBS_IO_HELPER_IMAGE" {
-			unstructured.SetNestedField(env.Object, p.ObservedOpenEBS.Spec.Helper.Image, "spec", "value")
+			err = unstructured.SetNestedField(env.Object, p.ObservedOpenEBS.Spec.Helper.Image,
+				"spec", "value")
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}
 	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
 		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
 		if err != nil {
 			return err
 		}
-		err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
-		if err != nil {
-			return err
+		if containerName == "openebs-provisioner-hostpath" {
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateProvisionerHostPathEnv)
+			if err != nil {
+				return err
+			}
 		}
 		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {

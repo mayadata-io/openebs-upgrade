@@ -133,6 +133,9 @@ func (p *Planner) removeDisabledManifests() error {
 		delete(p.ComponentManifests, types.MayaAPIServerManifestKey)
 		delete(p.ComponentManifests, types.MayaAPIServerServiceManifestKey)
 	}
+	if *p.ObservedOpenEBS.Spec.AdmissionServer.Enabled == false {
+		delete(p.ComponentManifests, types.AdmissionServerManifestKey)
+	}
 	if *p.ObservedOpenEBS.Spec.Provisioner.Enabled == false {
 		delete(p.ComponentManifests, types.ProvisionerManifestKey)
 	}
@@ -166,9 +169,7 @@ func (p *Planner) getDesiredManifests() error {
 		case types.KindServiceAccount:
 			value, err = p.getDesiredServiceAccount(value)
 		case types.KindClusterRole:
-			// Note: nothing to be updated for now
-			continue
-			//p.updateClusterRole(value)
+			value, err = p.getDesiredClusterRole(value)
 		case types.KindClusterRoleBinding:
 			value, err = p.getDesiredClusterRoleBinding(value)
 		case types.KindDeployment:
@@ -268,7 +269,10 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 	// TODO: Validate the replica count value and throw error or take
 	// some action based on that.
 	if *replicas > 1 {
-		unstructured.SetNestedField(deploy.Object, int64(*replicas), "spec", "replicas")
+		err = unstructured.SetNestedField(deploy.Object, int64(*replicas), "spec", "replicas")
+		if err != nil {
+			return deploy, err
+		}
 	}
 	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec",
 		"template", "spec", "containers")
@@ -276,25 +280,38 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		return deploy, err
 	}
 	updateContainer := func(obj *unstructured.Unstructured) error {
-		unstructured.SetNestedField(obj.Object,
+		err = unstructured.SetNestedField(obj.Object,
 			p.ObservedOpenEBS.Spec.ImagePullPolicy, "spec", "imagePullPolicy")
+		if err != nil {
+			return err
+		}
 		if resources != nil {
-			unstructured.SetNestedField(obj.Object, resources, "spec", "resources")
+			err = unstructured.SetNestedField(obj.Object, resources, "spec", "resources")
 		} else if p.ObservedOpenEBS.Spec.Resources != nil {
-			unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
+		}
+		if err != nil {
+			return err
 		}
 		// Explicitly checking for openebs-snapshot-operator in order to update
 		// its multiple containers.
 		// TODO: handle multiple container update cases in a better way, this seems
 		// to be a very naive way.
 		if deploy.GetName() == types.SnapshotOperatorNameKey {
-			if obj.GetName() == types.SnapshotControllerContainerKey {
-				unstructured.SetNestedField(obj.Object, controllerImage, "spec", "image")
-			} else if obj.GetName() == types.SnapshotProvisionerContainerKey {
-				unstructured.SetNestedField(obj.Object, provisionerImage, "spec", "image")
+			containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+			if err != nil {
+				return err
+			}
+			if containerName == types.SnapshotControllerContainerKey {
+				err = unstructured.SetNestedField(obj.Object, controllerImage, "spec", "image")
+			} else if containerName == types.SnapshotProvisionerContainerKey {
+				err = unstructured.SetNestedField(obj.Object, provisionerImage, "spec", "image")
 			}
 		} else {
-			unstructured.SetNestedField(obj.Object, image, "spec", "image")
+			err = unstructured.SetNestedField(obj.Object, image, "spec", "image")
+		}
+		if err != nil {
+			return err
 		}
 		return nil
 	}
@@ -309,19 +326,35 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 	}
 	// update the nodeSelector value
 	if nodeSelector != nil {
-		unstructured.SetNestedStringMap(deploy.Object, nodeSelector, "spec",
+		err = unstructured.SetNestedStringMap(deploy.Object, nodeSelector, "spec",
 			"template", "spec", "nodeSelector")
+		if err != nil {
+			return deploy, err
+		}
 	}
 	// update the tolerations if any
 	if len(tolerations) > 0 {
-		unstructured.SetNestedSlice(deploy.Object, tolerations, "spec",
+		err = unstructured.SetNestedSlice(deploy.Object, tolerations, "spec",
 			"template", "spec", "tolerations")
+		if err != nil {
+			return deploy, err
+		}
 	}
 	// update affinity if set
 	if affinity != nil {
-		unstructured.SetNestedField(deploy.Object, affinity, "spec",
+		err = unstructured.SetNestedField(deploy.Object, affinity, "spec",
 			"template", "spec", "affinity")
+		if err != nil {
+			return deploy, err
+		}
 	}
+	// create annotations that refers to the instance which
+	// triggered creation of this deployment
+	deploy.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
 	return deploy, nil
 }
 
@@ -332,12 +365,26 @@ func (p *Planner) getDesiredConfigmap(configmap *unstructured.Unstructured) (*un
 	case types.NDMConfigNameKey:
 		p.updateNDMConfig(configmap)
 	}
+	// create annotations that refers to the instance which
+	// triggered creation of this ConfigMap
+	configmap.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
 	return configmap, nil
 }
 
 // getDesiredService updates the service manifest as per the given configuration.
 func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	svc.SetNamespace(p.ObservedOpenEBS.Namespace)
+	// create annotations that refers to the instance which
+	// triggered creation of this Service
+	svc.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
 	return svc, nil
 }
 
@@ -367,14 +414,23 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		return daemon, err
 	}
 	updateContainer := func(obj *unstructured.Unstructured) error {
-		unstructured.SetNestedField(obj.Object, image, "spec", "image")
-		unstructured.SetNestedField(obj.Object,
+		err = unstructured.SetNestedField(obj.Object, image, "spec", "image")
+		if err != nil {
+			return err
+		}
+		err = unstructured.SetNestedField(obj.Object,
 			p.ObservedOpenEBS.Spec.ImagePullPolicy, "spec", "imagePullPolicy")
+		if err != nil {
+			return err
+		}
 		if resources != nil {
-			unstructured.SetNestedField(obj.Object, resources, "spec", "resources")
+			err = unstructured.SetNestedField(obj.Object, resources, "spec", "resources")
 		} else if p.ObservedOpenEBS.Spec.Resources != nil {
-			unstructured.SetNestedField(obj.Object,
+			err = unstructured.SetNestedField(obj.Object,
 				p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
+		}
+		if err != nil {
+			return err
 		}
 		return nil
 	}
@@ -389,18 +445,34 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 	}
 	// update the nodeSelector value
 	if nodeSelector != nil {
-		unstructured.SetNestedStringMap(daemon.Object, nodeSelector, "spec",
+		err = unstructured.SetNestedStringMap(daemon.Object, nodeSelector, "spec",
 			"template", "spec", "nodeSelector")
+		if err != nil {
+			return daemon, err
+		}
 	}
 	// update the tolerations if any
 	if len(tolerations) > 0 {
-		unstructured.SetNestedSlice(daemon.Object, tolerations, "spec", "template", "spec",
+		err = unstructured.SetNestedSlice(daemon.Object, tolerations, "spec", "template", "spec",
 			"tolerations")
+		if err != nil {
+			return daemon, err
+		}
 	}
 	// update affinity if set
 	if affinity != nil {
-		unstructured.SetNestedField(daemon.Object, affinity, "spec", "template", "spec",
+		err = unstructured.SetNestedField(daemon.Object, affinity, "spec", "template", "spec",
 			"affinity")
+		if err != nil {
+			return daemon, err
+		}
 	}
+	// create annotations that refers to the instance which
+	// triggered creation of this DaemonSet
+	daemon.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
 	return daemon, nil
 }

@@ -329,8 +329,11 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 			return err
 		}
 		if volumeName == "sparsepath" {
-			unstructured.SetNestedField(obj.Object,
+			err = unstructured.SetNestedField(obj.Object,
 				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Path, "spec", "hostPath", "path")
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -350,45 +353,49 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 	if err != nil {
 		return err
 	}
-	updateEnv := func(env *unstructured.Unstructured) error {
+	// this function updates the envs of node-disk-manager container
+	updateNodeDiskManagerEnv := func(env *unstructured.Unstructured) error {
 		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
 		if err != nil {
 			return err
 		}
 		if envName == types.SparseFileDirectoryEnv {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Path, "spec", "value")
 		} else if envName == types.SparseFileSizeEnv {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Size, "spec", "value")
 		} else if envName == types.SparseFileCountEnv {
-			unstructured.SetNestedField(env.Object,
+			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Count, "spec", "value")
+		}
+		if err != nil {
+			return err
 		}
 
 		return nil
 	}
-	updateVolumeMount := func(vm *unstructured.Unstructured) error {
+	// this function updates the volumeMounts of node-disk-manager container
+	updateNodeDiskManagerVolumeMount := func(vm *unstructured.Unstructured) error {
 		vmName, _, err := unstructured.NestedString(vm.Object, "spec", "name")
 		if err != nil {
 			return err
 		}
 		if vmName == "sparsepath" {
-			unstructured.SetNestedField(vm.Object,
+			err = unstructured.SetNestedField(vm.Object,
 				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Path, "spec", "mountPath")
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}
 	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
 		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
-		if err != nil {
-			return err
-		}
-		err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
-		if err != nil {
-			return err
-		}
-		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {
 			return err
 		}
@@ -396,7 +403,19 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 		if err != nil {
 			return err
 		}
-		err = unstruct.SliceIterator(volumeMounts).ForEachUpdate(updateVolumeMount)
+		// update the envs and volume mounts per container i.e., envs and volume mounts
+		// could be different for each container and should be updated as such.
+		if containerName == "node-disk-manager" {
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateNodeDiskManagerEnv)
+			if err != nil {
+				return err
+			}
+			err = unstruct.SliceIterator(volumeMounts).ForEachUpdate(updateNodeDiskManagerVolumeMount)
+			if err != nil {
+				return err
+			}
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {
 			return err
 		}
@@ -427,24 +446,36 @@ func (p *Planner) updateNDMOperator(deploy *unstructured.Unstructured) error {
 	if err != nil {
 		return err
 	}
-	updateEnv := func(env *unstructured.Unstructured) error {
+	updateNDMOperatorEnv := func(env *unstructured.Unstructured) error {
 		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
 		if err != nil {
 			return err
 		}
 		if envName == types.CleanupJobImageEnv {
-			unstructured.SetNestedField(env.Object, p.ObservedOpenEBS.Spec.Helper.Image, "spec", "value")
+			err = unstructured.SetNestedField(env.Object, p.ObservedOpenEBS.Spec.Helper.Image,
+				"spec", "value")
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}
 	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
 		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
 		if err != nil {
 			return err
 		}
-		err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
-		if err != nil {
-			return err
+		if containerName == "node-disk-operator" {
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateNDMOperatorEnv)
+			if err != nil {
+				return err
+			}
+		} else {
+			return nil
 		}
 		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {

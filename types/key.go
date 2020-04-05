@@ -71,6 +71,8 @@ const (
 	NDMOperatorManifestKey string = NDMOperatorNameKey + "_" + KindDeployment
 	// LocalProvisionerManifestKey is used to get the manifest of local pv provisioner
 	LocalProvisionerManifestKey string = LocalProvisionerNameKey + "_" + KindDeployment
+	// AdmissionServerManifestKey is used to get the manifest of admission server
+	AdmissionServerManifestKey string = AdmissionServerNameKey + "_" + KindDeployment
 
 	// OpenEBSVersion150 is the OpenEBS version 1.5.0
 	OpenEBSVersion150 string = "1.5.0"
