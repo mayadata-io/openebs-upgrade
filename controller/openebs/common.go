@@ -469,9 +469,7 @@ func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructur
 
 // getDesiredDaemonSet updates the daemonset manifest as per the given configuration.
 func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	var (
-		image string
-	)
+
 	resources := make(map[string]interface{})
 	nodeSelector := make(map[string]string)
 	tolerations := make([]interface{}, 0)
@@ -480,7 +478,6 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 	daemon.SetNamespace(p.ObservedOpenEBS.Namespace)
 	switch daemon.GetName() {
 	case types.NDMNameKey:
-		image = p.ObservedOpenEBS.Spec.NDMDaemon.Image
 		resources = p.ObservedOpenEBS.Spec.NDMDaemon.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.NDMDaemon.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.NDMDaemon.Tolerations
@@ -498,12 +495,6 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		return daemon, err
 	}
 	updateContainer := func(obj *unstructured.Unstructured) error {
-		if image != "" {
-			err = unstructured.SetNestedField(obj.Object, image, "spec", "image")
-			if err != nil {
-				return err
-			}
-		}
 		err = unstructured.SetNestedField(obj.Object,
 			p.ObservedOpenEBS.Spec.ImagePullPolicy, "spec", "imagePullPolicy")
 		if err != nil {

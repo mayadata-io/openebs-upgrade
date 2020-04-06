@@ -24,8 +24,6 @@ const (
 	ContainerOpenEBSCSIPluginName string = "openebs-csi-plugin"
 	// EnvOpenEBSNamespaceKey is the env key for openebs namespace
 	EnvOpenEBSNamespaceKey string = "OPENEBS_NAMESPACE"
-	// NamespaceKubeSystem is the value of kube-system namespace
-	NamespaceKubeSystem string = "kube-system"
 )
 
 // Set the default values for Cstor if not already given.
@@ -61,16 +59,59 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-volume-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag
 
+	// Set the default values for cstor csi installation in configuration.
 	if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled == nil {
 		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled = true
 	}
 
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled == true {
+		if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.ImageTag == "" {
+			p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.ImageTag = p.ObservedOpenEBS.Spec.Version
+		}
+		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+			"cstor-csi-driver:" + p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.ImageTag
+
+		if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ImageTag == "" {
+			p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ImageTag = p.ObservedOpenEBS.Spec.Version
+		}
+		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+			"cstor-csi-driver:" + p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ImageTag
+
+		if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ISCSIPath == "" {
+			p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ISCSIPath = "/sbin/iscsiadm"
+		}
+	}
+
 	return nil
 }
 
+// updateOpenEBSCStorCSINode updates the values of openebs-cstor-csi-node daemonset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured) error {
-	daemonset.SetNamespace(NamespaceKubeSystem)
+	daemonset.SetNamespace(types.NamespaceKubeSystem)
+	volumes, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "volumes")
+	if err != nil {
+		return err
+	}
+	// updateVolume updates the volume path of openebs-csi-plugin container.
+	updateVolume := func(obj *unstructured.Unstructured) error {
+		volumeName, err := unstruct.GetString(obj, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if volumeName == "iscsiadm-bin" {
+			err = unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ISCSIPath, "spec", "hostPath", "path")
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	err = unstruct.SliceIterator(volumes).ForEachUpdate(updateVolume)
+	if err != nil {
+		return err
+	}
 
 	containers, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "containers")
 	if err != nil {
@@ -78,7 +119,7 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	}
 
 	// update the env value of openebs-csi-plugin container
-	updateEnv := func(env *unstructured.Unstructured) error {
+	updateOpenEBSCSIPluginEnv := func(env *unstructured.Unstructured) error {
 		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
 		if err != nil {
 			return err
@@ -89,35 +130,73 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		return nil
 	}
 
+	// updateOpenEBSCSIPluginVolumeMount updates the volumeMounts path of openebs-csi-plugin container.
+	updateOpenEBSCSIPluginVolumeMount := func(vm *unstructured.Unstructured) error {
+		vmName, _, err := unstructured.NestedString(vm.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if vmName == "iscsiadm-bin" {
+			err = unstructured.SetNestedField(vm.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ISCSIPath, "spec", "mountPath")
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	// update the containers
 	updateContainer := func(obj *unstructured.Unstructured) error {
 		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
 		if err != nil {
 			return err
 		}
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
+		volumeMounts, _, err := unstruct.GetSlice(obj, "spec", "volumeMounts")
+		if err != nil {
+			return err
+		}
+
 		if containerName == ContainerOpenEBSCSIPluginName {
-			envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Image,
+				"spec", "image")
 			if err != nil {
 				return err
 			}
-			err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
+			// Set the environmets of the container.
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateOpenEBSCSIPluginEnv)
 			if err != nil {
 				return err
 			}
-			err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+			err = unstruct.SliceIterator(volumeMounts).ForEachUpdate(updateOpenEBSCSIPluginVolumeMount)
 			if err != nil {
 				return err
 			}
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
+		}
+		err = unstructured.SetNestedSlice(obj.Object, volumeMounts, "spec", "volumeMounts")
+		if err != nil {
+			return err
 		}
 
 		return nil
 	}
 
+	// Update the containers.
 	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
 	if err != nil {
 		return err
 	}
 
+	// Set back the value of the containers.
 	err = unstructured.SetNestedSlice(daemonset.Object,
 		containers, "spec", "template", "spec", "containers")
 	if err != nil {
@@ -127,8 +206,9 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	return nil
 }
 
+// updateOpenEBSCStorCSIController updates the values of openebs-cstor-csi-controller statefulset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unstructured) error {
-	statefulset.SetNamespace(NamespaceKubeSystem)
+	statefulset.SetNamespace(types.NamespaceKubeSystem)
 
 	containers, err := unstruct.GetNestedSliceOrError(statefulset, "spec", "template", "spec", "containers")
 	if err != nil {
@@ -136,7 +216,7 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 	}
 
 	// update the env value of openebs-csi-plugin container
-	updateEnv := func(env *unstructured.Unstructured) error {
+	updateOpenEBSCSIPluginEnv := func(env *unstructured.Unstructured) error {
 		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
 		if err != nil {
 			return err
@@ -153,19 +233,27 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 		if err != nil {
 			return err
 		}
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
+
 		if containerName == ContainerOpenEBSCSIPluginName {
-			envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Image,
+				"spec", "image")
 			if err != nil {
 				return err
 			}
-			err = unstruct.SliceIterator(envs).ForEachUpdate(updateEnv)
+			// Set the environmets of the container.
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateOpenEBSCSIPluginEnv)
 			if err != nil {
 				return err
 			}
-			err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
-			if err != nil {
-				return err
-			}
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
 		}
 
 		return nil

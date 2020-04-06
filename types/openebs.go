@@ -304,7 +304,7 @@ type CstorConfig struct {
 	PoolMgmt   Container `json:"poolMgmt"`
 	Target     Container `json:"target"`
 	VolumeMgmt Container `json:"volumeMgmt"`
-	CStorCSI   CStorCSI  `json:"cstorCSI"`
+	CStorCSI   CStorCSI  `json:"cStorCSI"`
 }
 
 // Container stores the details of a container
@@ -352,5 +352,19 @@ type OpenEBSStatusCondition struct {
 
 // CStorCSI stores the configuration for cstor csi operator and driver.
 type CStorCSI struct {
-	Enabled *bool `json:"enabled"`
+	Enabled            *bool              `json:"enabled"`
+	CStorCSIController CStorCSIController `json:"cStorCSIController"`
+	CStorCSINode       CStorCSINode       `json:"cStorCSINode"`
+}
+
+// CStorCSIController is the configuration for openebs-cstor-csi-controller statefulset.
+type CStorCSIController struct {
+	Container `json:",inline"`
+}
+
+// CStorCSINode is the configuration for openebs-cstor-csi-node daemonset.
+type CStorCSINode struct {
+	Container `json:",inline"`
+	// ISCSIPath is the path of the iscsiadm binary.
+	ISCSIPath string `json:"iscsiPath"`
 }

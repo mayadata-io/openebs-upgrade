@@ -176,4 +176,7 @@ const (
 	CSIOperatorSUSE15FileSuffix string = "-sles-15.yaml"
 	// CSIOperatorUbuntu1804FileSuffix is the csi operator file for ubuntu 18.04 path suffix.
 	CSIOperatorUbuntu1804FileSuffix string = "-ubuntu-18.04.yaml"
+
+	// NamespaceKubeSystem is the value of kube-system namespace
+	NamespaceKubeSystem string = "kube-system"
 )

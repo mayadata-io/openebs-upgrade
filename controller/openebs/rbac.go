@@ -37,6 +37,8 @@ func (p *Planner) getDesiredNamespace(namespace *unstructured.Unstructured) (*un
 // getDesiredServiceAccount updates the service account manifest as per the
 // given configuration in OpenEBS CR.
 func (p *Planner) getDesiredServiceAccount(sa *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+
+	sa.SetNamespace(p.ObservedOpenEBS.Namespace)
 	// create annotations that refers to the instance which
 	// triggered creation of this ServiceAccount
 	sa.SetAnnotations(
@@ -45,12 +47,11 @@ func (p *Planner) getDesiredServiceAccount(sa *unstructured.Unstructured) (*unst
 		},
 	)
 
-	// Do not set the openebs namespace for service account which are csi based.
+	// Overwrite the namespace to kube-system for csi based components.
+	// Note: csi based components will be installed only in kube-system namespace only.
 	if sa.GetName() == types.CStorCSIControllerSANameKey || sa.GetName() == types.CStorCSINodeSANameKey {
-		return sa, nil
+		sa.SetNamespace(types.NamespaceKubeSystem)
 	}
-
-	sa.SetNamespace(p.ObservedOpenEBS.Namespace)
 
 	return sa, nil
 }
@@ -71,26 +72,27 @@ func (p *Planner) getDesiredClusterRole(cr *unstructured.Unstructured) (*unstruc
 // getDesiredClusterRoleBinding updates the clusterRoleBinding manifest as per the
 // given configuration in OpenEBS CR.
 func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	// create annotations that refers to the instance which
-	// triggered creation of this ClusterRoleBinding
-	crb.SetAnnotations(
-		map[string]string{
-			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
-		},
-	)
-
-	// Do not set the subject namespace for cluster role binding which are csi based.
-	if crb.GetName() == types.CStorCSISnapshottterBindingNameKey || crb.GetName() == types.CStorCSIRegistrarBindingNameKey ||
-		crb.GetName() == types.CStorCSIProvisionerBindingNameKey || crb.GetName() == types.CStorCSIClusterRegistrarBindingNameKey ||
-		crb.GetName() == types.CStorCSIAttacherBindingNameKey {
-		return crb, nil
-	}
 
 	setNamespaceOfEachSubject := func(obj *unstructured.Unstructured) error {
 		err := unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Namespace, "spec", "namespace")
 		if err != nil {
 			return err
 		}
+
+		// get the name of the subject i.e service account name
+		objName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		// Overwrite the namespace to kube-system for csi based components.
+		// Note: csi based components will be installed only in kube-system namespace only.
+		if objName == types.CStorCSINodeSANameKey || objName == types.CStorCSIControllerSANameKey {
+			err := unstructured.SetNestedField(obj.Object, types.NamespaceKubeSystem, "spec", "namespace")
+			if err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}
 	crbSubjects, _, err := unstruct.GetSlice(crb, "subjects")
@@ -106,5 +108,12 @@ func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (
 		return crb, err
 	}
 
+	// create annotations that refers to the instance which
+	// triggered creation of this ClusterRoleBinding
+	crb.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
 	return crb, nil
 }
