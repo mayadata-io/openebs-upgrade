@@ -14,7 +14,6 @@ limitations under the License.
 package types
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -59,7 +58,7 @@ type OpenEBSSpec struct {
 	// Defaults to IfNotPresent
 	// Note: This policy will be applicable to all the images being used
 	// for OpenEBS components.
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy"`
+	ImagePullPolicy string `json:"imagePullPolicy"`
 
 	// Resources can be used to specify the resource requests of the containers
 	// of the OpenEBS components in terms of CPU and Memory
@@ -69,7 +68,7 @@ type OpenEBSSpec struct {
 	//
 	// This can be overrided by providing it for a particular component in the
 	// component's specified section, for example, inside apiServer.
-	Resources *corev1.ResourceRequirements `json:"resources"`
+	Resources map[string]interface{} `json:"resources"`
 
 	// All the OpenEBS components that will get installed/updated.
 	Components `json:",inline"`
@@ -128,12 +127,12 @@ type Analytics struct {
 // component such as it it is enabled or not, no of
 // replicas, nodeselector, etc.
 type Component struct {
-	Enabled      *bool                        `json:"enabled"`
-	Replicas     *int32                       `json:"replicas"`
-	Resources    *corev1.ResourceRequirements `json:"resources"`
-	NodeSelector map[string]string            `json:"nodeSelector"`
-	Tolerations  []corev1.Toleration          `json:"tolerations"`
-	Affinity     *corev1.Affinity             `json:"affinity"`
+	Enabled      *bool                  `json:"enabled"`
+	Replicas     *int32                 `json:"replicas"`
+	Resources    map[string]interface{} `json:"resources"`
+	NodeSelector map[string]string      `json:"nodeSelector"`
+	Tolerations  []interface{}          `json:"tolerations"`
+	Affinity     map[string]interface{} `json:"affinity"`
 }
 
 // APIServer store the configuration for maya-apiserver

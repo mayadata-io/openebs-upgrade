@@ -24,28 +24,28 @@ const (
 )
 
 // Set the admission server default values if not already set
-func (r *Reconciler) setAdmissionServerDefaultsIfNotSet() error {
+func (p *Planner) setAdmissionServerDefaultsIfNotSet() error {
 	// Initialize admissionserver field if not set
-	if r.OpenEBS.Spec.AdmissionServer == nil {
-		r.OpenEBS.Spec.AdmissionServer = &types.AdmissionServer{}
+	if p.ObservedOpenEBS.Spec.AdmissionServer == nil {
+		p.ObservedOpenEBS.Spec.AdmissionServer = &types.AdmissionServer{}
 	}
 	// Enable admission server if the field is not set i.e. set the
 	// value to true.
 	// TODO: Validate the values that can be provided for this
 	// field.
-	if r.OpenEBS.Spec.AdmissionServer.Enabled == nil {
-		r.OpenEBS.Spec.AdmissionServer.Enabled = new(bool)
-		*r.OpenEBS.Spec.AdmissionServer.Enabled = true
+	if p.ObservedOpenEBS.Spec.AdmissionServer.Enabled == nil {
+		p.ObservedOpenEBS.Spec.AdmissionServer.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.AdmissionServer.Enabled = true
 	}
-	if r.OpenEBS.Spec.AdmissionServer.ImageTag == "" {
-		r.OpenEBS.Spec.AdmissionServer.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.AdmissionServer.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.AdmissionServer.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.AdmissionServer.Image = r.OpenEBS.Spec.ImagePrefix +
-		"admission-server:" + r.OpenEBS.Spec.AdmissionServer.ImageTag
+	p.ObservedOpenEBS.Spec.AdmissionServer.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"admission-server:" + p.ObservedOpenEBS.Spec.AdmissionServer.ImageTag
 
-	if r.OpenEBS.Spec.AdmissionServer.Replicas == nil {
-		r.OpenEBS.Spec.AdmissionServer.Replicas = new(int32)
-		*r.OpenEBS.Spec.AdmissionServer.Replicas = DefaultAdmissionServerReplicaCount
+	if p.ObservedOpenEBS.Spec.AdmissionServer.Replicas == nil {
+		p.ObservedOpenEBS.Spec.AdmissionServer.Replicas = new(int32)
+		*p.ObservedOpenEBS.Spec.AdmissionServer.Replicas = DefaultAdmissionServerReplicaCount
 	}
 	return nil
 }

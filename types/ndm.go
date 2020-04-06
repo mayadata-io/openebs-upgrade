@@ -44,6 +44,8 @@ const (
 	SparseFileCountEnv string = "SPARSE_FILE_COUNT"
 	// SparseFileDirectoryEnv is the sparse directory env key
 	SparseFileDirectoryEnv string = "SPARSE_FILE_DIR"
+	// CleanupJobImageEnv is the cleanup job image env key
+	CleanupJobImageEnv string = "CLEANUP_JOB_IMAGE"
 	// DefaultNDMOperatorReplicaCount is the default replica count for NDM operator
 	DefaultNDMOperatorReplicaCount int32 = 1
 )

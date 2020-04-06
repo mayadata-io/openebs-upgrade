@@ -19,22 +19,22 @@ import (
 
 // setPoliciesDefaultsIfNotSet sets the default values for various policies
 // being used in OpenEBS such as monitoring, etc.
-func (r *Reconciler) setPoliciesDefaultsIfNotSet() error {
-	if r.OpenEBS.Spec.Policies == nil {
-		r.OpenEBS.Spec.Policies = &types.Policies{
+func (p *Planner) setPoliciesDefaultsIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.Policies == nil {
+		p.ObservedOpenEBS.Spec.Policies = &types.Policies{
 			Monitoring: &types.Monitoring{},
 		}
 	}
-	if r.OpenEBS.Spec.Policies.Monitoring.Enabled == nil {
-		r.OpenEBS.Spec.Policies.Monitoring.Enabled = new(bool)
-		*r.OpenEBS.Spec.Policies.Monitoring.Enabled = true
+	if p.ObservedOpenEBS.Spec.Policies.Monitoring.Enabled == nil {
+		p.ObservedOpenEBS.Spec.Policies.Monitoring.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.Policies.Monitoring.Enabled = true
 	}
 	// form the monitoring image which is used by cstor pool exporter
 	// and volume monitor containers.
-	if r.OpenEBS.Spec.Policies.Monitoring.ImageTag == "" {
-		r.OpenEBS.Spec.Policies.Monitoring.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.Policies.Monitoring.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.Policies.Monitoring.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.Policies.Monitoring.Image = r.OpenEBS.Spec.ImagePrefix +
-		"m-exporter:" + r.OpenEBS.Spec.Policies.Monitoring.ImageTag
+	p.ObservedOpenEBS.Spec.Policies.Monitoring.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"m-exporter:" + p.ObservedOpenEBS.Spec.Policies.Monitoring.ImageTag
 	return nil
 }

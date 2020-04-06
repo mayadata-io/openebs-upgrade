@@ -23,31 +23,31 @@ const (
 
 // setSnapshotOperatorDefaultsIfNotSet sets the default values for snapshot
 // operator.
-func (r *Reconciler) setSnapshotOperatorDefaultsIfNotSet() error {
-	if r.OpenEBS.Spec.SnapshotOperator == nil {
-		r.OpenEBS.Spec.SnapshotOperator = &types.SnapshotOperator{}
+func (p *Planner) setSnapshotOperatorDefaultsIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.SnapshotOperator == nil {
+		p.ObservedOpenEBS.Spec.SnapshotOperator = &types.SnapshotOperator{}
 	}
-	if r.OpenEBS.Spec.SnapshotOperator.Enabled == nil {
-		r.OpenEBS.Spec.SnapshotOperator.Enabled = new(bool)
-		*r.OpenEBS.Spec.SnapshotOperator.Enabled = true
+	if p.ObservedOpenEBS.Spec.SnapshotOperator.Enabled == nil {
+		p.ObservedOpenEBS.Spec.SnapshotOperator.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.SnapshotOperator.Enabled = true
 	}
 	// form the snapshot-provisioner image
-	if r.OpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag == "" {
-		r.OpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.SnapshotOperator.Provisioner.Image = r.OpenEBS.Spec.ImagePrefix +
-		"snapshot-provisioner:" + r.OpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag
+	p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"snapshot-provisioner:" + p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag
 
 	// form the snapshot-controller image
-	if r.OpenEBS.Spec.SnapshotOperator.Controller.ImageTag == "" {
-		r.OpenEBS.Spec.SnapshotOperator.Controller.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.SnapshotOperator.Controller.Image = r.OpenEBS.Spec.ImagePrefix +
-		"snapshot-controller:" + r.OpenEBS.Spec.SnapshotOperator.Controller.ImageTag
+	p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"snapshot-controller:" + p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ImageTag
 
-	if r.OpenEBS.Spec.SnapshotOperator.Replicas == nil {
-		r.OpenEBS.Spec.SnapshotOperator.Replicas = new(int32)
-		*r.OpenEBS.Spec.SnapshotOperator.Replicas = DefaultSnapshotOperatorReplicaCount
+	if p.ObservedOpenEBS.Spec.SnapshotOperator.Replicas == nil {
+		p.ObservedOpenEBS.Spec.SnapshotOperator.Replicas = new(int32)
+		*p.ObservedOpenEBS.Spec.SnapshotOperator.Replicas = DefaultSnapshotOperatorReplicaCount
 	}
 	return nil
 }

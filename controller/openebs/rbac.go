@@ -14,62 +14,80 @@ limitations under the License.
 package openebs
 
 import (
-	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"mayadata.io/openebs-upgrade/types"
+	"mayadata.io/openebs-upgrade/unstruct"
 )
 
-// updateNamespace updates the namespace manifest as per the given configuration
+// getDesiredNamespace updates the namespace manifest as per the given configuration
 // in OpenEBS CR.
-func (r *Reconciler) updateNamespace(YAML string) (string, error) {
-	ns := &corev1.Namespace{}
-	err := yaml.Unmarshal([]byte(YAML), ns)
-	if err != nil {
-		return "", errors.Errorf("Error unmarshalling namespace YAML: %+v", err)
-	}
-	ns.Name = r.OpenEBS.Namespace
-
-	rawNamespace, err := yaml.Marshal(ns)
-	if err != nil {
-		return "", errors.Errorf("Error marshalling namespace: %+v", err)
-	}
-	return string(rawNamespace), nil
+func (p *Planner) getDesiredNamespace(namespace *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	namespace.SetName(p.ObservedOpenEBS.Namespace)
+	// create annotations that refers to the instance which
+	// triggered creation of this namespace
+	namespace.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+	return namespace, nil
 }
 
-// updateServiceAccount updates the service account manifest as per the
+// getDesiredServiceAccount updates the service account manifest as per the
 // given configuration in OpenEBS CR.
-func (r *Reconciler) updateServiceAccount(YAML string) (string, error) {
-	serviceAccount := &corev1.ServiceAccount{}
-	err := yaml.Unmarshal([]byte(YAML), serviceAccount)
-	if err != nil {
-		return "", errors.Errorf("Error unmarshalling service account YAML: %+v", err)
-	}
-	serviceAccount.Namespace = r.OpenEBS.Namespace
-
-	rawServiceAccount, err := yaml.Marshal(serviceAccount)
-	if err != nil {
-		return "", errors.Errorf("Error marshalling serviceAccount struct: %+v", err)
-	}
-	return string(rawServiceAccount), nil
+func (p *Planner) getDesiredServiceAccount(sa *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	sa.SetNamespace(p.ObservedOpenEBS.Namespace)
+	// create annotations that refers to the instance which
+	// triggered creation of this ServiceAccount
+	sa.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+	return sa, nil
 }
 
-// updateClusterRoleBinding updates the clusterRoleBinding manifest as per the
+// getDesiredClusterRole updates the cluster role manifest as per the
 // given configuration in OpenEBS CR.
-func (r *Reconciler) updateClusterRoleBinding(YAML string) (string, error) {
-	clusterRoleBinding := &rbacv1beta1.ClusterRoleBinding{}
-	err := yaml.Unmarshal([]byte(YAML), clusterRoleBinding)
-	if err != nil {
-		return "", errors.Errorf("Error unmarshalling clusterRoleBinding YAML: %+v", err)
-	}
-	for i, subject := range clusterRoleBinding.Subjects {
-		subject.Namespace = r.OpenEBS.Namespace
-		clusterRoleBinding.Subjects[i] = subject
-	}
+func (p *Planner) getDesiredClusterRole(cr *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	// create annotations that refers to the instance which
+	// triggered creation of this ClusterRole
+	cr.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+	return cr, nil
+}
 
-	rawClusterRoleBinding, err := yaml.Marshal(clusterRoleBinding)
-	if err != nil {
-		return "", errors.Errorf("Error marshalling clusterRoleBinding struct: %+v", err)
+// getDesiredClusterRoleBinding updates the clusterRoleBinding manifest as per the
+// given configuration in OpenEBS CR.
+func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	setNamespaceOfEachSubject := func(obj *unstructured.Unstructured) error {
+		err := unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Namespace, "spec", "namespace")
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	return string(rawClusterRoleBinding), nil
+	crbSubjects, _, err := unstruct.GetSlice(crb, "subjects")
+	if err != nil {
+		return crb, err
+	}
+	err = unstruct.SliceIterator(crbSubjects).ForEachUpdate(setNamespaceOfEachSubject)
+	if err != nil {
+		return crb, err
+	}
+	err = unstructured.SetNestedSlice(crb.Object, crbSubjects, "subjects")
+	if err != nil {
+		return crb, err
+	}
+	// create annotations that refers to the instance which
+	// triggered creation of this ClusterRoleBinding
+	crb.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+	return crb, nil
 }

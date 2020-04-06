@@ -18,13 +18,13 @@ import (
 )
 
 // Set the analytics default values if not already set
-func (r *Reconciler) setAnalyticsDefaultsIfNotSet() error {
-	if r.OpenEBS.Spec.Analytics == nil {
-		r.OpenEBS.Spec.Analytics = &types.Analytics{}
+func (p *Planner) setAnalyticsDefaultsIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.Analytics == nil {
+		p.ObservedOpenEBS.Spec.Analytics = &types.Analytics{}
 	}
-	if r.OpenEBS.Spec.Analytics.Enabled == nil {
-		r.OpenEBS.Spec.Analytics.Enabled = new(bool)
-		*r.OpenEBS.Spec.Analytics.Enabled = true
+	if p.ObservedOpenEBS.Spec.Analytics.Enabled == nil {
+		p.ObservedOpenEBS.Spec.Analytics.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.Analytics.Enabled = true
 	}
 	return nil
 }
