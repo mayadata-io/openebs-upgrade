@@ -257,8 +257,6 @@ func (p *Planner) getDesiredManifests() error {
 			value, err = p.getDesiredStatefulSet(value)
 		case types.KindCustomResourceDefinition:
 			value, err = p.getDesiredCustomResourceDefinition(value)
-		case types.KindVolumeSnapshotClass:
-			value, err = p.getDesiredVolumeSnapshotClass(value)
 		case types.KindCSIDriver:
 			value, err = p.getDesiredCSIDriver(value)
 		default:
@@ -599,20 +597,6 @@ func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructu
 	)
 
 	return crd, nil
-}
-
-// getDesiredVolumeSnapshotClass updates the volumesnapshotclasses manifest as per the given configuration.
-func (p *Planner) getDesiredVolumeSnapshotClass(vsc *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-
-	// create annotations that refers to the instance which
-	// triggered creation of this DaemonSet
-	vsc.SetAnnotations(
-		map[string]string{
-			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
-		},
-	)
-
-	return vsc, nil
 }
 
 // getDesiredCSIDriver updates the csidrivers manifest as per the given configuration.

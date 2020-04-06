@@ -92,15 +92,6 @@ spec:
       - matchReferenceExpressions:
         - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
           refKey: metadata.uid # match this ann value against watch UID
-  - apiVersion: snapshot.storage.k8s.io/v1beta1
-    resource: volumesnapshotclasses
-    updateStrategy:
-      method: InPlace
-    advancedSelector:
-      selectorTerms:
-      - matchReferenceExpressions:
-        - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
-          refKey: metadata.uid # match this ann value against watch UID
   - apiVersion: storage.k8s.io/v1beta1
     resource: csidrivers
     updateStrategy:
