@@ -36,11 +36,25 @@ func (p *Planner) setDefaultImagePullPolicyIfNotSet() error {
 	return nil
 }
 
+// For OpenEBS Version 1.9.0, we will make use of 1.8.0 images only since
+// images for version 1.9.0 are not yet available.
+//
+// TODO: remove this logic to update version once images are available
+func (p *Planner) updateVersionFor190() error {
+	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
+		p.ObservedOpenEBS.Spec.Version = types.OpenEBSVersion180
+	}
+	return nil
+}
+
 // setDefaultStoragePathIfNotSet sets the default storage path for
 // OpenEBS to "/var/openebs" if not already set.
 func (p *Planner) setDefaultStoragePathIfNotSet() error {
 	if p.ObservedOpenEBS.Spec.DefaultStoragePath == "" {
 		p.ObservedOpenEBS.Spec.DefaultStoragePath = "/var/openebs"
+	} else if strings.HasSuffix(p.ObservedOpenEBS.Spec.DefaultStoragePath, "/") {
+		p.ObservedOpenEBS.Spec.DefaultStoragePath = strings.TrimRight(
+			p.ObservedOpenEBS.Spec.DefaultStoragePath, "/")
 	}
 	return nil
 }
@@ -91,6 +105,8 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-1.7.0.yaml"
 	case types.OpenEBSVersion180:
 		yamlFile = "/templates/openebs-operator-1.8.0.yaml"
+	case types.OpenEBSVersion190:
+		yamlFile = "/templates/openebs-operator-1.9.0.yaml"
 	default:
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
@@ -151,6 +167,26 @@ func (p *Planner) removeDisabledManifests() error {
 	}
 	if *p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled == false {
 		delete(p.ComponentManifests, types.LocalProvisionerManifestKey)
+	}
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == false &&
+		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled == false {
+		delete(p.ComponentManifests, types.CVCOperatorManifestKey)
+		delete(p.ComponentManifests, types.CSPCOperatorManifestKey)
+		delete(p.ComponentManifests, types.CstorOperatorServiceAccountManifestKey)
+		delete(p.ComponentManifests, types.CstorOperatorClusterRoleManifestKey)
+		delete(p.ComponentManifests, types.CstorOperatorClusterRoleBindingManifestKey)
+		delete(p.ComponentManifests, types.CSPCCRDManifestKey)
+		delete(p.ComponentManifests, types.CSPICRDManifestKey)
+		delete(p.ComponentManifests, types.CstorVolumesCRDManifestKey)
+		delete(p.ComponentManifests, types.CstorVolumesConfigsCRDManifestKey)
+		delete(p.ComponentManifests, types.CstorVolumesPoliciesCRDManifestKey)
+		delete(p.ComponentManifests, types.CstorVolumesReplicasCRDManifestKey)
+	}
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == false {
+		delete(p.ComponentManifests, types.CSPCOperatorManifestKey)
+	}
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled == false {
+		delete(p.ComponentManifests, types.CVCOperatorManifestKey)
 	}
 
 	return nil
@@ -263,6 +299,24 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.AdmissionServer.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.AdmissionServer.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.AdmissionServer.Affinity
+
+	case types.CSPCOperatorNameKey:
+		replicas = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Replicas
+		image = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Image
+		resources = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Affinity
+		p.updateCSPCOperator(deploy)
+
+	case types.CVCOperatorNameKey:
+		replicas = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas
+		image = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Image
+		resources = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Affinity
+		p.updateCVCOperator(deploy)
 	}
 	// update the replica count only if it is greater than 1 since the
 	// default value itself is 1.
