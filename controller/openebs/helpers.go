@@ -19,15 +19,15 @@ import (
 
 // Set the default values for helpers used by OpenEBS components
 // such as linux-utils, etc.
-func (r *Reconciler) setHelperDefaultsIfNotSet() error {
-	if r.OpenEBS.Spec.Helper == nil {
-		r.OpenEBS.Spec.Helper = &types.Helper{}
+func (p *Planner) setHelperDefaultsIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.Helper == nil {
+		p.ObservedOpenEBS.Spec.Helper = &types.Helper{}
 	}
 	// form the linux-utils image
-	if r.OpenEBS.Spec.Helper.ImageTag == "" {
-		r.OpenEBS.Spec.Helper.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.Helper.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.Helper.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.Helper.Image = r.OpenEBS.Spec.ImagePrefix +
-		"linux-utils:" + r.OpenEBS.Spec.Helper.ImageTag
+	p.ObservedOpenEBS.Spec.Helper.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"linux-utils:" + p.ObservedOpenEBS.Spec.Helper.ImageTag
 	return nil
 }

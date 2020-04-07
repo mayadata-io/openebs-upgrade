@@ -23,22 +23,22 @@ const (
 )
 
 // Set the default values for JIVA.
-func (r *Reconciler) setJIVADefaultsIfNotSet() error {
-	if r.OpenEBS.Spec.JivaConfig == nil {
-		r.OpenEBS.Spec.JivaConfig = &types.JivaConfig{}
+func (p *Planner) setJIVADefaultsIfNotSet() error {
+	if p.ObservedOpenEBS.Spec.JivaConfig == nil {
+		p.ObservedOpenEBS.Spec.JivaConfig = &types.JivaConfig{}
 	}
 	// form the jiva image being used by jiva-controller and
 	// replica.
-	if r.OpenEBS.Spec.JivaConfig.ImageTag == "" {
-		r.OpenEBS.Spec.JivaConfig.ImageTag = r.OpenEBS.Spec.Version
+	if p.ObservedOpenEBS.Spec.JivaConfig.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.JivaConfig.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
-	r.OpenEBS.Spec.JivaConfig.Image = r.OpenEBS.Spec.ImagePrefix +
-		"jiva:" + r.OpenEBS.Spec.JivaConfig.ImageTag
+	p.ObservedOpenEBS.Spec.JivaConfig.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"jiva:" + p.ObservedOpenEBS.Spec.JivaConfig.ImageTag
 
 	// Set the default replica count for Jiva which is 3.
-	if r.OpenEBS.Spec.JivaConfig.Replicas == nil {
-		r.OpenEBS.Spec.JivaConfig.Replicas = new(int32)
-		*r.OpenEBS.Spec.JivaConfig.Replicas = DefaultJivaReplicaCount
+	if p.ObservedOpenEBS.Spec.JivaConfig.Replicas == nil {
+		p.ObservedOpenEBS.Spec.JivaConfig.Replicas = new(int32)
+		*p.ObservedOpenEBS.Spec.JivaConfig.Replicas = DefaultJivaReplicaCount
 	}
 	return nil
 }
