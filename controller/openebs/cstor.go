@@ -24,6 +24,12 @@ const (
 	ContainerOpenEBSCSIPluginName string = "openebs-csi-plugin"
 	// EnvOpenEBSNamespaceKey is the env key for openebs namespace
 	EnvOpenEBSNamespaceKey string = "OPENEBS_NAMESPACE"
+	// DefaultCSPCOperatorReplicaCount is the default replica count for
+	// cspc-operatot.
+	DefaultCSPCOperatorReplicaCount int32 = 1
+	// DefaultCVCOperatorReplicaCount is the default replica count for
+	// cvc-operatot.
+	DefaultCVCOperatorReplicaCount int32 = 1
 )
 
 // Set the default values for Cstor if not already given.
@@ -79,7 +85,7 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 		*p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled = true
 	}
 
-	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled == true {
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled == true {
 		if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ImageTag == "" {
 			p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ImageTag = p.ObservedOpenEBS.Spec.Version
 		}
@@ -89,6 +95,57 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 		if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ISCSIPath == "" {
 			p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ISCSIPath = "/sbin/iscsiadm"
 		}
+	}
+
+	// form the cstor-pool-manager image(CSPI_MGMT)
+	if p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version
+	}
+	p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"cstor-pool-manager:" + p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag
+
+	// form the cstor-volume-manager image
+	if p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag = p.ObservedOpenEBS.Spec.Version
+	}
+	p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"cstor-volume-manager:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag
+
+	// set the CSPC operator defaults
+	if p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator = &types.CSPCOperator{}
+	}
+	if p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled = true
+	}
+	if p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag = p.ObservedOpenEBS.Spec.Version
+	}
+	// form the container image as per the image prefix and image tag.
+	p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"cspc-operator:" + p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag
+	if p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Replicas == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Replicas = new(int32)
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Replicas = DefaultCSPCOperatorReplicaCount
+	}
+	// set the CVC operator defaults
+	if p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator = &types.CVCOperator{}
+	}
+	if p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled = true
+	}
+	if p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag = p.ObservedOpenEBS.Spec.Version
+	}
+	// form the container image as per the image prefix and image tag.
+	p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"cvc-operator:" + p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag
+	if p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas = new(int32)
+		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas = DefaultCVCOperatorReplicaCount
 	}
 
 	return nil
@@ -273,6 +330,150 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 	}
 
 	err = unstructured.SetNestedSlice(statefulset.Object,
+		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateCSPCOperator updates the CSPC operator manifest as per the reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCSPCOperator(deploy *unstructured.Unstructured) error {
+	// get the containers of the cspc-operator and update the desired fields
+	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+	// update the env value of cspc-operator container
+	updateCSPCOperatorEnv := func(env *unstructured.Unstructured) error {
+		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if envName == "OPENEBS_IO_BASE_DIR" {
+			err = unstructured.SetNestedField(env.Object, p.ObservedOpenEBS.Spec.DefaultStoragePath,
+				"spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_POOL_SPARSE_DIR" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.DefaultStoragePath+"/sparse", "spec", "value")
+		} else if envName == "OPENEBS_IO_CSPI_MGMT_IMAGE" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_POOL_IMAGE" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.Pool.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.Policies.Monitoring.Image, "spec", "value")
+		}
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
+		// update the envs of cspc-operator container
+		// In order to update envs of other containers, just write an updateEnv
+		// function for specific containers.
+		if containerName == "cspc-operator" {
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateCSPCOperatorEnv)
+			if err != nil {
+				return err
+			}
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+	err = unstructured.SetNestedSlice(deploy.Object,
+		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateCVCOperator updates the CVC operator manifest as per the reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCVCOperator(deploy *unstructured.Unstructured) error {
+	// get the containers of the cvc-operator and update the desired fields
+	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+	// update the env value of cvc-operator container
+	updateCVCOperatorEnv := func(env *unstructured.Unstructured) error {
+		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if envName == "OPENEBS_IO_BASE_DIR" {
+			err = unstructured.SetNestedField(env.Object, p.ObservedOpenEBS.Spec.DefaultStoragePath,
+				"spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_TARGET_DIR" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.DefaultStoragePath+"/sparse", "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_TARGET_IMAGE" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.Target.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.Image, "spec", "value")
+		} else if envName == "OPENEBS_IO_VOLUME_MONITOR_IMAGE" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.Policies.Monitoring.Image, "spec", "value")
+		}
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
+		// update the envs of cvc-operator container
+		// In order to update envs of other containers, just write an updateEnv
+		// function for specific containers.
+		if containerName == "cvc-operator" {
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateCVCOperatorEnv)
+			if err != nil {
+				return err
+			}
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+	err = unstructured.SetNestedSlice(deploy.Object,
 		containers, "spec", "template", "spec", "containers")
 	if err != nil {
 		return err

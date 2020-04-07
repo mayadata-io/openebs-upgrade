@@ -4,7 +4,7 @@
 apiVersion: dao.mayadata.io/v1alpha1
 kind: OpenEBS
 metadata:
-  name: install-openebs-1.5
+  name: install-openebs-1.9.0
   # Namespace i.e. the namespace where the openebs-upgrade operator and the
   # other openebs components will be installed/needs-to-be-installed.
   namespace: openebs
@@ -12,7 +12,7 @@ metadata:
     name: openebs-upgrade
 spec:
   # OpenEBS Version to be installed.
-  version: "1.5"
+  version: "1.9.0"
 
   # defaultStoragePath is the directory which will be used by
   # default for various OpenEBS operations i.e.,it can be used to
@@ -308,6 +308,43 @@ spec:
         enabled:
         imageTag:
         iscsiPath:
+    # Below fields have been introduced from 1.9.0 version onwards in order to support
+    # installation of cStor data engine operators and the related components which will help
+    # in cStor pool provisioning.
+    # CstorPoolCluster(CSPC), CstorPoolInstance(CSPI), CSPC-operator are the new schema
+    # introduced for cStor pool provisioning.
+    #
+    # Note: All the fields introduced below are completely optional i.e., if user
+    # doesn't add any of them, all the CSPC related components will be installed with
+    # default values.
+    cspiMgmt:
+      # example image for cspiMgmt -> "quay.io/openebs/cstor-pool-manager:1.9.0"
+      # this field should only contain the image tag, for example, 1.9.0
+      imageTag:
+    volumeManager:
+      # example image for volumeManager -> "quay.io/openebs/cstor-volume-manager:1.9.0"
+      # this field should only contain the image tag, for example, 1.9.0
+      imageTag:
+    cspcOperator:
+      enabled:
+      # example image for cspc-operator -> "quay.io/openebs/cspc-operator:1.9.0"
+      # this field should only contain the image tag, for example, 1.9.0
+      imageTag:
+      replicas:
+      resources:
+      nodeSelector:
+      tolerations:
+      affinity:
+    cvcOperator:
+      enabled:
+      # example image for cspc-operator -> "quay.io/openebs/cvc-operator:1.9.0"
+      # this field should only contain the image tag, for example, 1.9.0
+      imageTag:
+      replicas:
+      resources:
+      nodeSelector:
+      tolerations:
+      affinity:
 
   # admissionServer is an implementation of kubernetes validation admission webhook.
   #

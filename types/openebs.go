@@ -300,11 +300,49 @@ type JivaConfig struct {
 // in the k8s cluster.
 // CStorCSI is the configuration for deploying cstor csi operator and driver.
 type CstorConfig struct {
-	Pool       Container `json:"pool"`
-	PoolMgmt   Container `json:"poolMgmt"`
-	Target     Container `json:"target"`
-	VolumeMgmt Container `json:"volumeMgmt"`
-	CStorCSI   CStorCSI  `json:"cStorCSI"`
+	Pool          Container     `json:"pool"`
+	PoolMgmt      Container     `json:"poolMgmt"`
+	Target        Container     `json:"target"`
+	VolumeMgmt    Container     `json:"volumeMgmt"`
+	CSPIMgmt      Container     `json:"cspiMgmt"`
+	VolumeManager Container     `json:"volumeManager"`
+	CSPCOperator  *CSPCOperator `json:"cspcOperator"`
+	CVCOperator   *CVCOperator  `json:"cvcOperator"`
+	CStorCSI      CStorCSI      `json:"cStorCSI"`
+}
+
+// CSPCOperator stores the configuration details of CSPCOperator such as
+// if it should be installed or not, image to be used, etc.
+type CSPCOperator struct {
+	Component `json:",inline"`
+	Container `json:",inline"`
+}
+
+// CVCOperator stores the configuration details of CVCOperator such as
+// if it should be installed or not, image to be used, etc.
+type CVCOperator struct {
+	Component `json:",inline"`
+	Container `json:",inline"`
+}
+
+// CStorCSI stores the configuration for cstor csi operator and driver.
+type CStorCSI struct {
+	CStorCSIController CStorCSIController `json:"cStorCSIController"`
+	CStorCSINode       CStorCSINode       `json:"cStorCSINode"`
+}
+
+// CStorCSIController is the configuration for openebs-cstor-csi-controller statefulset.
+type CStorCSIController struct {
+	Component `json:",inline"`
+	Container `json:",inline"`
+}
+
+// CStorCSINode is the configuration for openebs-cstor-csi-node daemonset.
+type CStorCSINode struct {
+	Component `json:",inline"`
+	Container `json:",inline"`
+	// ISCSIPath is the path of the iscsiadm binary.
+	ISCSIPath string `json:"iscsiPath"`
 }
 
 // Container stores the details of a container
@@ -348,24 +386,4 @@ type OpenEBSStatusCondition struct {
 	Status           ConditionState `json:"status"`
 	Reason           string         `json:"reason,omitempty"`
 	LastObservedTime string         `json:"lastObservedTime"`
-}
-
-// CStorCSI stores the configuration for cstor csi operator and driver.
-type CStorCSI struct {
-	CStorCSIController CStorCSIController `json:"cStorCSIController"`
-	CStorCSINode       CStorCSINode       `json:"cStorCSINode"`
-}
-
-// CStorCSIController is the configuration for openebs-cstor-csi-controller statefulset.
-type CStorCSIController struct {
-	Component `json:",inline"`
-	Container `json:",inline"`
-}
-
-// CStorCSINode is the configuration for openebs-cstor-csi-node daemonset.
-type CStorCSINode struct {
-	Component `json:",inline"`
-	Container `json:",inline"`
-	// ISCSIPath is the path of the iscsiadm binary.
-	ISCSIPath string `json:"iscsiPath"`
 }
