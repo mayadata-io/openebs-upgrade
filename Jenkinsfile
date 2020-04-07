@@ -36,12 +36,7 @@ pipeline {
         stage('Push Image') {
             steps {
                 script {
-		             withCredentials([usernamePassword( credentialsId: 'docke_cred', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                            if(TAG){
-                                     echo "Pushing the image with the tag..."
-                                     sh "docker login -u${USERNAME} -p${PASSWORD} "
-			                         sh "docker tag ${ORG}/${REPO}:ci-${GIT_SHA} ${ORG}/${REPO}:${TAG} && docker push ${ORG}/${REPO}:${TAG}"
-                         } else if (env.BRANCH_NAME == 'master')  {
+		             if (env.BRANCH_NAME == 'master')  {
                              withCredentials([usernamePassword( credentialsId: 'dd46bd83-0e93-492b-bc43-fcb671b135c3', usernameVariable: 'user', passwordVariable: 'pass')]) {
                                sh """
                                    git tag -fa "${TAG}" -m "Release of ${TAG}"
@@ -50,6 +45,13 @@ pipeline {
                                sh """
                                   git push https://${user}:${pass}@github.com/mayadata-io/${REPO}.git --tag
                                    """
+                             }
+                        
+                         } else if(TAG){
+                          withCredentials([usernamePassword( credentialsId: 'docke_cred', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                                     echo "Pushing the image with the tag..."
+                                     sh "docker login -u${USERNAME} -p${PASSWORD} "
+			                         sh "docker tag ${ORG}/${REPO}:ci-${GIT_SHA} ${ORG}/${REPO}:${TAG} && docker push ${ORG}/${REPO}:${TAG}"
                              }
                             } else {
 			                   echo "WARNING: Not pushing Image"
