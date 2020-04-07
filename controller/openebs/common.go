@@ -15,7 +15,6 @@ package openebs
 
 import (
 	"io/ioutil"
-	"mayadata.io/openebs-upgrade/k8s"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -96,7 +95,6 @@ type BasicComponentDetails struct {
 func (p *Planner) getManifests() error {
 	componentsYAMLMap := make(map[string]*unstructured.Unstructured)
 	var yamlFile string
-	var cStorCSIYaml string
 	var err error
 
 	switch p.ObservedOpenEBS.Spec.Version {
@@ -110,11 +108,6 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-1.8.0.yaml"
 	case types.OpenEBSVersion190:
 		yamlFile = "/templates/openebs-operator-1.9.0.yaml"
-		cStorCSIYaml, err = p.getCStorCSIManifests()
-		if err != nil {
-			return errors.Errorf(
-				"Error getting CStor CSI YAML file for version %s: %+v", p.ObservedOpenEBS.Spec.Version, err)
-		}
 	default:
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
@@ -125,12 +118,9 @@ func (p *Planner) getManifests() error {
 			"Error reading YAML file for version %s: %+v", p.ObservedOpenEBS.Spec.Version, err)
 	}
 
-	// append the cstor csi yaml in openebs operator yaml.
-	completeYaml := string(openEBSOperatorYaml) + cStorCSIYaml
-
 	// form the mapping from component's "name_kind" as key to YAML
 	// string as value using operator yaml.
-	componentsYAML := strings.Split(completeYaml, "---")
+	componentsYAML := strings.Split(string(openEBSOperatorYaml), "---")
 	for _, componentYAML := range componentsYAML {
 		if componentYAML == "" {
 			continue
@@ -151,43 +141,6 @@ func (p *Planner) getManifests() error {
 	}
 	p.ComponentManifests = componentsYAMLMap
 	return nil
-}
-
-// getCStorCSIManifests returns the yaml of cstor csi operator and driver.
-// TODO: add logic for OS images above ubuntu 18.04 means return the same yaml for ubuntu 18.04 and above.
-func (p *Planner) getCStorCSIManifests() (string, error) {
-	osImage, err := k8s.GetOSImage()
-	if err != nil {
-		return "", errors.Errorf("Error getting OS Image of a Node, error: %+v", err)
-	}
-
-	ubuntuVersion, err := k8s.GetUbuntuVersion()
-	if err != nil {
-		return "", errors.Errorf("Error getting Ubuntu Version of a Node, error: %+v", err)
-	}
-
-	var yamlFile string
-
-	switch true {
-	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES12)):
-		yamlFile = types.CSIOperatorFilePrefix + p.ObservedOpenEBS.Spec.Version + types.CSIOperatorSUSE12FileSuffix
-	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES15)):
-		yamlFile = types.CSIOperatorFilePrefix + p.ObservedOpenEBS.Spec.Version + types.CSIOperatorSUSE15FileSuffix
-	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageUbuntu1804)):
-		yamlFile = types.CSIOperatorFilePrefix + p.ObservedOpenEBS.Spec.Version + types.CSIOperatorUbuntu1804FileSuffix
-	case (ubuntuVersion != 0) && ubuntuVersion >= 18.04:
-		yamlFile = types.CSIOperatorFilePrefix + p.ObservedOpenEBS.Spec.Version + types.CSIOperatorUbuntu1804FileSuffix
-	default:
-		yamlFile = types.CSIOperatorFilePrefix + p.ObservedOpenEBS.Spec.Version + types.CSIOperatorFileSuffix
-	}
-
-	data, err := ioutil.ReadFile(yamlFile)
-	if err != nil {
-		return "", errors.Errorf(
-			"Error reading cStor CSI YAML file for OS Image %s: %+v", osImage, err)
-	}
-
-	return string(data), nil
 }
 
 // removeDisabledManifests removes the manifests which are disabled so that
