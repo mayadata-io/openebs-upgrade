@@ -70,24 +70,6 @@ pipeline {
             echo 'This will always run'
             deleteDir()
         }
-        success {
-            echo 'This will run only if successful'
-            slackSend channel: '#jenkins-builds',
-                   color: 'good',
-                   message: "The pipeline ${currentBuild.fullDisplayName} completed successfully :dance: :thumbsup: "
-        }
-        failure {
-            echo 'This will run only if failed'
-            slackSend channel: '#jenkins-builds',
-                  color: 'RED',
-                  message: "The pipeline ${currentBuild.fullDisplayName} failed. :scream_cat: :japanese_goblin: "
-        }
-        unstable {
-            echo 'This will run only if the run was marked as unstable'
-            slackSend channel: '#jenkins-builds',
-                   color: 'good',
-                   message: "The pipeline ${currentBuild.fullDisplayName} is unstable :scream_cat: :japanese_goblin: "
-        }
         changed {
 /*            slackSend channel: '#jenkins-builds',
                    color: 'good',
