@@ -721,7 +721,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: openebs-csi-plugin
-          image: quay.io/openebs/cstor-csi-driver:1.8.0
+          image: quay.io/openebs/cstor-csi-driver:1.9.0
           imagePullPolicy: IfNotPresent
           env:
             - name: OPENEBS_CONTROLLER_DRIVER
@@ -907,7 +907,7 @@ spec:
             capabilities:
               add: ["CAP_MKNOD", "CAP_SYS_ADMIN", "SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: quay.io/openebs/cstor-csi-driver:1.8.0
+          image: quay.io/openebs/cstor-csi-driver:1.9.0
           imagePullPolicy: IfNotPresent
           args:
             - "--nodeid=$(OPENEBS_NODE_ID)"

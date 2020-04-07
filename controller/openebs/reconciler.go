@@ -258,6 +258,9 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 
 func (p *Planner) init() error {
 	var initFuncs = []func() error{
+		p.getManifests,
+		// TODO: Remove once 1.9.0 images are available
+		p.updateVersionFor190,
 		p.setDefaultImagePullPolicyIfNotSet,
 		p.setDefaultStoragePathIfNotSet,
 		p.setDefaultImagePrefixIfNotSet,
@@ -274,7 +277,6 @@ func (p *Planner) init() error {
 		p.setHelperDefaultsIfNotSet,
 		p.setPoliciesDefaultsIfNotSet,
 		p.setAnalyticsDefaultsIfNotSet,
-		p.getManifests,
 		p.removeDisabledManifests,
 		p.getDesiredManifests,
 	}
