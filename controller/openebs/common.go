@@ -203,7 +203,8 @@ func (p *Planner) removeDisabledManifests() error {
 	if *p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled == false {
 		delete(p.ComponentManifests, types.LocalProvisionerManifestKey)
 	}
-	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled == false {
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled == false &&
+		*p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled == false {
 		delete(p.ComponentManifests, types.CSINodeInfoCRDManifestKey)
 		delete(p.ComponentManifests, types.CSIVolumeCRDManifestKey)
 		delete(p.ComponentManifests, types.VolumeSnapshotClassCRDManifestKey)
@@ -224,6 +225,14 @@ func (p *Planner) removeDisabledManifests() error {
 		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIDriverManifestKey)
 		delete(p.ComponentManifests, types.CStorCSISnapshotClassManifestKey)
+	}
+
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled == false {
+		delete(p.ComponentManifests, types.CStorCSIControllerManifestKey)
+	}
+
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled == false {
+		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
 	}
 
 	return nil

@@ -291,6 +291,23 @@ spec:
       imageTag:
     volumeMgmt:
       imageTag:
+    # cStorCSI stores the configuration for CSIDriver installation for cStor.
+    cStorCSI:
+      # cStorCSIController is the statefulset that runs on kube-system namespace with one of the container of openebs
+      # i.e openebs-csi-plugin.
+      # enabled field can be used to enable/disable this specific component.
+      cStorCSIController:
+        enabled:
+        imageTag:
+      # cStorCSINode is the daemonset that runs on kube-system namespace with one of the container of openebs
+      # i.e openebs-csi-plugin.
+      # enabled field can be used to enable/disable this specific component.
+      # iscsiPath field is used to define the path of the iscsiadm binary where it is installed.
+      # Default is /sbin/iscsiadm
+      cStorCSINode:
+        enabled:
+        imageTag:
+        iscsiPath:
 
   # admissionServer is an implementation of kubernetes validation admission webhook.
   #

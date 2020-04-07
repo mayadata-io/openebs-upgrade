@@ -352,18 +352,19 @@ type OpenEBSStatusCondition struct {
 
 // CStorCSI stores the configuration for cstor csi operator and driver.
 type CStorCSI struct {
-	Enabled            *bool              `json:"enabled"`
 	CStorCSIController CStorCSIController `json:"cStorCSIController"`
 	CStorCSINode       CStorCSINode       `json:"cStorCSINode"`
 }
 
 // CStorCSIController is the configuration for openebs-cstor-csi-controller statefulset.
 type CStorCSIController struct {
+	Component `json:",inline"`
 	Container `json:",inline"`
 }
 
 // CStorCSINode is the configuration for openebs-cstor-csi-node daemonset.
 type CStorCSINode struct {
+	Component `json:",inline"`
 	Container `json:",inline"`
 	// ISCSIPath is the path of the iscsiadm binary.
 	ISCSIPath string `json:"iscsiPath"`

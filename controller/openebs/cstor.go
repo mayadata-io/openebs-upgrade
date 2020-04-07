@@ -59,19 +59,27 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-volume-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag
 
-	// Set the default values for cstor csi installation in configuration.
-	if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled == nil {
-		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled = new(bool)
-		*p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled = true
+	// Set the default values for cstor csi controller statefulset in configuration.
+	if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled = true
 	}
 
-	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.Enabled == true {
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled == true {
 		if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.ImageTag == "" {
 			p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.ImageTag = p.ObservedOpenEBS.Spec.Version
 		}
 		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 			"cstor-csi-driver:" + p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.ImageTag
+	}
 
+	// Set the default values for cstor csi node daemonset in configuration.
+	if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled = true
+	}
+
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled == true {
 		if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ImageTag == "" {
 			p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ImageTag = p.ObservedOpenEBS.Spec.Version
 		}
