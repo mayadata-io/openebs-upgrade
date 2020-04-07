@@ -95,7 +95,6 @@ type BasicComponentDetails struct {
 func (p *Planner) getManifests() error {
 	componentsYAMLMap := make(map[string]*unstructured.Unstructured)
 	var yamlFile string
-	var err error
 
 	switch p.ObservedOpenEBS.Spec.Version {
 	case types.OpenEBSVersion150:
