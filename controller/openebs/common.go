@@ -170,8 +170,8 @@ func (p *Planner) removeDisabledManifests() error {
 		delete(p.ComponentManifests, types.LocalProvisionerManifestKey)
 	}
 
-	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled == false &&
-		*p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled == false {
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == false &&
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == false {
 		delete(p.ComponentManifests, types.CSINodeInfoCRDManifestKey)
 		delete(p.ComponentManifests, types.CSIVolumeCRDManifestKey)
 		delete(p.ComponentManifests, types.VolumeSnapshotClassCRDManifestKey)
@@ -193,11 +193,11 @@ func (p *Planner) removeDisabledManifests() error {
 		delete(p.ComponentManifests, types.CStorCSIDriverManifestKey)
 	}
 
-	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled == false {
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == false {
 		delete(p.ComponentManifests, types.CStorCSIControllerManifestKey)
 	}
 
-	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled == false {
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == false {
 		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
 	}
 
@@ -590,7 +590,7 @@ func (p *Planner) getDesiredStatefulSet(statefulset *unstructured.Unstructured) 
 	return statefulset, nil
 }
 
-// getDesiredStatefulSet updates the customresourcedefinition manifest as per the given configuration.
+// getDesiredCustomResourceDefinition updates the customresourcedefinition manifest as per the given configuration.
 func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 
 	// create annotations that refers to the instance which

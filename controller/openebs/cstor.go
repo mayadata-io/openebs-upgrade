@@ -68,38 +68,6 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-volume-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag
 
-	// Set the default values for cstor csi controller statefulset in configuration.
-	if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled == nil {
-		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled = new(bool)
-		*p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled = true
-	}
-
-	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Enabled == true {
-		if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.ImageTag == "" {
-			p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.ImageTag = p.ObservedOpenEBS.Spec.Version
-		}
-		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-			"cstor-csi-driver:" + p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.ImageTag
-	}
-
-	// Set the default values for cstor csi node daemonset in configuration.
-	if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled == nil {
-		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled = new(bool)
-		*p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled = true
-	}
-
-	if *p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Enabled == true {
-		if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ImageTag == "" {
-			p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ImageTag = p.ObservedOpenEBS.Spec.Version
-		}
-		p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-			"cstor-csi-driver:" + p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ImageTag
-
-		if p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ISCSIPath == "" {
-			p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ISCSIPath = "/sbin/iscsiadm"
-		}
-	}
-
 	// form the cstor-pool-manager image(CSPI_MGMT)
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version
@@ -151,17 +119,54 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas = DefaultCVCOperatorReplicaCount
 	}
 
+	p.setCSIDefaultsIfNotSet()
+
 	return nil
+}
+
+func (p *Planner) setCSIDefaultsIfNotSet() {
+	// Set the default values for cstor csi controller statefulset in configuration.
+	if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled = true
+	}
+
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == true {
+		if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ImageTag == "" {
+			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ImageTag = p.ObservedOpenEBS.Spec.Version
+		}
+		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+			"cstor-csi-driver:" + p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ImageTag
+	}
+
+	// Set the default values for cstor csi node daemonset in configuration.
+	if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled = true
+	}
+
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == true {
+		if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ImageTag == "" {
+			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ImageTag = p.ObservedOpenEBS.Spec.Version
+		}
+		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+			"cstor-csi-driver:" + p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ImageTag
+
+		if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ISCSIPath == "" {
+			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ISCSIPath = "/sbin/iscsiadm"
+		}
+	}
 }
 
 // updateOpenEBSCStorCSINode updates the values of openebs-cstor-csi-node daemonset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured) error {
+	// overwrite the namespace to kube-system as csi based components will run only in kube-system namespace.
 	daemonset.SetNamespace(types.NamespaceKubeSystem)
 
 	// this will get the extra volumes and volume mounts required to be added in the csi node daemonset
 	// for the csi to work for different OS distributions/versions.
 	// This volumes and volume mounts will be added in the openebs-csi-plugin container.
-	extraVolumes, extraVolumeMounts, err := p.getExtraVolumeMounts()
+	extraVolumes, extraVolumeMounts, err := p.getOSSpecificVolumeMounts()
 	if err != nil {
 		return err
 	}
@@ -178,7 +183,7 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		}
 		if volumeName == "iscsiadm-bin" {
 			err = unstructured.SetNestedField(obj.Object,
-				p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ISCSIPath, "spec", "hostPath", "path")
+				p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ISCSIPath, "spec", "hostPath", "path")
 			if err != nil {
 				return err
 			}
@@ -224,7 +229,7 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		}
 		if vmName == "iscsiadm-bin" {
 			err = unstructured.SetNestedField(vm.Object,
-				p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.ISCSIPath, "spec", "mountPath")
+				p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ISCSIPath, "spec", "mountPath")
 			if err != nil {
 				return err
 			}
@@ -249,7 +254,7 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 
 		if containerName == ContainerOpenEBSCSIPluginName {
 			// Set the image of the container.
-			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSINode.Image,
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Image,
 				"spec", "image")
 			if err != nil {
 				return err
@@ -295,11 +300,11 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	return nil
 }
 
-// getExtraVolumeMounts returns the volume and volume mounts based on the specific OS distribution/version.
+// getOSSpecificVolumeMounts returns the volume and volume mounts based on the specific OS distribution/version.
 // This volume and volume mounts are for the specific container i.e openebs-csi-plugin.
 // This function will get the OS Image and the version for the ubuntu distribution and will return the
 // volumes and volume mounts accordngly.
-func (p *Planner) getExtraVolumeMounts() ([]interface{}, []interface{}, error) {
+func (p *Planner) getOSSpecificVolumeMounts() ([]interface{}, []interface{}, error) {
 	volumes := make([]interface{}, 0)
 	volumeMounts := make([]interface{}, 0)
 
@@ -398,6 +403,7 @@ func (p *Planner) getExtraVolumeMounts() ([]interface{}, []interface{}, error) {
 
 // updateOpenEBSCStorCSIController updates the values of openebs-cstor-csi-controller statefulset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unstructured) error {
+	// overwrite the namespace to kube-system as csi based components will run only in kube-system namespace.
 	statefulset.SetNamespace(types.NamespaceKubeSystem)
 
 	containers, err := unstruct.GetNestedSliceOrError(statefulset, "spec", "template", "spec", "containers")
@@ -430,7 +436,7 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 
 		if containerName == ContainerOpenEBSCSIPluginName {
 			// Set the image of the container.
-			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CStorCSI.CStorCSIController.Image,
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Image,
 				"spec", "image")
 			if err != nil {
 				return err

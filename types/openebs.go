@@ -298,7 +298,7 @@ type JivaConfig struct {
 //
 // pool, poolMgmt, target and volumeMgmt are the containers which are deployed
 // in the k8s cluster.
-// CStorCSI is the configuration for deploying cstor csi operator and driver.
+// CSI is the configuration for deploying cstor csi operator and driver.
 type CstorConfig struct {
 	Pool          Container     `json:"pool"`
 	PoolMgmt      Container     `json:"poolMgmt"`
@@ -308,7 +308,7 @@ type CstorConfig struct {
 	VolumeManager Container     `json:"volumeManager"`
 	CSPCOperator  *CSPCOperator `json:"cspcOperator"`
 	CVCOperator   *CVCOperator  `json:"cvcOperator"`
-	CStorCSI      CStorCSI      `json:"cStorCSI"`
+	CSI           CSI           `json:"csi"`
 }
 
 // CSPCOperator stores the configuration details of CSPCOperator such as
@@ -325,20 +325,20 @@ type CVCOperator struct {
 	Container `json:",inline"`
 }
 
-// CStorCSI stores the configuration for cstor csi operator and driver.
-type CStorCSI struct {
-	CStorCSIController CStorCSIController `json:"cStorCSIController"`
-	CStorCSINode       CStorCSINode       `json:"cStorCSINode"`
+// CSI stores the configuration for cstor csi operator and driver.
+type CSI struct {
+	CSIController CSIController `json:"csiController"`
+	CSINode       CSINode       `json:"csiNode"`
 }
 
-// CStorCSIController is the configuration for openebs-cstor-csi-controller statefulset.
-type CStorCSIController struct {
+// CSIController is the configuration for openebs-cstor-csi-controller statefulset.
+type CSIController struct {
 	Component `json:",inline"`
 	Container `json:",inline"`
 }
 
-// CStorCSINode is the configuration for openebs-cstor-csi-node daemonset.
-type CStorCSINode struct {
+// CSINode is the configuration for openebs-cstor-csi-node daemonset.
+type CSINode struct {
 	Component `json:",inline"`
 	Container `json:",inline"`
 	// ISCSIPath is the path of the iscsiadm binary.

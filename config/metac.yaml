@@ -62,18 +62,24 @@ spec:
       method: InPlace
     advancedSelector:
       selectorTerms:
-      - matchReferenceExpressions:
-        - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
-          refKey: metadata.uid # match this ann value against watch UID
+      - matchExpressions:
+        - key: metadata.name
+          operator: In
+          values: ["openebs-maya-operator", "openebs-cstor-csi-snapshotter-binding", "openebs-cstor-csi-provisioner-binding",
+                   "openebs-cstor-csi-attacher-binding", "openebs-cstor-csi-cluster-registrar-binding",
+                   "openebs-cstor-csi-registrar-binding"]
   - apiVersion: rbac.authorization.k8s.io/v1beta1
     resource: clusterroles
     updateStrategy:
       method: InPlace
     advancedSelector:
       selectorTerms:
-      - matchReferenceExpressions:
-        - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
-          refKey: metadata.uid # match this ann value against watch UID
+      - matchExpressions:
+        - key: metadata.name
+          operator: In
+          values: ["openebs-maya-operator", "openebs-cstor-csi-snapshotter-role", "openebs-cstor-csi-provisioner-role",
+                   "openebs-cstor-csi-attacher-role", "openebs-cstor-csi-cluster-registrar-role",
+                   "openebs-cstor-csi-registrar-role"]
   - apiVersion: v1
     resource: serviceaccounts
     updateStrategy:
