@@ -156,14 +156,16 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 
 // updateOpenEBSCStorCSINode updates the values of openebs-cstor-csi-node daemonset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured) error {
-	// this will update the daemonset as per the os (suse 12, suse 15, ubuntu 18, ubuntu 16, etc) versions,
-	// requires for the csi to work.
-	err := p.addExtraVolumes(daemonset)
+	daemonset.SetNamespace(types.NamespaceKubeSystem)
+
+	// this will get the extra volumes and volume mounts required to be added in the csi node daemonset
+	// for the csi to work for different OS distributions/versions.
+	// This volumes and volume mounts will be added in the openebs-csi-plugin container.
+	extraVolumes, extraVolumeMounts, err := p.getExtraVolumeMounts()
 	if err != nil {
 		return err
 	}
 
-	daemonset.SetNamespace(types.NamespaceKubeSystem)
 	volumes, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "volumes")
 	if err != nil {
 		return err
@@ -187,6 +189,9 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	if err != nil {
 		return err
 	}
+
+	// Append the new extra volumes with the existing volumes, required for the csi to work.
+	volumes = append(volumes, extraVolumes...)
 
 	err = unstructured.SetNestedSlice(daemonset.Object, volumes,
 		"spec", "template", "spec", "volumes")
@@ -263,6 +268,9 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		if err != nil {
 			return err
 		}
+
+		// Append the new extra volume mounts with the existing volume mounts, required for the csi to work.
+		volumeMounts = append(volumeMounts, extraVolumeMounts...)
 		err = unstructured.SetNestedSlice(obj.Object, volumeMounts, "spec", "volumeMounts")
 		if err != nil {
 			return err
@@ -287,329 +295,105 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	return nil
 }
 
-// addExtraVolumes will add the extra volumes in openebs-csi-plugin container for the csi to work.
-// This function will fetch/detect the OS used to install CSI components and will add the volumes depending on the OS.
-// Volumes are different for different OS.
-func (p *Planner) addExtraVolumes(daemonset *unstructured.Unstructured) error {
+// getExtraVolumeMounts returns the volume and volume mounts based on the specific OS distribution/version.
+// This volume and volume mounts are for the specific container i.e openebs-csi-plugin.
+// This function will get the OS Image and the version for the ubuntu distribution and will return the
+// volumes and volume mounts accordngly.
+func (p *Planner) getExtraVolumeMounts() ([]interface{}, []interface{}, error) {
+	volumes := make([]interface{}, 0)
+	volumeMounts := make([]interface{}, 0)
+
 	osImage, err := k8s.GetOSImage()
 	if err != nil {
-		return errors.Errorf("Error getting OS Image of a Node, error: %+v", err)
+		return volumes, volumeMounts, errors.Errorf("Error getting OS Image of a Node, error: %+v", err)
 	}
 
 	ubuntuVersion, err := k8s.GetUbuntuVersion()
 	if err != nil {
-		return errors.Errorf("Error getting Ubuntu Version of a Node, error: %+v", err)
+		return volumes, volumeMounts, errors.Errorf("Error getting Ubuntu Version of a Node, error: %+v", err)
 	}
 
 	switch true {
 	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES12)):
-		err = p.addExtraVolumeMountsForSUSE12(daemonset)
-	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES15)):
-		err = p.addExtraVolumeMountsForSUSE15(daemonset)
-	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageUbuntu1804)):
-		err = p.addExtraVolumeMountsForUbuntu18(daemonset)
-	case (ubuntuVersion != 0) && ubuntuVersion >= 18.04:
-		err = p.addExtraVolumeMountsForUbuntu18(daemonset)
-	default:
-		return nil
-	}
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// addExtraVolumeMountsForSUSE12 adds extra volume mounts required in openebs-csi-plugin container for the csi
-// and iscsi to work in suse 12 OS.
-func (p *Planner) addExtraVolumeMountsForSUSE12(daemonset *unstructured.Unstructured) error {
-	// Fetch the existing volumes.
-	volumes, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "volumes")
-	if err != nil {
-		return err
-	}
-
-	// Add new volume paths as this is required for csi to work in suse 12.
-	libCryptoVolume := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		// Create new volumes for suse 12.
+		libCryptoVolume := map[string]interface{}{
 			"name": "iscsiadm-lib-crypto",
 			"hostPath": map[string]interface{}{
 				"type": "File",
 				"path": "/lib64/libcrypto.so.1.0.0",
 			},
-		},
-	}
-	libOpeniscsiusrVolume := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		}
+		libOpeniscsiusrVolume := map[string]interface{}{
 			"name": "iscsiadm-lib-openiscsiusr",
 			"hostPath": map[string]interface{}{
 				"type": "File",
 				"path": "/usr/lib64/libopeniscsiusr.so.0.2.0",
 			},
-		},
-	}
-
-	// Append the volume into existing list of volumes
-	volumes = append(volumes, libCryptoVolume.Object, libOpeniscsiusrVolume.Object)
-
-	// Update the volumes in the daemonset object.
-	err = unstructured.SetNestedSlice(daemonset.Object, volumes, "spec", "template", "spec", "volumes")
-	if err != nil {
-		return err
-	}
-
-	// Fetch the containers.
-	containers, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "containers")
-	if err != nil {
-		return err
-	}
-
-	// updateContainer function will be called for each cotainer to update.
-	// This function will update only "openebs-csi-plugin" container
-	updateContainer := func(obj *unstructured.Unstructured) error {
-		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
-		if err != nil {
-			return err
 		}
+		volumes = append(volumes, libCryptoVolume, libOpeniscsiusrVolume)
 
-		if containerName == ContainerOpenEBSCSIPluginName {
-			// Fetch the volume mounts of the "openebs-csi-plugin" container.
-			volumeMounts, _, err := unstruct.GetSlice(obj, "spec", "volumeMounts")
-			if err != nil {
-				return err
-			}
-
-			// Create the new volume mounts for the "openebs-csi-plugin" container.
-			libCryptoVolumeMount := unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"name":      "iscsiadm-lib-crypto",
-					"mountPath": "/lib/x86_64-linux-gnu/libcrypto.so.1.0.0",
-				},
-			}
-			libOpeniscsiusrVolumeMount := unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"name":      "iscsiadm-lib-openiscsiusr",
-					"mountPath": "/lib/x86_64-linux-gnu/libopeniscsiusr.so.0.2.0",
-				},
-			}
-
-			// Append the new volume mount in the existing volume mounts.
-			volumeMounts = append(volumeMounts, libCryptoVolumeMount.Object, libOpeniscsiusrVolumeMount.Object)
-
-			// Update the volume mounts in the daemonset object.
-			err = unstructured.SetNestedSlice(obj.Object, volumeMounts, "spec", "volumeMounts")
-			if err != nil {
-				return err
-			}
+		// Create new volume mounts for suse 12.
+		libCryptoVolumeMount := map[string]interface{}{
+			"name":      "iscsiadm-lib-crypto",
+			"mountPath": "/lib/x86_64-linux-gnu/libcrypto.so.1.0.0",
 		}
+		libOpeniscsiusrVolumeMount := map[string]interface{}{
+			"name":      "iscsiadm-lib-openiscsiusr",
+			"mountPath": "/lib/x86_64-linux-gnu/libopeniscsiusr.so.0.2.0",
+		}
+		volumeMounts = append(volumeMounts, libCryptoVolumeMount, libOpeniscsiusrVolumeMount)
 
-		return nil
-	}
-
-	// Update the containers.
-	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
-	if err != nil {
-		return err
-	}
-
-	// Set back the value of the containers.
-	err = unstructured.SetNestedSlice(daemonset.Object,
-		containers, "spec", "template", "spec", "containers")
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// addExtraVolumeMountsForSUSE15 adds extra volume mounts required in openebs-csi-plugin container for the csi
-// and iscsi to work in suse 15 OS.
-func (p *Planner) addExtraVolumeMountsForSUSE15(daemonset *unstructured.Unstructured) error {
-	// Fetch the existing volumes.
-	volumes, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "volumes")
-	if err != nil {
-		return err
-	}
-
-	// Add new volume paths as this is required for csi to work in suse 15.
-	libCryptoVolume := unstructured.Unstructured{
-		Object: map[string]interface{}{
+	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES15)):
+		// Create new volumes for suse 15.
+		libCryptoVolume := map[string]interface{}{
 			"name": "iscsiadm-lib-crypto",
 			"hostPath": map[string]interface{}{
 				"type": "File",
 				"path": "/usr/lib64/libcrypto.so.1.1",
 			},
-		},
-	}
-	libOpeniscsiusrVolume := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		}
+		libOpeniscsiusrVolume := map[string]interface{}{
 			"name": "iscsiadm-lib-openiscsiusr",
 			"hostPath": map[string]interface{}{
 				"type": "File",
 				"path": "/usr/lib64/libopeniscsiusr.so.0.2.0",
 			},
-		},
-	}
-
-	// Append the volume into existing list of volumes
-	volumes = append(volumes, libCryptoVolume.Object, libOpeniscsiusrVolume.Object)
-
-	// Update the volumes in the daemonset object.
-	err = unstructured.SetNestedSlice(daemonset.Object, volumes, "spec", "template", "spec", "volumes")
-	if err != nil {
-		return err
-	}
-
-	// Fetch the containers.
-	containers, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "containers")
-	if err != nil {
-		return err
-	}
-
-	// updateContainer function will be called for each cotainer to update.
-	// This function will update only "openebs-csi-plugin" container
-	updateContainer := func(obj *unstructured.Unstructured) error {
-		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
-		if err != nil {
-			return err
 		}
+		volumes = append(volumes, libCryptoVolume, libOpeniscsiusrVolume)
 
-		if containerName == ContainerOpenEBSCSIPluginName {
-			// Fetch the volume mounts of the "openebs-csi-plugin" container.
-			volumeMounts, _, err := unstruct.GetSlice(obj, "spec", "volumeMounts")
-			if err != nil {
-				return err
-			}
-
-			// Create the new volume mounts for the "openebs-csi-plugin" container.
-			libCryptoVolumeMount := unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"name":      "iscsiadm-lib-crypto",
-					"mountPath": "/lib/x86_64-linux-gnu/libcrypto.so.1.1",
-				},
-			}
-			libOpeniscsiusrVolumeMount := unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"name":      "iscsiadm-lib-openiscsiusr",
-					"mountPath": "/lib/x86_64-linux-gnu/libopeniscsiusr.so.0.2.0",
-				},
-			}
-
-			// Append the new volume mount in the existing volume mounts.
-			volumeMounts = append(volumeMounts, libCryptoVolumeMount.Object, libOpeniscsiusrVolumeMount.Object)
-
-			// Update the volume mounts in the daemonset object.
-			err = unstructured.SetNestedSlice(obj.Object, volumeMounts, "spec", "volumeMounts")
-			if err != nil {
-				return err
-			}
+		// Create new volume mounts for suse 15.
+		libCryptoVolumeMount := map[string]interface{}{
+			"name":      "iscsiadm-lib-crypto",
+			"mountPath": "/lib/x86_64-linux-gnu/libcrypto.so.1.1",
 		}
+		libOpeniscsiusrVolumeMount := map[string]interface{}{
+			"name":      "iscsiadm-lib-openiscsiusr",
+			"mountPath": "/lib/x86_64-linux-gnu/libopeniscsiusr.so.0.2.0",
+		}
+		volumeMounts = append(volumeMounts, libCryptoVolumeMount, libOpeniscsiusrVolumeMount)
 
-		return nil
-	}
-
-	// Update the containers.
-	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
-	if err != nil {
-		return err
-	}
-
-	// Set back the value of the containers.
-	err = unstructured.SetNestedSlice(daemonset.Object,
-		containers, "spec", "template", "spec", "containers")
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// addExtraVolumeMountsForUbuntu18 adds extra volume mounts required in openebs-csi-plugin container for the csi
-// and iscsi to work in ubuntu 18.04 and above OS.
-func (p *Planner) addExtraVolumeMountsForUbuntu18(daemonset *unstructured.Unstructured) error {
-	// Fetch the existing volumes.
-	volumes, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "volumes")
-	if err != nil {
-		return err
-	}
-
-	// Add new volume path as this is required for csi to work in ubuntu 18.04 and above.
-	volume := unstructured.Unstructured{
-		Object: map[string]interface{}{
+	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageUbuntu1804)) ||
+		((ubuntuVersion != 0) && ubuntuVersion >= 18.04):
+		// Create new volume for ubuntu 18.04 and above.
+		volume := map[string]interface{}{
 			"name": "iscsiadm-lib-isns-nocrypto",
 			"hostPath": map[string]interface{}{
 				"type": "File",
 				"path": "/lib/x86_64-linux-gnu/libisns-nocrypto.so.0",
 			},
-		},
-	}
-
-	// Append the volume into existing list of volumes
-	volumes = append(volumes, volume.Object)
-
-	// Update the volumes in the daemonset object.
-	err = unstructured.SetNestedSlice(daemonset.Object, volumes, "spec", "template", "spec", "volumes")
-	if err != nil {
-		return err
-	}
-
-	// Fetch the containers.
-	containers, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "containers")
-	if err != nil {
-		return err
-	}
-
-	// updateContainer function will be called for each cotainer to update.
-	// This function will update only "openebs-csi-plugin" container
-	updateContainer := func(obj *unstructured.Unstructured) error {
-		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
-		if err != nil {
-			return err
 		}
+		volumes = append(volumes, volume)
 
-		if containerName == ContainerOpenEBSCSIPluginName {
-			// Fetch the volume mounts of the "openebs-csi-plugin" container.
-			volumeMounts, _, err := unstruct.GetSlice(obj, "spec", "volumeMounts")
-			if err != nil {
-				return err
-			}
-
-			// Create the new volume mount for the "openebs-csi-plugin" container.
-			volumeMount := unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"name":      "iscsiadm-lib-isns-nocrypto",
-					"mountPath": "/lib/x86_64-linux-gnu/libisns-nocrypto.so.0",
-				},
-			}
-
-			// Append the new volume mount in the existing volume mounts.
-			volumeMounts = append(volumeMounts, volumeMount.Object)
-
-			// Update the volume mounts in the daemonset object.
-			err = unstructured.SetNestedSlice(obj.Object, volumeMounts, "spec", "volumeMounts")
-			if err != nil {
-				return err
-			}
+		// Create new volume mount for ubuntu 18.04 and above.
+		volumeMount := map[string]interface{}{
+			"name":      "iscsiadm-lib-isns-nocrypto",
+			"mountPath": "/lib/x86_64-linux-gnu/libisns-nocrypto.so.0",
 		}
+		volumeMounts = append(volumeMounts, volumeMount)
 
-		return nil
 	}
 
-	// Update the containers.
-	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
-	if err != nil {
-		return err
-	}
-
-	// Set back the value of the containers.
-	err = unstructured.SetNestedSlice(daemonset.Object,
-		containers, "spec", "template", "spec", "containers")
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return volumes, volumeMounts, nil
 }
 
 // updateOpenEBSCStorCSIController updates the values of openebs-cstor-csi-controller statefulset as per given configuration.
