@@ -299,14 +299,13 @@ type JivaConfig struct {
 // pool, poolMgmt, target and volumeMgmt are the containers which are deployed
 // in the k8s cluster.
 type CstorConfig struct {
-	Pool          Container     `json:"pool"`
-	PoolMgmt      Container     `json:"poolMgmt"`
-	Target        Container     `json:"target"`
-	VolumeMgmt    Container     `json:"volumeMgmt"`
-	CSPIMgmt      Container     `json:"cspiMgmt"`
-	VolumeManager Container     `json:"volumeManager"`
-	CSPCOperator  *CSPCOperator `json:"cspcOperator"`
-	CVCOperator   *CVCOperator  `json:"cvcOperator"`
+	Pool         Container     `json:"pool"`
+	PoolMgmt     Container     `json:"poolMgmt"`
+	Target       Container     `json:"target"`
+	VolumeMgmt   Container     `json:"volumeMgmt"`
+	CSPIMgmt     Container     `json:"cspiMgmt"`
+	CSPCOperator *CSPCOperator `json:"cspcOperator"`
+	CVCOperator  *CVCOperator  `json:"cvcOperator"`
 }
 
 // CSPCOperator stores the configuration details of CSPCOperator such as
