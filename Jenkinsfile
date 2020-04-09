@@ -40,7 +40,7 @@ pipeline {
             }
         }
         stage('Push Image') {
-	    when { expression { env.CHANGE_ID == null } }
+	    //when { expression { env.CHANGE_ID == null } }
             steps {
                 script {
 		             withCredentials([usernamePassword( credentialsId: 'docke_cred', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
