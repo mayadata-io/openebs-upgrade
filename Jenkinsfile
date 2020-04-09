@@ -33,7 +33,7 @@ pipeline {
                              TAG = sh (returnStdout: true,script: "./maya-io-release/utils/version_override ${REPO} ${env.BRANCH_NAME}").trim()
                              echo "$TAG"
                     } else {
-                        TAG = sh (returnStdout: true,script: "./maya-io-release/utils/tag_fetch.sh ${REPO} ${env.BRANCH_NAME}").trim()
+                        TAG = sh (returnStdout: true,script: "./maya-io-release/utils/tag_fetch.sh ${REPO} master").trim()
                         echo "$TAG"
                     }   
                  }
