@@ -291,6 +291,23 @@ spec:
       imageTag:
     volumeMgmt:
       imageTag:
+    # csi stores the configuration for CSIDriver installation for cStor.
+    csi:
+      # csiController is the statefulset that runs on kube-system namespace with one of the container of openebs
+      # i.e openebs-csi-plugin.
+      # enabled field can be used to enable/disable this specific component.
+      csiController:
+        enabled:
+        imageTag:
+      # csiNode is the daemonset that runs on kube-system namespace with one of the container of openebs
+      # i.e openebs-csi-plugin.
+      # enabled field can be used to enable/disable this specific component.
+      # iscsiPath field is used to define the path of the iscsiadm binary where it is installed.
+      # Default is /sbin/iscsiadm
+      csiNode:
+        enabled:
+        imageTag:
+        iscsiPath:
     # Below fields have been introduced from 1.9.0 version onwards in order to support
     # installation of cStor data engine operators and the related components which will help
     # in cStor pool provisioning.

@@ -111,14 +111,15 @@ func (p *Planner) getManifests() error {
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
 	}
-	data, err := ioutil.ReadFile(yamlFile)
+	openEBSOperatorYaml, err := ioutil.ReadFile(yamlFile)
 	if err != nil {
 		return errors.Errorf(
 			"Error reading YAML file for version %s: %+v", p.ObservedOpenEBS.Spec.Version, err)
 	}
+
 	// form the mapping from component's "name_kind" as key to YAML
 	// string as value using operator yaml.
-	componentsYAML := strings.Split(string(data), "---")
+	componentsYAML := strings.Split(string(openEBSOperatorYaml), "---")
 	for _, componentYAML := range componentsYAML {
 		if componentYAML == "" {
 			continue
@@ -168,6 +169,38 @@ func (p *Planner) removeDisabledManifests() error {
 	if *p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled == false {
 		delete(p.ComponentManifests, types.LocalProvisionerManifestKey)
 	}
+
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == false &&
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == false {
+		delete(p.ComponentManifests, types.CSINodeInfoCRDManifestKey)
+		delete(p.ComponentManifests, types.CSIVolumeCRDManifestKey)
+		delete(p.ComponentManifests, types.VolumeSnapshotClassCRDManifestKey)
+		delete(p.ComponentManifests, types.VolumeSnapshotContentCRDManifestKey)
+		delete(p.ComponentManifests, types.VolumeSnapshotCRDManifestKey)
+		delete(p.ComponentManifests, types.CStorCSISnapshottterBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSISnapshottterRoleManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIControllerSAManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIProvisionerRoleManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIProvisionerBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIControllerManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIAttacherRoleManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIAttacherBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIClusterRegistrarRoleManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIClusterRegistrarBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIRegistrarRoleManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIRegistrarBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIDriverManifestKey)
+	}
+
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == false {
+		delete(p.ComponentManifests, types.CStorCSIControllerManifestKey)
+	}
+
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == false {
+		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
+	}
+
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == false {
 		delete(p.ComponentManifests, types.CSPCOperatorManifestKey)
 		delete(p.ComponentManifests, types.CSPCCRDManifestKey)
@@ -203,8 +236,12 @@ func (p *Planner) getDesiredManifests() error {
 			value, err = p.getDesiredConfigmap(value)
 		case types.KindService:
 			value, err = p.getDesiredService(value)
+		case types.KindStatefulset:
+			value, err = p.getDesiredStatefulSet(value)
 		case types.KindCustomResourceDefinition:
 			value, err = p.getDesiredCustomResourceDefinition(value)
+		case types.KindCSIDriver:
+			value, err = p.getDesiredCSIDriver(value)
 		default:
 			// Doing nothing if an unknown kind
 			continue
@@ -433,9 +470,7 @@ func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructur
 
 // getDesiredDaemonSet updates the daemonset manifest as per the given configuration.
 func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	var (
-		image string
-	)
+
 	resources := make(map[string]interface{})
 	nodeSelector := make(map[string]string)
 	tolerations := make([]interface{}, 0)
@@ -444,12 +479,16 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 	daemon.SetNamespace(p.ObservedOpenEBS.Namespace)
 	switch daemon.GetName() {
 	case types.NDMNameKey:
-		image = p.ObservedOpenEBS.Spec.NDMDaemon.Image
 		resources = p.ObservedOpenEBS.Spec.NDMDaemon.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.NDMDaemon.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.NDMDaemon.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.NDMDaemon.Affinity
 		p.updateNDM(daemon)
+	case types.CStorCSINodeNameKey:
+		err := p.updateOpenEBSCStorCSINode(daemon)
+		if err != nil {
+			return daemon, err
+		}
 	}
 	// update the daemonset containers with the images and imagePullPolicy
 	containers, err := unstruct.GetNestedSliceOrError(daemon, "spec", "template", "spec", "containers")
@@ -457,10 +496,6 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		return daemon, err
 	}
 	updateContainer := func(obj *unstructured.Unstructured) error {
-		err = unstructured.SetNestedField(obj.Object, image, "spec", "image")
-		if err != nil {
-			return err
-		}
 		err = unstructured.SetNestedField(obj.Object,
 			p.ObservedOpenEBS.Spec.ImagePullPolicy, "spec", "imagePullPolicy")
 		if err != nil {
@@ -520,8 +555,31 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 	return daemon, nil
 }
 
+// getDesiredStatefulSet updates the statefulset manifest as per the given configuration.
+func (p *Planner) getDesiredStatefulSet(statefulset *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+
+	switch statefulset.GetName() {
+	case types.CStorCSIControllerNameKey:
+		err := p.updateOpenEBSCStorCSIController(statefulset)
+		if err != nil {
+			return statefulset, err
+		}
+	}
+
+	// create annotations that refers to the instance which
+	// triggered creation of this StatefulSet
+	statefulset.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+
+	return statefulset, nil
+}
+
 // getDesiredCustomResourceDefinition updates the customresourcedefinition manifest as per the given configuration.
 func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+
 	// create annotations that refers to the instance which
 	// triggered creation of this CustomResourceDefinition
 	crd.SetAnnotations(
@@ -529,5 +587,20 @@ func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructu
 			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
 		},
 	)
+
 	return crd, nil
+}
+
+// getDesiredCSIDriver updates the csidrivers manifest as per the given configuration.
+func (p *Planner) getDesiredCSIDriver(driver *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+
+	// create annotations that refers to the instance which
+	// triggered creation of this CSIDriver
+	driver.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+
+	return driver, nil
 }

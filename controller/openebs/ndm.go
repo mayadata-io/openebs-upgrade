@@ -409,6 +409,11 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 		// update the envs and volume mounts per container i.e., envs and volume mounts
 		// could be different for each container and should be updated as such.
 		if containerName == "node-disk-manager" {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.NDMDaemon.Image, "spec", "image")
+			if err != nil {
+				return err
+			}
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateNodeDiskManagerEnv)
 			if err != nil {
 				return err

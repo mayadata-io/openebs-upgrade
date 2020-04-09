@@ -15,7 +15,6 @@ package openebs
 
 import (
 	"encoding/json"
-
 	"mayadata.io/openebs-upgrade/pkg/utils/metac"
 	"mayadata.io/openebs-upgrade/types"
 

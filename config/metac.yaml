@@ -29,6 +29,15 @@ spec:
       - matchReferenceExpressions:
         - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
           refKey: metadata.uid # match this ann value against watch UID
+  - apiVersion: apps/v1
+    resource: statefulsets
+    updateStrategy:
+      method: InPlace
+    advancedSelector:
+      selectorTerms:
+      - matchReferenceExpressions:
+        - key: metadata.annotations.dao\.mayadata\.io/openebs-uid
+          refKey: metadata.uid # match this ann value against watch UID
   - apiVersion: v1
     resource: configmaps
     updateStrategy:
@@ -53,16 +62,24 @@ spec:
       method: InPlace
     advancedSelector:
       selectorTerms:
-      - matchFields:
-          metadata.name: "openebs-maya-operator"
+      - matchExpressions:
+        - key: metadata.name
+          operator: In
+          values: ["openebs-maya-operator", "openebs-cstor-csi-snapshotter-binding", "openebs-cstor-csi-provisioner-binding",
+                   "openebs-cstor-csi-attacher-binding", "openebs-cstor-csi-cluster-registrar-binding",
+                   "openebs-cstor-csi-registrar-binding"]
   - apiVersion: rbac.authorization.k8s.io/v1beta1
     resource: clusterroles
     updateStrategy:
       method: InPlace
     advancedSelector:
       selectorTerms:
-      - matchFields:
-          metadata.name: "openebs-maya-operator"
+      - matchExpressions:
+        - key: metadata.name
+          operator: In
+          values: ["openebs-maya-operator", "openebs-cstor-csi-snapshotter-role", "openebs-cstor-csi-provisioner-role",
+                   "openebs-cstor-csi-attacher-role", "openebs-cstor-csi-cluster-registrar-role",
+                   "openebs-cstor-csi-registrar-role"]
   - apiVersion: v1
     resource: serviceaccounts
     updateStrategy:
@@ -74,6 +91,18 @@ spec:
           refKey: metadata.uid # match this ann value against watch UID
   - apiVersion: apiextensions.k8s.io/v1beta1
     resource: customresourcedefinitions
+    updateStrategy:
+      method: InPlace
+    advancedSelector:
+      selectorTerms:
+      - matchExpressions:
+        - key: metadata.name
+          operator: In
+          values: ["cstorpoolclusters.openebs.io", "csinodeinfos.csi.storage.k8s.io", "csivolumes.openebs.io",
+                    "volumesnapshotclasses.snapshot.storage.k8s.io", "volumesnapshotcontents.snapshot.storage.k8s.io",
+                    "volumesnapshots.snapshot.storage.k8s.io"]
+  - apiVersion: storage.k8s.io/v1beta1
+    resource: csidrivers
     updateStrategy:
       method: InPlace
     advancedSelector:
