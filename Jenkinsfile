@@ -41,6 +41,7 @@ pipeline {
         }
         stage('Push Image') {
             steps {
+		 when { expression { env.CHANGE_ID == null } }
                 script {
 		             withCredentials([usernamePassword( credentialsId: 'docke_cred', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                          if(env.BRANCH_NAME == TAG){
