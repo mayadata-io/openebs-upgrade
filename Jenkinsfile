@@ -44,8 +44,10 @@ pipeline {
             steps {
                 script {
 		             withCredentials([usernamePassword( credentialsId: 'docke_cred', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                         echo "$TAG"
                          if (TAG) {
                                    echo "Pushing the image with the tag..."
+                                     echo "$TAG"
                                      sh "docker login -u${USERNAME} -p${PASSWORD}"
 			                         sh """
                                          docker tag "${ORG}"/"${REPO}":ci-"${GIT_SHA}" "${ORG}"/"${REPO}":"${TAG}" 
