@@ -168,22 +168,9 @@ func (p *Planner) removeDisabledManifests() error {
 	if *p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled == false {
 		delete(p.ComponentManifests, types.LocalProvisionerManifestKey)
 	}
-	if *p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == false &&
-		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled == false {
-		delete(p.ComponentManifests, types.CVCOperatorManifestKey)
-		delete(p.ComponentManifests, types.CSPCOperatorManifestKey)
-		delete(p.ComponentManifests, types.CstorOperatorServiceAccountManifestKey)
-		delete(p.ComponentManifests, types.CstorOperatorClusterRoleManifestKey)
-		delete(p.ComponentManifests, types.CstorOperatorClusterRoleBindingManifestKey)
-		delete(p.ComponentManifests, types.CSPCCRDManifestKey)
-		delete(p.ComponentManifests, types.CSPICRDManifestKey)
-		delete(p.ComponentManifests, types.CstorVolumesCRDManifestKey)
-		delete(p.ComponentManifests, types.CstorVolumesConfigsCRDManifestKey)
-		delete(p.ComponentManifests, types.CstorVolumesPoliciesCRDManifestKey)
-		delete(p.ComponentManifests, types.CstorVolumesReplicasCRDManifestKey)
-	}
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == false {
 		delete(p.ComponentManifests, types.CSPCOperatorManifestKey)
+		delete(p.ComponentManifests, types.CSPCCRDManifestKey)
 	}
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled == false {
 		delete(p.ComponentManifests, types.CVCOperatorManifestKey)
@@ -216,6 +203,8 @@ func (p *Planner) getDesiredManifests() error {
 			value, err = p.getDesiredConfigmap(value)
 		case types.KindService:
 			value, err = p.getDesiredService(value)
+		case types.KindCustomResourceDefinition:
+			value, err = p.getDesiredCustomResourceDefinition(value)
 		default:
 			// Doing nothing if an unknown kind
 			continue
@@ -529,4 +518,16 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		},
 	)
 	return daemon, nil
+}
+
+// getDesiredCustomResourceDefinition updates the customresourcedefinition manifest as per the given configuration.
+func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	// create annotations that refers to the instance which
+	// triggered creation of this CustomResourceDefinition
+	crd.SetAnnotations(
+		map[string]string{
+			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
+		},
+	)
+	return crd, nil
 }
