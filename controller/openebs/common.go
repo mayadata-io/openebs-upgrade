@@ -581,13 +581,13 @@ func (p *Planner) getDesiredStatefulSet(statefulset *unstructured.Unstructured) 
 func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 
 	// create annotations that refers to the instance which
-	// triggered creation of this DaemonSet
+	// triggered creation of this CustomResourceDefinition
 	crd.SetAnnotations(
 		map[string]string{
 			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
 		},
 	)
-  
+
 	return crd, nil
 }
 

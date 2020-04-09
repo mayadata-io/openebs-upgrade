@@ -313,85 +313,112 @@ func (p *Planner) getOSSpecificVolumeMounts() ([]interface{}, []interface{}, err
 
 	switch true {
 	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES12)):
-		// Create new volumes for suse 12.
-		libCryptoVolume := map[string]interface{}{
-			"name": "iscsiadm-lib-crypto",
-			"hostPath": map[string]interface{}{
-				"type": "File",
-				"path": "/lib64/libcrypto.so.1.0.0",
-			},
-		}
-		libOpeniscsiusrVolume := map[string]interface{}{
-			"name": "iscsiadm-lib-openiscsiusr",
-			"hostPath": map[string]interface{}{
-				"type": "File",
-				"path": "/usr/lib64/libopeniscsiusr.so.0.2.0",
-			},
-		}
-		volumes = append(volumes, libCryptoVolume, libOpeniscsiusrVolume)
-
-		// Create new volume mounts for suse 12.
-		libCryptoVolumeMount := map[string]interface{}{
-			"name":      "iscsiadm-lib-crypto",
-			"mountPath": "/lib/x86_64-linux-gnu/libcrypto.so.1.0.0",
-		}
-		libOpeniscsiusrVolumeMount := map[string]interface{}{
-			"name":      "iscsiadm-lib-openiscsiusr",
-			"mountPath": "/lib/x86_64-linux-gnu/libopeniscsiusr.so.0.2.0",
-		}
-		volumeMounts = append(volumeMounts, libCryptoVolumeMount, libOpeniscsiusrVolumeMount)
-
+		volumes, volumeMounts = p.getSUSE12VolumeMounts()
 	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageSLES15)):
-		// Create new volumes for suse 15.
-		libCryptoVolume := map[string]interface{}{
-			"name": "iscsiadm-lib-crypto",
-			"hostPath": map[string]interface{}{
-				"type": "File",
-				"path": "/usr/lib64/libcrypto.so.1.1",
-			},
-		}
-		libOpeniscsiusrVolume := map[string]interface{}{
-			"name": "iscsiadm-lib-openiscsiusr",
-			"hostPath": map[string]interface{}{
-				"type": "File",
-				"path": "/usr/lib64/libopeniscsiusr.so.0.2.0",
-			},
-		}
-		volumes = append(volumes, libCryptoVolume, libOpeniscsiusrVolume)
-
-		// Create new volume mounts for suse 15.
-		libCryptoVolumeMount := map[string]interface{}{
-			"name":      "iscsiadm-lib-crypto",
-			"mountPath": "/lib/x86_64-linux-gnu/libcrypto.so.1.1",
-		}
-		libOpeniscsiusrVolumeMount := map[string]interface{}{
-			"name":      "iscsiadm-lib-openiscsiusr",
-			"mountPath": "/lib/x86_64-linux-gnu/libopeniscsiusr.so.0.2.0",
-		}
-		volumeMounts = append(volumeMounts, libCryptoVolumeMount, libOpeniscsiusrVolumeMount)
-
+		volumes, volumeMounts = p.getSUSE15VolumeMounts()
 	case strings.Contains(strings.ToLower(osImage), strings.ToLower(types.OSImageUbuntu1804)) ||
 		((ubuntuVersion != 0) && ubuntuVersion >= 18.04):
-		// Create new volume for ubuntu 18.04 and above.
-		volume := map[string]interface{}{
-			"name": "iscsiadm-lib-isns-nocrypto",
-			"hostPath": map[string]interface{}{
-				"type": "File",
-				"path": "/lib/x86_64-linux-gnu/libisns-nocrypto.so.0",
-			},
-		}
-		volumes = append(volumes, volume)
-
-		// Create new volume mount for ubuntu 18.04 and above.
-		volumeMount := map[string]interface{}{
-			"name":      "iscsiadm-lib-isns-nocrypto",
-			"mountPath": "/lib/x86_64-linux-gnu/libisns-nocrypto.so.0",
-		}
-		volumeMounts = append(volumeMounts, volumeMount)
-
+		volumes, volumeMounts = p.getUbuntu1804VolumeMounts()
 	}
 
 	return volumes, volumeMounts, nil
+}
+
+// getSUSE12VolumeMounts returns the volumes and volume mounts for suse 12.
+func (p *Planner) getSUSE12VolumeMounts() ([]interface{}, []interface{}) {
+	volumes := make([]interface{}, 0)
+	volumeMounts := make([]interface{}, 0)
+
+	// Create new volumes for suse 12.
+	libCryptoVolume := map[string]interface{}{
+		"name": "iscsiadm-lib-crypto",
+		"hostPath": map[string]interface{}{
+			"type": "File",
+			"path": "/lib64/libcrypto.so.1.0.0",
+		},
+	}
+	libOpeniscsiusrVolume := map[string]interface{}{
+		"name": "iscsiadm-lib-openiscsiusr",
+		"hostPath": map[string]interface{}{
+			"type": "File",
+			"path": "/usr/lib64/libopeniscsiusr.so.0.2.0",
+		},
+	}
+	volumes = append(volumes, libCryptoVolume, libOpeniscsiusrVolume)
+
+	// Create new volume mounts for suse 12.
+	libCryptoVolumeMount := map[string]interface{}{
+		"name":      "iscsiadm-lib-crypto",
+		"mountPath": "/lib/x86_64-linux-gnu/libcrypto.so.1.0.0",
+	}
+	libOpeniscsiusrVolumeMount := map[string]interface{}{
+		"name":      "iscsiadm-lib-openiscsiusr",
+		"mountPath": "/lib/x86_64-linux-gnu/libopeniscsiusr.so.0.2.0",
+	}
+	volumeMounts = append(volumeMounts, libCryptoVolumeMount, libOpeniscsiusrVolumeMount)
+
+	return volumes, volumeMounts
+}
+
+// getSUSE15VolumeMounts returns the volumes and volume mounts for suse 15.
+func (p *Planner) getSUSE15VolumeMounts() ([]interface{}, []interface{}) {
+	volumes := make([]interface{}, 0)
+	volumeMounts := make([]interface{}, 0)
+
+	// Create new volumes for suse 15.
+	libCryptoVolume := map[string]interface{}{
+		"name": "iscsiadm-lib-crypto",
+		"hostPath": map[string]interface{}{
+			"type": "File",
+			"path": "/usr/lib64/libcrypto.so.1.1",
+		},
+	}
+	libOpeniscsiusrVolume := map[string]interface{}{
+		"name": "iscsiadm-lib-openiscsiusr",
+		"hostPath": map[string]interface{}{
+			"type": "File",
+			"path": "/usr/lib64/libopeniscsiusr.so.0.2.0",
+		},
+	}
+	volumes = append(volumes, libCryptoVolume, libOpeniscsiusrVolume)
+
+	// Create new volume mounts for suse 15.
+	libCryptoVolumeMount := map[string]interface{}{
+		"name":      "iscsiadm-lib-crypto",
+		"mountPath": "/lib/x86_64-linux-gnu/libcrypto.so.1.1",
+	}
+	libOpeniscsiusrVolumeMount := map[string]interface{}{
+		"name":      "iscsiadm-lib-openiscsiusr",
+		"mountPath": "/lib/x86_64-linux-gnu/libopeniscsiusr.so.0.2.0",
+	}
+	volumeMounts = append(volumeMounts, libCryptoVolumeMount, libOpeniscsiusrVolumeMount)
+
+	return volumes, volumeMounts
+}
+
+// getUbuntu1804VolumeMounts returns the volumes and volume mounts for ubuntu 18.04 and above.
+func (p *Planner) getUbuntu1804VolumeMounts() ([]interface{}, []interface{}) {
+	volumes := make([]interface{}, 0)
+	volumeMounts := make([]interface{}, 0)
+
+	// Create new volume for ubuntu 18.04 and above.
+	volume := map[string]interface{}{
+		"name": "iscsiadm-lib-isns-nocrypto",
+		"hostPath": map[string]interface{}{
+			"type": "File",
+			"path": "/lib/x86_64-linux-gnu/libisns-nocrypto.so.0",
+		},
+	}
+	volumes = append(volumes, volume)
+
+	// Create new volume mount for ubuntu 18.04 and above.
+	volumeMount := map[string]interface{}{
+		"name":      "iscsiadm-lib-isns-nocrypto",
+		"mountPath": "/lib/x86_64-linux-gnu/libisns-nocrypto.so.0",
+	}
+	volumeMounts = append(volumeMounts, volumeMount)
+
+	return volumes, volumeMounts
 }
 
 // updateOpenEBSCStorCSIController updates the values of openebs-cstor-csi-controller statefulset as per given configuration.

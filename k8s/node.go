@@ -37,6 +37,7 @@ func GetOSImage() (string, error) {
 }
 
 // GetUbuntuVersion returns the ubuntu version of a Node.
+// For example: 18.04, 16.04
 func GetUbuntuVersion() (float64, error) {
 	var version float64
 
