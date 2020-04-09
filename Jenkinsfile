@@ -45,8 +45,8 @@ pipeline {
                 script {
 		             withCredentials([usernamePassword( credentialsId: 'docke_cred', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                          if(TAG){
-                                     echo "Pushing the image with the tag..."
-                                     sh "docker login -u${USERNAME} -p${PASSWORD} "
+                                   echo "Pushing the image with the tag..."
+                                     sh "docker login -u${USERNAME} -p${PASSWORD}"
 			                         sh "docker tag ${ORG}/${REPO}:ci-${GIT_SHA} ${ORG}/${REPO}:${TAG} && docker push ${ORG}/${REPO}:${TAG}"
                          } else if (env.BRANCH_NAME == 'master')  {
                              withCredentials([usernamePassword( credentialsId: 'dd46bd83-0e93-492b-bc43-fcb671b135c3', usernameVariable: 'user', passwordVariable: 'pass')]) {
