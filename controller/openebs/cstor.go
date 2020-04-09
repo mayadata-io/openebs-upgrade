@@ -68,19 +68,12 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-volume-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag
 
-	// form the cstor-pool-manager image(CSPI_MGMT)
+	// form the cspi-mgmt image(CSPI_MGMT)
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
 	p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-		"cstor-pool-manager:" + p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag
-
-	// form the cstor-volume-manager image
-	if p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag = p.ObservedOpenEBS.Spec.Version
-	}
-	p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-		"cstor-volume-manager:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag
+		"cspi-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag
 
 	// set the CSPC operator defaults
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator == nil {
@@ -565,7 +558,7 @@ func (p *Planner) updateCVCOperator(deploy *unstructured.Unstructured) error {
 				p.ObservedOpenEBS.Spec.CstorConfig.Target.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE" {
 			err = unstructured.SetNestedField(env.Object,
-				p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.Image, "spec", "value")
+				p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_VOLUME_MONITOR_IMAGE" {
 			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.Policies.Monitoring.Image, "spec", "value")

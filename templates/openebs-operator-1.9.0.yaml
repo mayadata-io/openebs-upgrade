@@ -560,261 +560,20 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 60
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: openebs-cstor-operator
-  namespace: openebs
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: openebs-cstor-operator
-rules:
-- apiGroups: ["*"]
-  resources: ["nodes", "nodes/proxy"]
-  verbs: ["*"]
-- apiGroups: ["*"]
-  resources: ["namespaces", "services", "pods", "deployments", "deployments/finalizers", "replicationcontrollers", "replicasets", "events", "endpoints", "configmaps", "secrets", "jobs", "cronjobs"]
-  verbs: ["*"]
-- apiGroups: ["*"]
-  resources: ["statefulsets", "daemonsets"]
-  verbs: ["*"]
-- apiGroups: ["*"]
-  resources: ["resourcequotas", "limitranges"]
-  verbs: ["list", "watch"]
-- apiGroups: ["*"]
-  resources: ["certificatesigningrequests"]
-  verbs: ["list", "watch"]
-- apiGroups: ["*"]
-  resources: ["storageclasses", "persistentvolumeclaims", "persistentvolumes"]
-  verbs: ["*"]
-- apiGroups: ["apiextensions.k8s.io"]
-  resources: ["customresourcedefinitions"]
-  verbs: [ "get", "list", "create", "update", "delete", "patch"]
-- apiGroups: ["*"]
-  resources: ["disks", "blockdevices", "blockdeviceclaims"]
-  verbs: ["*" ]
-- apiGroups: ["*"]
-  resources: ["cstorpoolclusters", "cstorpoolclusters/finalizers"]
-  verbs: ["*" ]
-- apiGroups: ["*"]
-  resources: [ "castemplates", "runtasks"]
-  verbs: ["*" ]
-- apiGroups: ["*"]
-  resources: ["cstorvolumereplicas", "cstorvolumes", "cstorvolumeconfigs", "cstorvolumepolicies"]
-  verbs: ["*" ]
-- apiGroups: ["*"]
-  resources: ["cstorpoolinstances", "cstorpoolinstances/finalizers"]
-  verbs: ["*" ]
-- apiGroups: ["*"]
-  resources: ["cstorbackups", "cstorrestores", "cstorcompletedbackups"]
-  verbs: ["*" ]
-- apiGroups: ["coordination.k8s.io"]
-  resources: ["leases"]
-  verbs: ["get", "watch", "list", "delete", "update", "create"]
-- apiGroups: ["admissionregistration.k8s.io"]
-  resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
-  verbs: ["get", "create", "list", "delete", "update", "patch"]
-- nonResourceURLs: ["/metrics"]
-  verbs: ["get"]
-- apiGroups: ["*"]
-  resources: ["upgradetasks"]
-  verbs: ["*"]
-- apiGroups: ["*"]
-  resources: ["poddisruptionbudgets"]
-  verbs: ["get", "list", "create", "delete", "watch"]
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: openebs-cstor-operator
-subjects:
-- kind: ServiceAccount
-  name: openebs-cstor-operator
-  namespace: openebs
-roleRef:
-  kind: ClusterRole
-  name: openebs-cstor-operator
-  apiGroup: rbac.authorization.k8s.io
----
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: cstorpoolclusters.cstor.openebs.io
+  name: cstorpoolclusters.openebs.io
 spec:
-  group: cstor.openebs.io
-  version: v1
+  group: openebs.io
+  version: v1alpha1
   scope: Namespaced
   names:
     plural: cstorpoolclusters
     singular: cstorpoolcluster
     kind: CStorPoolCluster
     shortNames:
-      - cspc
-  additionalPrinterColumns:
-    - JSONPath: .status.healthyInstances
-      name: HealthyInstances
-      description: The number of healthy cStorPoolInstances
-      type: integer
-    - JSONPath: .status.provisionedInstances
-      name: ProvisionedInstances
-      description: The number of provisioned cStorPoolInstances
-      type: integer
-    - JSONPath: .status.desiredInstances
-      name: DesiredInstances
-      description: The number of desired cStorPoolInstances
-      type: integer
-    - JSONPath: .metadata.creationTimestamp
-      name: Age
-      type: date
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: cstorpoolinstances.cstor.openebs.io
-spec:
-  group: cstor.openebs.io
-  version: v1
-  scope: Namespaced
-  names:
-    plural: cstorpoolinstances
-    singular: cstorpoolinstance
-    kind: CStorPoolInstance
-    shortNames:
-      - cspi
-  additionalPrinterColumns:
-    - JSONPath: .spec.hostName
-      name: HostName
-      description: Host name where cstorpool instances scheduled
-      type: string
-    - JSONPath: .status.capacity.used
-      name: Allocated
-      description: The amount of storage space within the pool that has been physically allocated
-      type: string
-    - JSONPath: .status.capacity.free
-      name: Free
-      description: The amount of free space available in the pool
-      type: string
-    - JSONPath: .status.capacity.total
-      name: Capacity
-      description: Total size of the storage pool
-      type: string
-    - JSONPath: .status.phase
-      name: Status
-      description: Identifies the current health of the pool
-      type: string
-    - JSONPath: .metadata.creationTimestamp
-      name: Age
-      type: date
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: cstorvolumes.cstor.openebs.io
-spec:
-  group: cstor.openebs.io
-  version: v1
-  scope: Namespaced
-  names:
-    kind: CStorVolume
-    plural: cstorvolumes
-    singular: cstorvolume
-    shortNames:
-    - cstorvolume
-    - cv
-  additionalPrinterColumns:
-  - JSONPath: .status.phase
-    name: Status
-    description: Identifies the current health of the volume
-    type: string
-  - JSONPath: .metadata.creationTimestamp
-    name: Age
-    type: date
-  - JSONPath: .status.capacity
-    description: Current volume capacity
-    name: Capacity
-    type: string
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: cstorvolumeconfigs.cstor.openebs.io
-spec:
-  group: cstor.openebs.io
-  version: v1
-  scope: Namespaced
-  names:
-    kind: CStorVolumeConfig
-    plural: cstorvolumeconfigs
-    singular: cstorvolumeconfig
-    shortNames:
-    - cstorvolumeconfig
-    - cvc
-  additionalPrinterColumns:
-  - JSONPath: .status.phase
-    name: Status
-    description: Identifies the volume provisioning status
-    type: string
-  - JSONPath: .metadata.creationTimestamp
-    name: Age
-    type: date
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: cstorvolumepolicies.cstor.openebs.io
-spec:
-  group: cstor.openebs.io
-  version: v1
-  scope: Namespaced
-  names:
-    kind: CStorVolumePolicy
-    plural: cstorvolumepolicies
-    singular: cstorvolumepolicy
-    shortNames:
-    - cstorvolumepolicies
-    - cvp
-    - policy
-  additionalPrinterColumns:
-  - JSONPath: .status.phase
-    name: Status
-    description: Identifies the state of policy
-    type: string
-  - JSONPath: .metadata.creationTimestamp
-    name: Age
-    type: date
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: cstorvolumereplicas.cstor.openebs.io
-spec:
-  group: cstor.openebs.io
-  version: v1
-  scope: Namespaced
-  names:
-    kind: CStorVolumeReplica
-    plural: cstorvolumereplicas
-    singular: cstorvolumereplica
-    shortNames:
-    - cvr
-  additionalPrinterColumns:
-  - JSONPath: .status.capacity.used
-    name: Used
-    description: The amount of space that is "logically" consumed by this dataset
-    type: string
-  - JSONPath: .status.capacity.total
-    name: Allocated
-    description: The amount of disk space consumed by a dataset and all its descendents
-    type: string
-  - JSONPath: .status.phase
-    name: Status
-    description: Identifies the current state of the replicas
-    type: string
-  - JSONPath: .metadata.creationTimestamp
-    name: Age
-    type: date
+    - cspc
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -840,20 +599,16 @@ spec:
         openebs.io/component-name: cspc-operator
         openebs.io/version: 1.8.0
     spec:
-      serviceAccountName: openebs-cstor-operator
+      serviceAccountName: openebs-maya-operator
       containers:
       - name: cspc-operator
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         image: quay.io/openebs/cspc-operator:1.8.0
         env:
         - name: OPENEBS_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        - name: OPENEBS_SERVICEACCOUNT_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.serviceAccountName
         - name: CSPC_OPERATOR_POD_NAME
           valueFrom:
             fieldRef:
@@ -863,11 +618,11 @@ spec:
         - name: OPENEBS_IO_CSTOR_POOL_SPARSE_DIR
           value: "/var/openebs/sparse"
         - name: OPENEBS_IO_CSPI_MGMT_IMAGE
-          value: "quay.io/openebs/cstor-pool-manager:1.8.0"
+          value: "quay.io/openebs/cspi-mgmt:1.8.0"
         - name: OPENEBS_IO_CSTOR_POOL_IMAGE
           value: "quay.io/openebs/cstor-pool:1.8.0"
         - name:  OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
-          value: "quay.io/m-exporter:1.8.0"
+          value: "quay.io/openebs/m-exporter:1.8.0"
         - name: RESYNC_INTERVAL
           value: "30"
 ---
@@ -895,7 +650,7 @@ spec:
         openebs.io/component-name: cvc-operator
         openebs.io/version: 1.8.0
     spec:
-      serviceAccountName: openebs-cstor-operator
+      serviceAccountName: openebs-maya-operator
       containers:
       - name: cvc-operator
         imagePullPolicy: IfNotPresent
@@ -909,14 +664,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        - name: OPENEBS_SERVICEACCOUNT_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.serviceAccountName
         - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
           value: "quay.io/openebs/cstor-istgt:1.8.0"
         - name:  OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
-          value: "quay.io/openebs/cstor-volume-manager:1.8.0"
+          value: "quay.io/openebs/cstor-volume-mgmt:1.8.0"
         - name:  OPENEBS_IO_VOLUME_MONITOR_IMAGE
           value: "quay.io/openebs/m-exporter:1.8.0"
 

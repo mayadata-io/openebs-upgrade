@@ -147,53 +147,15 @@ const (
 	CVCOperatorNameKey = "cvc-operator"
 	// CSPCOperatorNameKey is the name of cspc-operator deployment.
 	CSPCOperatorNameKey = "cspc-operator"
-	// CstorOperatorNameKey is the name of cstor-operator service account,
-	// cluster role, cluster role binding.
-	CstorOperatorNameKey = "openebs-cstor-operator"
 	// CSPCCRDNameKey is the name of CSPC CRD
 	CSPCCRDNameKey = "cstorpoolclusters.cstor.openebs.io"
-	// CSPICRDNameKey is the name of the CSPI CRD
-	CSPICRDNameKey = "cstorpoolinstances.cstor.openebs.io"
-	// CstorVolumesCRDNameKey is the name of the Cstor Volume CRD
-	CstorVolumesCRDNameKey = "cstorvolumes.cstor.openebs.io"
-	// CstorVolumeConfigsCRDNameKey is the name of Cstor Volume Configs CRD
-	CstorVolumeConfigsCRDNameKey = "cstorvolumeconfigs.cstor.openebs.io"
-	// CstorVolumeReplicasNameKey is the name of Cstor Volume Replicas CRD
-	CstorVolumeReplicasNameKey = "cstorvolumereplicas.cstor.openebs.io"
-	// CstorVolumePoliciesNameKey is the name of Cstor Volume Policies CRD
-	CstorVolumePoliciesNameKey = "cstorvolumepolicies.cstor.openebs.io"
 
-	// CstorOperatorServiceAccountManifestKey is used to get the manifest of cstor-operator
-	// service account.
-	CstorOperatorServiceAccountManifestKey string = CstorOperatorNameKey + "_" +
-		KindServiceAccount
-	// CstorOperatorClusterRoleManifestKey  is used to get the manifest of cstor-operator
-	// cluster role.
-	CstorOperatorClusterRoleManifestKey string = CstorOperatorNameKey + "_" + KindClusterRole
-	// CstorOperatorClusterRoleBindingManifestKey is used to get the manifest of cstor-operator
-	// cluster role binding.
-	CstorOperatorClusterRoleBindingManifestKey string = CstorOperatorNameKey + "_" +
-		KindClusterRoleBinding
 	// CVCOperatorManifestKey is used to get the manifest of CVC operator
 	CVCOperatorManifestKey string = CVCOperatorNameKey + "_" + KindDeployment
 	// CSPCOperatorManifestKey is used to get the manifest of CSPC operator
 	CSPCOperatorManifestKey string = CSPCOperatorNameKey + "_" + KindDeployment
 	// CSPCCRDManifestKey is used to get the manifest of CSPC CRD
 	CSPCCRDManifestKey string = CSPCCRDNameKey + "_" + KindCustomResourceDefinition
-	// CSPICRDManifestKey is used to get the manifest of CSPI CRD
-	CSPICRDManifestKey string = CSPICRDNameKey + "_" + KindCustomResourceDefinition
-	// CstorVolumesCRDManifestKey is used to get the manifest of Cstor Volumes CRD
-	CstorVolumesCRDManifestKey string = CstorVolumesCRDNameKey + "_" +
-		KindCustomResourceDefinition
-	// CstorVolumesConfigsCRDManifestKey is used to get the manifest of Cstor Volume Configs CRD
-	CstorVolumesConfigsCRDManifestKey string = CstorVolumeConfigsCRDNameKey + "_" +
-		KindCustomResourceDefinition
-	// CstorVolumesPoliciesCRDManifestKey is used to get the manifest of Cstor Volume Policies CRD
-	CstorVolumesPoliciesCRDManifestKey string = CstorVolumePoliciesNameKey + "_" +
-		KindCustomResourceDefinition
-	// CstorVolumesReplicasCRDManifestKey is used to get the manifest of Cstor Volume Replicas CRD
-	CstorVolumesReplicasCRDManifestKey string = CstorVolumeReplicasNameKey + "_" +
-		KindCustomResourceDefinition
 
 	// OpenEBSVersion150 is the OpenEBS version 1.5.0
 	OpenEBSVersion150 string = "1.5.0"

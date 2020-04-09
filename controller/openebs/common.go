@@ -201,22 +201,9 @@ func (p *Planner) removeDisabledManifests() error {
 		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
 	}
 
-	if *p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == false &&
-		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled == false {
-		delete(p.ComponentManifests, types.CVCOperatorManifestKey)
-		delete(p.ComponentManifests, types.CSPCOperatorManifestKey)
-		delete(p.ComponentManifests, types.CstorOperatorServiceAccountManifestKey)
-		delete(p.ComponentManifests, types.CstorOperatorClusterRoleManifestKey)
-		delete(p.ComponentManifests, types.CstorOperatorClusterRoleBindingManifestKey)
-		delete(p.ComponentManifests, types.CSPCCRDManifestKey)
-		delete(p.ComponentManifests, types.CSPICRDManifestKey)
-		delete(p.ComponentManifests, types.CstorVolumesCRDManifestKey)
-		delete(p.ComponentManifests, types.CstorVolumesConfigsCRDManifestKey)
-		delete(p.ComponentManifests, types.CstorVolumesPoliciesCRDManifestKey)
-		delete(p.ComponentManifests, types.CstorVolumesReplicasCRDManifestKey)
-	}
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == false {
 		delete(p.ComponentManifests, types.CSPCOperatorManifestKey)
+		delete(p.ComponentManifests, types.CSPCCRDManifestKey)
 	}
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled == false {
 		delete(p.ComponentManifests, types.CVCOperatorManifestKey)
@@ -600,7 +587,7 @@ func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructu
 			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
 		},
 	)
-
+  
 	return crd, nil
 }
 
