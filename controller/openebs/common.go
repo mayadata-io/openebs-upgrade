@@ -36,17 +36,6 @@ func (p *Planner) setDefaultImagePullPolicyIfNotSet() error {
 	return nil
 }
 
-// For OpenEBS Version 1.9.0, we will make use of 1.8.0 images only since
-// images for version 1.9.0 are not yet available.
-//
-// TODO: remove this logic to update version once images are available
-func (p *Planner) updateVersionFor190() error {
-	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
-		p.ObservedOpenEBS.Spec.Version = types.OpenEBSVersion180
-	}
-	return nil
-}
-
 // setDefaultStoragePathIfNotSet sets the default storage path for
 // OpenEBS to "/var/openebs" if not already set.
 func (p *Planner) setDefaultStoragePathIfNotSet() error {
