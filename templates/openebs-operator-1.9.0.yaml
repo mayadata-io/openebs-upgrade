@@ -1,9 +1,11 @@
+# Create Maya Service Account
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: openebs-maya-operator
   namespace: openebs
 ---
+# Define Role that allows operations on K8s pods/deployments
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
@@ -66,6 +68,8 @@ rules:
   resources: ["poddisruptionbudgets"]
   verbs: ["get", "list", "create", "delete", "watch"]
 ---
+# Bind the Service Account with the Role Privileges.
+# TODO: Check if default account also needs to be there
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
@@ -146,6 +150,8 @@ spec:
           value: "quay.io/openebs/m-exporter:1.9.0"
         - name: OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
           value: "quay.io/openebs/m-exporter:1.9.0"
+        - name: OPENEBS_IO_HELPER_IMAGE
+          value: "quay.io/openebs/linux-utils:1.9.0"
         - name: OPENEBS_IO_ENABLE_ANALYTICS
           value: "true"
         - name: OPENEBS_IO_INSTALLER_TYPE
@@ -224,8 +230,9 @@ spec:
         livenessProbe:
           exec:
             command:
-            - pgrep
-            - ".*openebs"
+            - sh
+            - -c
+            - test `pgrep -c "^openebs-provisi.*"` = 1
           initialDelaySeconds: 30
           periodSeconds: 60
 ---
@@ -266,8 +273,9 @@ spec:
           livenessProbe:
             exec:
               command:
-              - pgrep
-              - ".*controller"
+              - sh
+              - -c
+              - test `pgrep -c "^snapshot-contro.*"` = 1
             initialDelaySeconds: 30
             periodSeconds: 60
         - name: snapshot-provisioner
@@ -281,11 +289,14 @@ spec:
           livenessProbe:
             exec:
               command:
-              - pgrep
-              - ".*provisioner"
+              - sh
+              - -c
+              - test `pgrep -c "^snapshot-provis.*"` = 1
             initialDelaySeconds: 30
             periodSeconds: 60
 ---
+# This is the node-disk-manager related config.
+# It can be used to customize the disks probes and filters
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -385,7 +396,7 @@ spec:
           exec:
             command:
             - pgrep
-            - ".*ndm"
+            - "ndm"
           initialDelaySeconds: 30
           periodSeconds: 60
       volumes:
@@ -462,6 +473,13 @@ spec:
               value: "node-disk-operator"
             - name: CLEANUP_JOB_IMAGE
               value: "quay.io/openebs/linux-utils:1.9.0"
+          livenessProbe:
+            exec:
+              command:
+              - pgrep
+              - "ndo"
+            initialDelaySeconds: 30
+            periodSeconds: 60
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -503,6 +521,14 @@ spec:
                   fieldPath: metadata.namespace
             - name: ADMISSION_WEBHOOK_NAME
               value: "openebs-admission-server"
+          livenessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - test `pgrep -c "^admission-serve.*"` = 1
+            initialDelaySeconds: 30
+            periodSeconds: 60
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -555,8 +581,9 @@ spec:
         livenessProbe:
           exec:
             command:
-            - pgrep
-            - ".*localpv"
+            - sh
+            - -c
+            - test `pgrep -c "^provisioner-loc.*"` = 1
           initialDelaySeconds: 30
           periodSeconds: 60
 ---
