@@ -181,6 +181,7 @@ func (p *Planner) removeDisabledManifests() error {
 		delete(p.ComponentManifests, types.CStorCSIClusterRegistrarBindingManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIRegistrarRoleManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIRegistrarBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSINodeSAManifestKey)
 		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIDriverManifestKey)
 	}
@@ -613,8 +614,8 @@ func (p *Planner) checkCSISupport() error {
 	}
 
 	// remove the csi yaml if the k8s version is less than supported version and the csi is enabled.
-	if comp < 0 && *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled &&
-		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled {
+	if comp < 0 && (*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled ||
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled) {
 		delete(p.ComponentManifests, types.CSINodeInfoCRDManifestKey)
 		delete(p.ComponentManifests, types.CSIVolumeCRDManifestKey)
 		delete(p.ComponentManifests, types.VolumeSnapshotClassCRDManifestKey)
@@ -632,6 +633,7 @@ func (p *Planner) checkCSISupport() error {
 		delete(p.ComponentManifests, types.CStorCSIClusterRegistrarBindingManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIRegistrarRoleManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIRegistrarBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSINodeSAManifestKey)
 		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIDriverManifestKey)
 	}
