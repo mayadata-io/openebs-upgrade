@@ -15,6 +15,9 @@ package openebs
 
 import (
 	"io/ioutil"
+	"mayadata.io/openebs-upgrade/k8s"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -592,4 +595,93 @@ func (p *Planner) getDesiredCSIDriver(driver *unstructured.Unstructured) (*unstr
 	)
 
 	return driver, nil
+}
+
+// checkCSISupport checks if csi is supported or not in the current kubernetes cluster, if not it will
+// remove the csi based yaml.
+func (p *Planner) checkCSISupport() error {
+	// get the kubernetes version.
+	k8sVersion, err := k8s.GetK8sVersion()
+	if err != nil {
+		return errors.Errorf("Unable to find kubernetes version, error: %v", err)
+	}
+
+	// compare the kubernetes version with the supported version of csi.
+	comp, err := compareVersion(k8sVersion, types.CSISupportedVersion)
+	if err != nil {
+		return errors.Errorf("Error comparing versions, error: %v", err)
+	}
+
+	// remove the csi yaml if the k8s version is less than supported version and the csi is enabled.
+	if comp < 0 && *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled &&
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled {
+		delete(p.ComponentManifests, types.CSINodeInfoCRDManifestKey)
+		delete(p.ComponentManifests, types.CSIVolumeCRDManifestKey)
+		delete(p.ComponentManifests, types.VolumeSnapshotClassCRDManifestKey)
+		delete(p.ComponentManifests, types.VolumeSnapshotContentCRDManifestKey)
+		delete(p.ComponentManifests, types.VolumeSnapshotCRDManifestKey)
+		delete(p.ComponentManifests, types.CStorCSISnapshottterBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSISnapshottterRoleManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIControllerSAManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIProvisionerRoleManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIProvisionerBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIControllerManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIAttacherRoleManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIAttacherBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIClusterRegistrarRoleManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIClusterRegistrarBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIRegistrarRoleManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIRegistrarBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIDriverManifestKey)
+	}
+
+	return nil
+}
+
+// compareVersion compares given version i.e v1 and v2.
+// It returns -1 if v1 is less than v2, 0 if v1 equal to v2, 1 if v1 is greater than v2.
+// It returns -2 in case of any error with error.
+func compareVersion(v1, v2 string) (int, error) {
+
+	// removes alphabets from the version.
+	reg := regexp.MustCompile("[^\\d.]")
+	v1 = reg.ReplaceAllString(v1, "")
+	v2 = reg.ReplaceAllString(v2, "")
+
+	v1Array := strings.Split(v1, ".")
+	v2Array := strings.Split(v2, ".")
+
+	for i := 0; i < len(v1Array) || i < len(v2Array); i++ {
+		if i < len(v1Array) && i < len(v2Array) {
+			v1, err := strconv.Atoi(v1Array[i])
+			v2, err := strconv.Atoi(v2Array[i])
+			if err != nil {
+				return -2, err
+			}
+			if v1 < v2 {
+				return -1, nil
+			} else if v1 > v2 {
+				return 1, nil
+			}
+		} else if i < len(v1Array) {
+			v1, err := strconv.Atoi(v1Array[i])
+			if err != nil {
+				return -2, err
+			}
+			if v1 != 0 {
+				return 1, nil
+			}
+		} else if i < len(v2Array) {
+			v2, err := strconv.Atoi(v2Array[i])
+			if err != nil {
+				return -2, err
+			}
+			if v2 != 0 {
+				return -1, nil
+			}
+		}
+	}
+
+	return 0, nil
 }

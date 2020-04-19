@@ -276,6 +276,7 @@ func (p *Planner) init() error {
 		p.setPoliciesDefaultsIfNotSet,
 		p.setAnalyticsDefaultsIfNotSet,
 		p.removeDisabledManifests,
+		p.checkCSISupport,
 		p.getDesiredManifests,
 	}
 	for _, fn := range initFuncs {
