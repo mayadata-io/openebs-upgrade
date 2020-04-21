@@ -15,7 +15,6 @@ package openebs
 
 import (
 	"io/ioutil"
-	"mayadata.io/openebs-upgrade/k8s"
 	"regexp"
 	"strconv"
 	"strings"
@@ -596,49 +595,6 @@ func (p *Planner) getDesiredCSIDriver(driver *unstructured.Unstructured) (*unstr
 	)
 
 	return driver, nil
-}
-
-// checkCSISupport checks if csi is supported or not in the current kubernetes cluster, if not it will
-// remove the csi based yaml.
-func (p *Planner) checkCSISupport() error {
-	// get the kubernetes version.
-	k8sVersion, err := k8s.GetK8sVersion()
-	if err != nil {
-		return errors.Errorf("Unable to find kubernetes version, error: %v", err)
-	}
-
-	// compare the kubernetes version with the supported version of csi.
-	comp, err := compareVersion(k8sVersion, types.CSISupportedVersion)
-	if err != nil {
-		return errors.Errorf("Error comparing versions, error: %v", err)
-	}
-
-	// remove the csi yaml if the k8s version is less than supported version and the csi is enabled.
-	if comp < 0 && (*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled ||
-		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled) {
-		delete(p.ComponentManifests, types.CSINodeInfoCRDManifestKey)
-		delete(p.ComponentManifests, types.CSIVolumeCRDManifestKey)
-		delete(p.ComponentManifests, types.VolumeSnapshotClassCRDManifestKey)
-		delete(p.ComponentManifests, types.VolumeSnapshotContentCRDManifestKey)
-		delete(p.ComponentManifests, types.VolumeSnapshotCRDManifestKey)
-		delete(p.ComponentManifests, types.CStorCSISnapshottterBindingManifestKey)
-		delete(p.ComponentManifests, types.CStorCSISnapshottterRoleManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIControllerSAManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIProvisionerRoleManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIProvisionerBindingManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIControllerManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIAttacherRoleManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIAttacherBindingManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIClusterRegistrarRoleManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIClusterRegistrarBindingManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIRegistrarRoleManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIRegistrarBindingManifestKey)
-		delete(p.ComponentManifests, types.CStorCSINodeSAManifestKey)
-		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
-		delete(p.ComponentManifests, types.CStorCSIDriverManifestKey)
-	}
-
-	return nil
 }
 
 // compareVersion compares given version i.e v1 and v2.

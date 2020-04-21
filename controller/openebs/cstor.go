@@ -14,6 +14,7 @@ limitations under the License.
 package openebs
 
 import (
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/k8s"
@@ -118,10 +119,26 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 }
 
 func (p *Planner) setCSIDefaultsIfNotSet() {
+
+	isCSISupported, err := p.isCSISupported()
+	// Do not return the error as not to block installing other components.
+	if err != nil {
+		isCSISupported = false
+		glog.Errorf("Failed to set CSI defaults, error: %v", err)
+	}
+
+	if !isCSISupported {
+		glog.V(5).Infof("Skipping CSI installation.")
+	}
+
 	// Set the default values for cstor csi controller statefulset in configuration.
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == nil {
 		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled = true
+	}
+
+	if !isCSISupported && *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == true {
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled = false
 	}
 
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == true {
@@ -138,6 +155,10 @@ func (p *Planner) setCSIDefaultsIfNotSet() {
 		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled = true
 	}
 
+	if !isCSISupported && *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == true {
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled = false
+	}
+
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == true {
 		if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ImageTag == "" {
 			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ImageTag = p.ObservedOpenEBS.Spec.Version
@@ -149,6 +170,30 @@ func (p *Planner) setCSIDefaultsIfNotSet() {
 			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ISCSIPath = "/sbin/iscsiadm"
 		}
 	}
+}
+
+// isCSISupported checks if csi is supported or not in the current kubernetes cluster, if not it will
+// return false else true.
+func (p *Planner) isCSISupported() (bool, error) {
+	// get the kubernetes version.
+	k8sVersion, err := k8s.GetK8sVersion()
+	if err != nil {
+		return false, errors.Errorf("Unable to find kubernetes version, error: %v", err)
+	}
+
+	// compare the kubernetes version with the supported version of csi.
+	comp, err := compareVersion(k8sVersion, types.CSISupportedVersion)
+	if err != nil {
+		return false, errors.Errorf("Error comparing versions, error: %v", err)
+	}
+
+	if comp < 0 {
+		glog.Warningf("CSI is not supported in %s Kubernetes version. "+
+			"CSI is supported from %s Kubernetes version.", k8sVersion, types.CSISupportedVersion)
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // updateOpenEBSCStorCSINode updates the values of openebs-cstor-csi-node daemonset as per given configuration.
