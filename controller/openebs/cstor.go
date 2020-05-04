@@ -156,6 +156,23 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	// overwrite the namespace to kube-system as csi based components will run only in kube-system namespace.
 	daemonset.SetNamespace(types.NamespaceKubeSystem)
 
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := daemonset.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CStor CSI Node:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: daemonset
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-node
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSDaemonSetComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorCSINodeNameKey
+	// set the desired labels
+	daemonset.SetLabels(desiredLabels)
+
 	// this will get the extra volumes and volume mounts required to be added in the csi node daemonset
 	// for the csi to work for different OS distributions/versions.
 	// This volumes and volume mounts will be added in the openebs-csi-plugin container.
@@ -425,6 +442,23 @@ func (p *Planner) getUbuntu1804VolumeMounts() ([]interface{}, []interface{}) {
 func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unstructured) error {
 	// overwrite the namespace to kube-system as csi based components will run only in kube-system namespace.
 	statefulset.SetNamespace(types.NamespaceKubeSystem)
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := statefulset.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CStor CSI controller:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: statefulset
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-controller
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSStatefulSetComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSIControllerNameKey
+	// set the desired labels
+	statefulset.SetLabels(desiredLabels)
 
 	containers, err := unstruct.GetNestedSliceOrError(statefulset, "spec", "template", "spec", "containers")
 	if err != nil {
@@ -491,6 +525,23 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 
 // updateCSPCOperator updates the CSPC operator manifest as per the reconcile.ObservedOpenEBS values.
 func (p *Planner) updateCSPCOperator(deploy *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := deploy.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for cspc-operator deploy
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cspc
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: cspc-operator
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSDeploymentComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.CSPCComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CSPCOperatorNameKey
+	// set the desired labels
+	deploy.SetLabels(desiredLabels)
+
 	// get the containers of the cspc-operator and update the desired fields
 	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
 	if err != nil {
@@ -563,6 +614,23 @@ func (p *Planner) updateCSPCOperator(deploy *unstructured.Unstructured) error {
 
 // updateCVCOperator updates the CVC operator manifest as per the reconcile.ObservedOpenEBS values.
 func (p *Planner) updateCVCOperator(deploy *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := deploy.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for cvc-operator deploy
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cvc
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: cvc-operator
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSDeploymentComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.CVCComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CVCOperatorNameKey
+	// set the desired labels
+	deploy.SetLabels(desiredLabels)
+
 	// get the containers of the cvc-operator and update the desired fields
 	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
 	if err != nil {

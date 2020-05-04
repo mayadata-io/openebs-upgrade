@@ -37,7 +37,7 @@ func (p *Planner) getDesiredNamespace(namespace *unstructured.Unstructured) (*un
 // getDesiredServiceAccount updates the service account manifest as per the
 // given configuration in OpenEBS CR.
 func (p *Planner) getDesiredServiceAccount(sa *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-
+	var err error
 	sa.SetNamespace(p.ObservedOpenEBS.Namespace)
 	// create annotations that refers to the instance which
 	// triggered creation of this ServiceAccount
@@ -47,18 +47,133 @@ func (p *Planner) getDesiredServiceAccount(sa *unstructured.Unstructured) (*unst
 		},
 	)
 
-	// Overwrite the namespace to kube-system for csi based components.
-	// Note: csi based components will be installed only in kube-system namespace only.
-	if sa.GetName() == types.CStorCSIControllerSANameKey || sa.GetName() == types.CStorCSINodeSANameKey {
+	switch sa.GetName() {
+	case types.OpenEBSMayaOperatorSANameKey:
+		err = p.updateOpenEBSServiceAccount(sa)
+	case types.CStorCSIControllerSANameKey:
+		// Overwrite the namespace to kube-system for csi based components.
+		// Note: csi based components will be installed only in kube-system namespace only.
 		sa.SetNamespace(types.NamespaceKubeSystem)
+		err = p.updateCStorCSIControllerServiceAccount(sa)
+	case types.CStorCSINodeSANameKey:
+		// Overwrite the namespace to kube-system for csi based components.
+		// Note: csi based components will be installed only in kube-system namespace only.
+		sa.SetNamespace(types.NamespaceKubeSystem)
+		err = p.updateCStorCSINodeServiceAccount(sa)
+	}
+	if err != nil {
+		return sa, err
 	}
 
 	return sa, nil
 }
 
+// updateOpenEBSServiceAccount updates the openebs-maya-operator service account
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateOpenEBSServiceAccount(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-maya-operator service account:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: openebs-service-account
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSSAComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.OpenEBSSAComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSIControllerServiceAccount updates the CStor CSI controller service account
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSIControllerServiceAccount(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-maya-operator service account:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: service-account
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: cstor-csi-controller
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSSAComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSICtrlSAComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSINodeServiceAccount updates the CStor CSI node service account
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSINodeServiceAccount(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-maya-operator service account:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: service-account
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: cstor-csi-node
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSSAComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSINodeSAComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
 // getDesiredClusterRole updates the cluster role manifest as per the
 // given configuration in OpenEBS CR.
 func (p *Planner) getDesiredClusterRole(cr *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	var err error
+
+	switch cr.GetName() {
+	case types.OpenEBSMayaOperatorRoleNameKey:
+		err = p.updateOpenEBSClusterRole(cr)
+	case types.CStorCSISnapshottterRoleNameKey:
+		err = p.updateCStorCSISnapshotterRole(cr)
+	case types.CStorCSIProvisionerRoleNameKey:
+		err = p.updateCStorCSIProvisionerRole(cr)
+	case types.CStorCSIAttacherRoleNameKey:
+		err = p.updateCStorCSIAttacherRole(cr)
+	case types.CStorCSIClusterRegistrarRoleNameKey:
+		err = p.updateCStorCSIClusterRegistrarRole(cr)
+	case types.CStorCSIRegistrarRoleNameKey:
+		err = p.updateCStorCSIRegistrarRole(cr)
+	}
+	if err != nil {
+		return cr, err
+	}
 	// create annotations that refers to the instance which
 	// triggered creation of this ClusterRole
 	cr.SetAnnotations(
@@ -69,10 +184,199 @@ func (p *Planner) getDesiredClusterRole(cr *unstructured.Unstructured) (*unstruc
 	return cr, nil
 }
 
+// updateOpenEBSClusterRole updates the OpenEBS maya-operator cluster role
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateOpenEBSClusterRole(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-maya-operator cluster role:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.OpenEBSRoleComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSISnapshotterRole updates the CStor CSI snapshotter cluster role
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSISnapshotterRole(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for cstor CSI snapshotter cluster role:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-snapshotter-role
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSISnapshottterRoleNameKey
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSIProvisionerRole updates the CStor CSI provisioner cluster role
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSIProvisionerRole(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for cstor CSI provisioner cluster role:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-provisioner-role
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSIProvisionerRoleNameKey
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSIAttacherRole updates the CStor CSI attacher cluster role
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSIAttacherRole(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-cstor-csi-attacher-role cluster role:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-attacher-role
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSIAttacherRoleNameKey
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSIClusterRegistrarRole updates the CStor CSI cluster registrar cluster role
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSIClusterRegistrarRole(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-cstor-csi-cluster-registrar-role cluster role:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-cluster-registrar-role
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSIClusterRegistrarRoleNameKey
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSIRegistrarRole updates the CStor CSI registrar cluster role
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSIRegistrarRole(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-cstor-csi-registrar-role cluster role:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-registrar-role
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSIRegistrarRoleNameKey
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
 // getDesiredClusterRoleBinding updates the clusterRoleBinding manifest as per the
 // given configuration in OpenEBS CR.
 func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	var err error
 
+	switch crb.GetName() {
+	case types.OpenEBSMayaOperatorBindingNameKey:
+		err = p.updateOpenEBSClusterRoleBinding(crb)
+	case types.CStorCSISnapshottterBindingNameKey:
+		err = p.updateCStorCSISnapshotterBinding(crb)
+	case types.CStorCSIProvisionerBindingNameKey:
+		err = p.updateCStorCSIProvisionerBinding(crb)
+	case types.CStorCSIAttacherBindingNameKey:
+		err = p.updateCStorCSIAttacherBinding(crb)
+	case types.CStorCSIClusterRegistrarBindingNameKey:
+		err = p.updateCStorCSIClusterRegistrarBinding(crb)
+	case types.CStorCSIRegistrarBindingNameKey:
+		err = p.updateCStorCSIRegistrarBinding(crb)
+	}
+	if err != nil {
+		return crb, err
+	}
 	setNamespaceOfEachSubject := func(obj *unstructured.Unstructured) error {
 		err := unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Namespace, "spec", "namespace")
 		if err != nil {
@@ -116,4 +420,175 @@ func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (
 		},
 	)
 	return crb, nil
+}
+
+// updateOpenEBSClusterRoleBinding updates the OpenEBS maya-operator cluster role
+// binding structure as per the provided values otherwise default values.
+func (p *Planner) updateOpenEBSClusterRoleBinding(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-maya-operator cluster role binding:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleBindingComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.OpenEBSRoleBindingComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSISnapshotterBinding updates the CStor CSI snapshotter cluster role
+// binding structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSISnapshotterBinding(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-cstor-csi-snapshotter-binding cluster role binding:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
+	// 2. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-snapshotter-binding
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleBindingComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSISnapshottterBindingNameKey
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSIProvisionerBinding updates the CStor CSI provisioner cluster role
+// binding structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSIProvisionerBinding(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-cstor-csi-provisioner-binding cluster role binding:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
+	// 2. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-provisioner-binding
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleBindingComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSIProvisionerBindingNameKey
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSIAttacherBinding updates the CStor CSI attacher cluster role binding
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSIAttacherBinding(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-cstor-csi-attacher-binding cluster role binding:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
+	// 2. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-attacher-binding
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleBindingComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSIAttacherBindingNameKey
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSIClusterRegistrarBinding updates the CStor CSI cluster registrar cluster role
+// binding structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSIClusterRegistrarBinding(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-cstor-csi-cluster-registrar-binding cluster role:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
+	// 2. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-cluster-registrar-binding
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleBindingComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSIClusterRegistrarBindingNameKey
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorCSIRegistrarBinding updates the CStor CSI registrar cluster role binding
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateCStorCSIRegistrarBinding(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-cstor-csi-registrar-binding cluster role binding:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
+	// 2. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-registrar-binding
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSRoleBindingComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSIRegistrarBindingNameKey
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
 }

@@ -13,7 +13,10 @@ limitations under the License.
 
 package openebs
 
-import "mayadata.io/openebs-upgrade/types"
+import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"mayadata.io/openebs-upgrade/types"
+)
 
 const (
 	// DefaultSnapshotOperatorReplicaCount is the default value of replica for
@@ -49,5 +52,25 @@ func (p *Planner) setSnapshotOperatorDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.SnapshotOperator.Replicas = new(int32)
 		*p.ObservedOpenEBS.Spec.SnapshotOperator.Replicas = DefaultSnapshotOperatorReplicaCount
 	}
+	return nil
+}
+
+// updateSnapshotOperator updates the openebs-snapshot-operator manifest as per the
+// reconcile.ObservedOpenEBS values.
+func (p *Planner) updateSnapshotOperator(deploy *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := deploy.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for openebs-snapshot-operator deploy
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-snapshot-operator
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSDeploymentComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.SnapshotOperatorNameKey
+	// set the desired labels
+	deploy.SetLabels(desiredLabels)
+
 	return nil
 }

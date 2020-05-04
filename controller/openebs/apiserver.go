@@ -29,6 +29,23 @@ const (
 
 // updateMayaAPIServer updates the MayaAPIServer manifest as per the reconcile.ObservedOpenEBS values.
 func (p *Planner) updateMayaAPIServer(deploy *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := deploy.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for maya-apiserver deploy:
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: maya-apiserver
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: maya-apiserver
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSDeploymentComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSMayaAPIServerComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.MayaAPIServerNameKey
+	// set the desired labels
+	deploy.SetLabels(desiredLabels)
+
 	// get the containers of the maya-apiserver and update the desired fields
 	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
 	if err != nil {
@@ -152,5 +169,28 @@ func (p *Planner) setAPIServerDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.APIServer.Replicas = new(int32)
 		*p.ObservedOpenEBS.Spec.APIServer.Replicas = DefaultAPIServerReplicaCount
 	}
+	return nil
+}
+
+// updateMayaAPIServerService updates the maya-apiserver-service manifest as per the
+// reconcile.ObservedOpenEBS values.
+func (p *Planner) updateMayaAPIServerService(svc *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := svc.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for maya-apiserver-service service
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: service
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: maya-apiserver
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: maya-apiserver-service
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSServiceComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSMayaAPIServerComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.MayaAPIServerServiceNameKey
+	// set the desired labels
+	svc.SetLabels(desiredLabels)
+
 	return nil
 }

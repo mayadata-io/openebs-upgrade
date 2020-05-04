@@ -314,12 +314,49 @@ func (p *Planner) updateNDMConfig(configmap *unstructured.Unstructured) error {
 	dataMap["node-disk-manager.config"] = string(ndmConfigDataString)
 	unstructured.SetNestedMap(configmap.Object, dataMap, "data")
 
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := configmap.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for openebs-ndm-config configmap
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: configmap
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: ndm
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-ndm-config
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSConfigMapComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSNDMComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.NDMConfigNameKey
+	// set the desired labels
+	configmap.SetLabels(desiredLabels)
+
 	return nil
 }
 
 // updateNDM updates the NDM structure as per the provided values otherwise
 // default values.
 func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := daemonset.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for openebs-ndm-operator deploy
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: daemonset
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: ndm
+	// 3. openebs-upgrade.dao.mayadata.io/component-subgroup: daemon
+	// 4. openebs-upgrade.dao.mayadata.io/component-name: openebs-ndm
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSDaemonSetComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSNDMComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentSubGroupLabelKey] =
+		types.OpenEBSDaemonComponentSubGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.NDMNameKey
+	// set the desired labels
+	daemonset.SetLabels(desiredLabels)
+
 	volumes, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "volumes")
 	if err != nil {
 		return err
@@ -447,6 +484,26 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 // updateNDMOperator updates the NDM Operator structure as per the provided values otherwise
 // default values.
 func (p *Planner) updateNDMOperator(deploy *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := deploy.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for openebs-ndm-operator deploy
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
+	// 2. openebs-upgrade.dao.mayadata.io/component-group: ndm
+	// 3. openebs-upgrade.dao.mayadata.io/component-subgroup: operator
+	// 4. openebs-upgrade.dao.mayadata.io/component-name: openebs-ndm-operator
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSDeploymentComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSNDMComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentSubGroupLabelKey] =
+		types.OpenEBSOperatorComponentSubGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.NDMOperatorNameKey
+	// set the desired labels
+	deploy.SetLabels(desiredLabels)
+
 	// update the daemonset containers
 	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
 	if err != nil {

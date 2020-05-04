@@ -14,6 +14,7 @@ limitations under the License.
 package openebs
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
 )
 
@@ -47,5 +48,25 @@ func (p *Planner) setAdmissionServerDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.AdmissionServer.Replicas = new(int32)
 		*p.ObservedOpenEBS.Spec.AdmissionServer.Replicas = DefaultAdmissionServerReplicaCount
 	}
+	return nil
+}
+
+// updateAdmissionServer updates the openebs-admission-server manifest as per the
+// reconcile.ObservedOpenEBS values.
+func (p *Planner) updateAdmissionServer(deploy *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := deploy.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for openebs-snapshot-operator deploy
+	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-admission-server
+	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
+		types.OpenEBSDeploymentComponentTypeLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.AdmissionServerNameKey
+	// set the desired labels
+	deploy.SetLabels(desiredLabels)
+
 	return nil
 }
