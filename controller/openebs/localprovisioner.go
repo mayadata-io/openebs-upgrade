@@ -56,10 +56,7 @@ func (p *Planner) updateLocalProvisioner(deploy *unstructured.Unstructured) erro
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for openebs-ndm-operator deploy
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
-	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-localpv-provisioner
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSDeploymentComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-localpv-provisioner
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.LocalProvisionerNameKey
 	// set the desired labels
 	deploy.SetLabels(desiredLabels)

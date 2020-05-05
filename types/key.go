@@ -204,10 +204,6 @@ const (
 	// OpenEBSUpgradeDAOManagedLabelValue is the value for openebs-upgrade dao managed label
 	OpenEBSUpgradeDAOManagedLabelValue string = "true"
 
-	// OpenEBSComponentTypeLabelKey is the label key which helps in
-	// identifying a particular group of OpenEBS components i.e., the component-type
-	// value for NDM components will be "ndm".
-	OpenEBSComponentTypeLabelKey string = "openebs-upgrade.dao.mayadata.io/component-type"
 	// OpenEBSComponentGroupLabelKey is the label key which helps in identifying
 	// a particular group of OpenEBS components i.e., the component-type value for
 	// CSI related cluster roles can still be "cluster-role" but the value for
@@ -226,9 +222,6 @@ const (
 	// for ndm daemonset while openebs-ndm-operator will be the value for NDM operator.
 	OpenEBSComponentNameLabelKey string = "openebs-upgrade.dao.mayadata.io/component-name"
 
-	// OpenEBSSAComponentTypeLabelValue is the value of the component-type label
-	// of OpenEBS service account.
-	OpenEBSSAComponentTypeLabelValue string = "service-account"
 	// OpenEBSSAComponentNameLabelValue is the value of the component-name label
 	// of OpenEBS service account.
 	OpenEBSSAComponentNameLabelValue string = "openebs-maya-operator"
@@ -239,9 +232,6 @@ const (
 	// of OpenEBS CStor CSI node service account.
 	CStorCSINodeSAComponentNameLabelValue string = "cstor-csi-node"
 
-	// OpenEBSRoleComponentTypeLabelValue is the value of the component-type label
-	// of OpenEBS cluster role.
-	OpenEBSRoleComponentTypeLabelValue string = "cluster-role"
 	// CSIComponentGroupLabelValue is the value of the component-group label
 	// of CSI components.
 	CSIComponentGroupLabelValue string = "csi"
@@ -252,28 +242,9 @@ const (
 	// of OpenEBS cluster role.
 	OpenEBSRoleComponentNameLabelValue string = "openebs-maya-operator"
 
-	// OpenEBSRoleBindingComponentTypeLabelValue is the value of the component-type label
-	// of OpenEBS cluster role binding.
-	OpenEBSRoleBindingComponentTypeLabelValue string = "cluster-role-binding"
 	// OpenEBSRoleBindingComponentNameLabelValue is the value of the component-name label
 	// of OpenEBS cluster role.
 	OpenEBSRoleBindingComponentNameLabelValue string = "openebs-maya-operator"
-
-	// OpenEBSDeploymentComponentTypeLabelValue is the value of the component-type label
-	// of OpenEBS deployments.
-	OpenEBSDeploymentComponentTypeLabelValue string = "deployment"
-	// OpenEBSDaemonSetComponentTypeLabelValue is the value of the component-type label
-	// of OpenEBS daemonsets.
-	OpenEBSDaemonSetComponentTypeLabelValue string = "daemonset"
-	// OpenEBSStatefulSetComponentTypeLabelValue is the value of the component-type label
-	// of OpenEBS statefulsets.
-	OpenEBSStatefulSetComponentTypeLabelValue string = "statefulset"
-	// CSIDriverComponentTypeLabelValue is the value of the component-type label
-	// of CSI driver.
-	CSIDriverComponentTypeLabelValue string = "csidriver"
-	// OpenEBSCRDComponentTypeLabelValue is the value of the component-type label
-	// of OpenEBS related CRDs.
-	OpenEBSCRDComponentTypeLabelValue string = "customresourcedefinition"
 
 	// OpenEBSMayaAPIServerComponentGroupLabelValue is the value of the component-group label
 	// of OpenEBS apiservers.
@@ -290,12 +261,6 @@ const (
 	// OpenEBSAdmissionServerComponentGroupLabelValue is the value of the component-group label
 	// of OpenEBS admission server.
 	OpenEBSAdmissionServerComponentGroupLabelValue string = "admission-server"
-	// OpenEBSConfigMapComponentTypeLabelValue is the value of the component-type label
-	// of OpenEBS configmaps.
-	OpenEBSConfigMapComponentTypeLabelValue string = "configmap"
-	// OpenEBSServiceComponentTypeLabelValue is the value of the component-type label
-	// of OpenEBS services.
-	OpenEBSServiceComponentTypeLabelValue string = "service"
 	// OpenEBSNDMComponentGroupLabelValue is the value of the component-group label
 	// of NDM components.
 	OpenEBSNDMComponentGroupLabelValue string = "ndm"

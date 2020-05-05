@@ -320,11 +320,8 @@ func (p *Planner) updateNDMConfig(configmap *unstructured.Unstructured) error {
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for openebs-ndm-config configmap
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: configmap
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: ndm
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-ndm-config
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSConfigMapComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: ndm
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-ndm-config
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSNDMComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.NDMConfigNameKey
@@ -343,12 +340,9 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for openebs-ndm-operator deploy
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: daemonset
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: ndm
-	// 3. openebs-upgrade.dao.mayadata.io/component-subgroup: daemon
-	// 4. openebs-upgrade.dao.mayadata.io/component-name: openebs-ndm
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSDaemonSetComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: ndm
+	// 2. openebs-upgrade.dao.mayadata.io/component-subgroup: daemon
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-ndm
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSNDMComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentSubGroupLabelKey] =
@@ -490,12 +484,9 @@ func (p *Planner) updateNDMOperator(deploy *unstructured.Unstructured) error {
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for openebs-ndm-operator deploy
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: ndm
-	// 3. openebs-upgrade.dao.mayadata.io/component-subgroup: operator
-	// 4. openebs-upgrade.dao.mayadata.io/component-name: openebs-ndm-operator
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSDeploymentComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: ndm
+	// 2. openebs-upgrade.dao.mayadata.io/component-subgroup: operator
+	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-ndm-operator
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSNDMComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentSubGroupLabelKey] =

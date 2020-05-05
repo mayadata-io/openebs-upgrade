@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	// ContainerOpenEBSCSIPlugin is the name of the container openebs csi plugin
+	// ContainerOpenEBSCSIPluginName is the name of the container openebs csi plugin
 	ContainerOpenEBSCSIPluginName string = "openebs-csi-plugin"
 	// EnvOpenEBSNamespaceKey is the env key for openebs namespace
 	EnvOpenEBSNamespaceKey string = "OPENEBS_NAMESPACE"
@@ -162,11 +162,8 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for CStor CSI Node:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: daemonset
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-node
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSDaemonSetComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-node
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorCSINodeNameKey
@@ -448,11 +445,8 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for CStor CSI controller:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: statefulset
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-controller
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSStatefulSetComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-controller
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -531,11 +525,8 @@ func (p *Planner) updateCSPCOperator(deploy *unstructured.Unstructured) error {
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for cspc-operator deploy
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cspc
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: cspc-operator
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSDeploymentComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cspc
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: cspc-operator
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.CSPCComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CSPCOperatorNameKey
@@ -620,11 +611,8 @@ func (p *Planner) updateCVCOperator(deploy *unstructured.Unstructured) error {
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for cvc-operator deploy
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cvc
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: cvc-operator
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSDeploymentComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cvc
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: cvc-operator
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.CVCComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CVCOperatorNameKey

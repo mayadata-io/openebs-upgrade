@@ -60,10 +60,7 @@ func (p *Planner) updateAdmissionServer(deploy *unstructured.Unstructured) error
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for openebs-snapshot-operator deploy
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
-	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-admission-server
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSDeploymentComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-admission-server
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.AdmissionServerNameKey
 	// set the desired labels
 	deploy.SetLabels(desiredLabels)

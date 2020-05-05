@@ -81,10 +81,7 @@ func (p *Planner) updateOpenEBSServiceAccount(sa *unstructured.Unstructured) err
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-maya-operator service account:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: openebs-service-account
-	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSSAComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
 		types.OpenEBSSAComponentNameLabelValue
 
@@ -107,11 +104,8 @@ func (p *Planner) updateCStorCSIControllerServiceAccount(sa *unstructured.Unstru
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-maya-operator service account:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: service-account
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: cstor-csi-controller
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSSAComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: cstor-csi-controller
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -136,11 +130,8 @@ func (p *Planner) updateCStorCSINodeServiceAccount(sa *unstructured.Unstructured
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-maya-operator service account:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: service-account
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: cstor-csi-node
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSSAComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: cstor-csi-node
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -196,11 +187,7 @@ func (p *Planner) updateOpenEBSClusterRole(sa *unstructured.Unstructured) error 
 	// These labels will be only set by openebs-upgrade and will help the end-users
 	// identify a particular or a set of OpenEBS components.
 	//
-	// Component specific labels for openebs-maya-operator cluster role:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
-	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
 		types.OpenEBSRoleComponentNameLabelValue
 
@@ -223,11 +210,8 @@ func (p *Planner) updateCStorCSISnapshotterRole(sa *unstructured.Unstructured) e
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for cstor CSI snapshotter cluster role:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-snapshotter-role
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-snapshotter-role
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -252,11 +236,8 @@ func (p *Planner) updateCStorCSIProvisionerRole(sa *unstructured.Unstructured) e
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for cstor CSI provisioner cluster role:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-provisioner-role
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-provisioner-role
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -281,11 +262,8 @@ func (p *Planner) updateCStorCSIAttacherRole(sa *unstructured.Unstructured) erro
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-cstor-csi-attacher-role cluster role:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-attacher-role
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-attacher-role
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -310,11 +288,8 @@ func (p *Planner) updateCStorCSIClusterRegistrarRole(sa *unstructured.Unstructur
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-cstor-csi-cluster-registrar-role cluster role:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-cluster-registrar-role
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-cluster-registrar-role
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -339,11 +314,8 @@ func (p *Planner) updateCStorCSIRegistrarRole(sa *unstructured.Unstructured) err
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-cstor-csi-registrar-role cluster role:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-registrar-role
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-registrar-role
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -435,10 +407,7 @@ func (p *Planner) updateOpenEBSClusterRoleBinding(sa *unstructured.Unstructured)
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-maya-operator cluster role binding:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
-	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleBindingComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
 		types.OpenEBSRoleBindingComponentNameLabelValue
 
@@ -461,11 +430,8 @@ func (p *Planner) updateCStorCSISnapshotterBinding(sa *unstructured.Unstructured
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-cstor-csi-snapshotter-binding cluster role binding:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
-	// 2. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-snapshotter-binding
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleBindingComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-snapshotter-binding
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -490,11 +456,8 @@ func (p *Planner) updateCStorCSIProvisionerBinding(sa *unstructured.Unstructured
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-cstor-csi-provisioner-binding cluster role binding:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
-	// 2. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-provisioner-binding
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleBindingComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-provisioner-binding
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -519,11 +482,8 @@ func (p *Planner) updateCStorCSIAttacherBinding(sa *unstructured.Unstructured) e
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-cstor-csi-attacher-binding cluster role binding:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
-	// 2. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-attacher-binding
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleBindingComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-attacher-binding
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -548,11 +508,8 @@ func (p *Planner) updateCStorCSIClusterRegistrarBinding(sa *unstructured.Unstruc
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-cstor-csi-cluster-registrar-binding cluster role:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
-	// 2. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-cluster-registrar-binding
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleBindingComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-cluster-registrar-binding
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
@@ -577,11 +534,8 @@ func (p *Planner) updateCStorCSIRegistrarBinding(sa *unstructured.Unstructured) 
 	// identify a particular or a set of OpenEBS components.
 	//
 	// Component specific labels for openebs-cstor-csi-registrar-binding cluster role binding:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: cluster-role-binding
-	// 2. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-registrar-binding
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSRoleBindingComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-subtype: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-registrar-binding
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =

@@ -35,11 +35,8 @@ func (p *Planner) updateMayaAPIServer(deploy *unstructured.Unstructured) error {
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for maya-apiserver deploy:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: maya-apiserver
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: maya-apiserver
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSDeploymentComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: maya-apiserver
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: maya-apiserver
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSMayaAPIServerComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.MayaAPIServerNameKey
@@ -181,11 +178,8 @@ func (p *Planner) updateMayaAPIServerService(svc *unstructured.Unstructured) err
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for maya-apiserver-service service
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: service
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: maya-apiserver
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: maya-apiserver-service
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSServiceComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: maya-apiserver
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: maya-apiserver-service
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSMayaAPIServerComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.MayaAPIServerServiceNameKey

@@ -57,11 +57,8 @@ func (p *Planner) updateCSINodeInfoCRD(crd *unstructured.Unstructured) error {
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for CSI node info CRD
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: customresourcedefinition
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: csinodeinfos.csi.storage.k8s.io
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSCRDComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: csinodeinfos.csi.storage.k8s.io
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.CSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CSINodeInfoCRDNameKey
@@ -80,11 +77,8 @@ func (p *Planner) updateCSIVolumeCRD(crd *unstructured.Unstructured) error {
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for CSI volume CRD
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: customresourcedefinition
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: csivolumes.openebs.io
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSCRDComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: csivolumes.openebs.io
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.CSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CSIVolumeCRDNameKey
@@ -103,10 +97,7 @@ func (p *Planner) updateVolumeSnapshotCRD(crd *unstructured.Unstructured) error 
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for volume snapshot CRD
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: customresourcedefinition
-	// 2. openebs-upgrade.dao.mayadata.io/component-name: volumesnapshots.snapshot.storage.k8s.io
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSCRDComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: volumesnapshots.snapshot.storage.k8s.io
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.VolumeSnapshotCRDNameKey
 	// set the desired labels
 	crd.SetLabels(desiredLabels)
@@ -123,10 +114,7 @@ func (p *Planner) updateVolumeSnapshotClassCRD(crd *unstructured.Unstructured) e
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for volume snapshot class CRD
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: customresourcedefinition
-	// 2. openebs-upgrade.dao.mayadata.io/component-name: volumesnapshotclasses.snapshot.storage.k8s.io
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSCRDComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: volumesnapshotclasses.snapshot.storage.k8s.io
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.VolumeSnapshotClassCRDNameKey
 	// set the desired labels
 	crd.SetLabels(desiredLabels)
@@ -143,10 +131,7 @@ func (p *Planner) updateVolumeSnapshotContentCRD(crd *unstructured.Unstructured)
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for volume snapshot content CRD
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: customresourcedefinition
-	// 2. openebs-upgrade.dao.mayadata.io/component-name: volumesnapshotcontents.snapshot.storage.k8s.io
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSCRDComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: volumesnapshotcontents.snapshot.storage.k8s.io
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.VolumeSnapshotContentCRDNameKey
 	// set the desired labels
 	crd.SetLabels(desiredLabels)
@@ -162,11 +147,8 @@ func (p *Planner) updateCSPCCRD(crd *unstructured.Unstructured) error {
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for CSPC CRD
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: customresourcedefinition
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cspc
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: cstorpoolclusters.cstor.openebs.io
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSCRDComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cspc
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: cstorpoolclusters.cstor.openebs.io
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.CSPCComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CSPCCRDNameKey

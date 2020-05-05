@@ -56,10 +56,7 @@ func (p *Planner) updateOpenEBSProvisioner(deploy *unstructured.Unstructured) er
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for openebs-provisioner deploy
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: deployment
-	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-provisioner
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.OpenEBSDeploymentComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-provisioner
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.ProvisionerNameKey
 	// set the desired labels
 	deploy.SetLabels(desiredLabels)

@@ -606,11 +606,8 @@ func (p *Planner) getDesiredCSIDriver(driver *unstructured.Unstructured) (*unstr
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for CSIDriver controller:
-	// 1. openebs-upgrade.dao.mayadata.io/component-type: csidriver
-	// 2. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
-	// 3. openebs-upgrade.dao.mayadata.io/component-name: cstor.csi.openebs.io
-	desiredLabels[types.OpenEBSComponentTypeLabelKey] =
-		types.CSIDriverComponentTypeLabelValue
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: cstor.csi.openebs.io
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.OpenEBSCStorCSIComponentGroupLabelValue
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
