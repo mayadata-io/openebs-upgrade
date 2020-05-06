@@ -61,3 +61,13 @@ func GetUbuntuVersion() (float64, error) {
 
 	return version, nil
 }
+
+// GetK8sVersion returns the k8s version.
+func GetK8sVersion() (string, error) {
+	versionInfo, err := Clientset.Discovery().ServerVersion()
+	if err != nil {
+		return "", err
+	}
+
+	return versionInfo.GitVersion, nil
+}

@@ -175,20 +175,12 @@ const (
 	// OSImageSLES15 is the OS Image value of a Node.
 	OSImageSLES15 string = "SUSE Linux Enterprise Server 15"
 
-	// CSIOperatorFilePrefix is the csi operator file path prefix.
-	CSIOperatorFilePrefix string = "/templates/csi-operator-"
-	// CSIOperatorFileSuffix is the csi operator file path suffix.
-	CSIOperatorFileSuffix string = ".yaml"
-	// CSIOperatorSUSE12FileSuffix is the csi operator file for suse 12 path suffix.
-	CSIOperatorSUSE12FileSuffix string = "-sles-12.yaml"
-	// CSIOperatorSUSE15FileSuffix is the csi operator file for suse 15 path suffix.
-	CSIOperatorSUSE15FileSuffix string = "-sles-15.yaml"
-	// CSIOperatorUbuntu1804FileSuffix is the csi operator file for ubuntu 18.04 path suffix.
-	CSIOperatorUbuntu1804FileSuffix string = "-ubuntu-18.04.yaml"
-
 	// NamespaceKubeSystem is the value of kube-system namespace
 	NamespaceKubeSystem string = "kube-system"
 
+	// CSISupportedVersion is the k8s version from where csi is supported.
+	CSISupportedVersion string = "v1.14.0"
+  
 	// OpenEBSMayaOperatorSANameKey is the name of OpenEBS service account.
 	OpenEBSMayaOperatorSANameKey string = "openebs-maya-operator"
 	// OpenEBSMayaOperatorRoleNameKey is the name of OpenEBS cluster role.

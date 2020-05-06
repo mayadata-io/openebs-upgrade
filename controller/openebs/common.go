@@ -15,6 +15,8 @@ package openebs
 
 import (
 	"io/ioutil"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -178,6 +180,7 @@ func (p *Planner) removeDisabledManifests() error {
 		delete(p.ComponentManifests, types.CStorCSIClusterRegistrarBindingManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIRegistrarRoleManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIRegistrarBindingManifestKey)
+		delete(p.ComponentManifests, types.CStorCSINodeSAManifestKey)
 		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIDriverManifestKey)
 	}
@@ -623,4 +626,51 @@ func (p *Planner) getDesiredCSIDriver(driver *unstructured.Unstructured) (*unstr
 	)
 
 	return driver, nil
+}
+
+// compareVersion compares given version i.e v1 and v2.
+// It returns -1 if v1 is less than v2, 0 if v1 equal to v2, 1 if v1 is greater than v2.
+// It returns -2 in case of any error with error.
+func compareVersion(v1, v2 string) (int, error) {
+
+	// removes alphabets from the version.
+	reg := regexp.MustCompile("[^\\d.]")
+	v1 = reg.ReplaceAllString(v1, "")
+	v2 = reg.ReplaceAllString(v2, "")
+
+	v1Array := strings.Split(v1, ".")
+	v2Array := strings.Split(v2, ".")
+
+	for i := 0; i < len(v1Array) || i < len(v2Array); i++ {
+		if i < len(v1Array) && i < len(v2Array) {
+			v1, err := strconv.Atoi(v1Array[i])
+			v2, err := strconv.Atoi(v2Array[i])
+			if err != nil {
+				return -2, err
+			}
+			if v1 < v2 {
+				return -1, nil
+			} else if v1 > v2 {
+				return 1, nil
+			}
+		} else if i < len(v1Array) {
+			v1, err := strconv.Atoi(v1Array[i])
+			if err != nil {
+				return -2, err
+			}
+			if v1 != 0 {
+				return 1, nil
+			}
+		} else if i < len(v2Array) {
+			v2, err := strconv.Atoi(v2Array[i])
+			if err != nil {
+				return -2, err
+			}
+			if v2 != 0 {
+				return -1, nil
+			}
+		}
+	}
+
+	return 0, nil
 }
