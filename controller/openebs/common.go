@@ -210,6 +210,19 @@ func (p *Planner) getDesiredManifests() error {
 	var err error
 
 	for key, value := range p.ComponentManifests {
+		// set the common label i.e., openebs-upgrade.dao.mayadata.io/managed: true
+		// here since this label should be present in all the components irrespective
+		// of their k8s kind, however some specific labels could be set per component
+		// such as openebs-upgrade.dao.mayadata.io/component-name: ndm for NDM components,
+		// etc.
+		componentLabels := value.GetLabels()
+		if componentLabels == nil {
+			componentLabels = make(map[string]string, 0)
+		}
+		componentLabels[types.OpenEBSUpgradeDAOManagedLabelKey] =
+			types.OpenEBSUpgradeDAOManagedLabelValue
+		value.SetLabels(componentLabels)
+
 		kind := strings.Split(key, "_")[1]
 		switch kind {
 		case types.KindNamespace:
@@ -273,7 +286,7 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.APIServer.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.APIServer.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.APIServer.Affinity
-		p.updateMayaAPIServer(deploy)
+		err = p.updateMayaAPIServer(deploy)
 
 	case types.ProvisionerNameKey:
 		replicas = p.ObservedOpenEBS.Spec.Provisioner.Replicas
@@ -282,6 +295,7 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.Provisioner.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.Provisioner.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.Provisioner.Affinity
+		err = p.updateOpenEBSProvisioner(deploy)
 
 	case types.SnapshotOperatorNameKey:
 		replicas = p.ObservedOpenEBS.Spec.SnapshotOperator.Replicas
@@ -291,6 +305,7 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.SnapshotOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.SnapshotOperator.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.SnapshotOperator.Affinity
+		err = p.updateSnapshotOperator(deploy)
 
 	case types.NDMOperatorNameKey:
 		replicas = p.ObservedOpenEBS.Spec.NDMOperator.Replicas
@@ -299,7 +314,7 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.NDMOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.NDMOperator.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.NDMOperator.Affinity
-		p.updateNDMOperator(deploy)
+		err = p.updateNDMOperator(deploy)
 
 	case types.LocalProvisionerNameKey:
 		replicas = p.ObservedOpenEBS.Spec.LocalProvisioner.Replicas
@@ -308,7 +323,7 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.LocalProvisioner.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.LocalProvisioner.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.LocalProvisioner.Affinity
-		p.updateLocalProvisioner(deploy)
+		err = p.updateLocalProvisioner(deploy)
 
 	case types.AdmissionServerNameKey:
 		replicas = p.ObservedOpenEBS.Spec.AdmissionServer.Replicas
@@ -317,6 +332,7 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.AdmissionServer.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.AdmissionServer.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.AdmissionServer.Affinity
+		err = p.updateAdmissionServer(deploy)
 
 	case types.CSPCOperatorNameKey:
 		replicas = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Replicas
@@ -325,7 +341,7 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Affinity
-		p.updateCSPCOperator(deploy)
+		err = p.updateCSPCOperator(deploy)
 
 	case types.CVCOperatorNameKey:
 		replicas = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas
@@ -334,7 +350,10 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Affinity
-		p.updateCVCOperator(deploy)
+		err = p.updateCVCOperator(deploy)
+	}
+	if err != nil {
+		return deploy, err
 	}
 	// update the replica count only if it is greater than 1 since the
 	// default value itself is 1.
@@ -432,10 +451,15 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 
 // getDesiredConfigmap updates the configmap manifest as per the given configuration.
 func (p *Planner) getDesiredConfigmap(configmap *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	var err error
+
 	configmap.SetNamespace(p.ObservedOpenEBS.Namespace)
 	switch configmap.GetName() {
 	case types.NDMConfigNameKey:
-		p.updateNDMConfig(configmap)
+		err = p.updateNDMConfig(configmap)
+	}
+	if err != nil {
+		return configmap, err
 	}
 	// create annotations that refers to the instance which
 	// triggered creation of this ConfigMap
@@ -449,7 +473,15 @@ func (p *Planner) getDesiredConfigmap(configmap *unstructured.Unstructured) (*un
 
 // getDesiredService updates the service manifest as per the given configuration.
 func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	var err error
 	svc.SetNamespace(p.ObservedOpenEBS.Namespace)
+	switch svc.GetName() {
+	case types.MayaAPIServerServiceNameKey:
+		err = p.updateMayaAPIServerService(svc)
+	}
+	if err != nil {
+		return svc, err
+	}
 	// create annotations that refers to the instance which
 	// triggered creation of this Service
 	svc.SetAnnotations(
@@ -462,7 +494,7 @@ func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructur
 
 // getDesiredDaemonSet updates the daemonset manifest as per the given configuration.
 func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-
+	var err error
 	resources := make(map[string]interface{})
 	nodeSelector := make(map[string]string)
 	tolerations := make([]interface{}, 0)
@@ -475,12 +507,12 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		nodeSelector = p.ObservedOpenEBS.Spec.NDMDaemon.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.NDMDaemon.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.NDMDaemon.Affinity
-		p.updateNDM(daemon)
+		err = p.updateNDM(daemon)
 	case types.CStorCSINodeNameKey:
-		err := p.updateOpenEBSCStorCSINode(daemon)
-		if err != nil {
-			return daemon, err
-		}
+		err = p.updateOpenEBSCStorCSINode(daemon)
+	}
+	if err != nil {
+		return daemon, err
 	}
 	// update the daemonset containers with the images and imagePullPolicy
 	containers, err := unstruct.GetNestedSliceOrError(daemon, "spec", "template", "spec", "containers")
@@ -569,23 +601,22 @@ func (p *Planner) getDesiredStatefulSet(statefulset *unstructured.Unstructured) 
 	return statefulset, nil
 }
 
-// getDesiredCustomResourceDefinition updates the customresourcedefinition manifest as per the given configuration.
-func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-
-	// create annotations that refers to the instance which
-	// triggered creation of this CustomResourceDefinition
-	crd.SetAnnotations(
-		map[string]string{
-			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
-		},
-	)
-
-	return crd, nil
-}
-
 // getDesiredCSIDriver updates the csidrivers manifest as per the given configuration.
 func (p *Planner) getDesiredCSIDriver(driver *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := driver.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CSIDriver controller:
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: cstor.csi.openebs.io
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.CStorCSIDriverNameKey
+	// set the desired labels
+	driver.SetLabels(desiredLabels)
 	// create annotations that refers to the instance which
 	// triggered creation of this CSIDriver
 	driver.SetAnnotations(

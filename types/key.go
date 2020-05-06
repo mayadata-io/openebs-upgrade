@@ -180,4 +180,86 @@ const (
 
 	// CSISupportedVersion is the k8s version from where csi is supported.
 	CSISupportedVersion string = "v1.14.0"
+  
+	// OpenEBSMayaOperatorSANameKey is the name of OpenEBS service account.
+	OpenEBSMayaOperatorSANameKey string = "openebs-maya-operator"
+	// OpenEBSMayaOperatorRoleNameKey is the name of OpenEBS cluster role.
+	OpenEBSMayaOperatorRoleNameKey string = "openebs-maya-operator"
+	// OpenEBSMayaOperatorBindingNameKey is the name of OpenEBS cluster role binding.
+	OpenEBSMayaOperatorBindingNameKey string = "openebs-maya-operator"
+
+	// openebs-upgrade dao specific label, this label will be present across all the
+	// OpenEBS components whether created or adopted by openebs-upgrade.
+
+	// OpenEBSUpgradeDAOManagedLabelKey is the key for openebs-upgrade dao managed label
+	OpenEBSUpgradeDAOManagedLabelKey string = "openebs-upgrade.dao.mayadata.io/managed"
+	// OpenEBSUpgradeDAOManagedLabelValue is the value for openebs-upgrade dao managed label
+	OpenEBSUpgradeDAOManagedLabelValue string = "true"
+
+	// OpenEBSComponentGroupLabelKey is the label key which helps in identifying
+	// a particular group of OpenEBS components i.e., the component-type value for
+	// CSI related cluster roles can still be "cluster-role" but the value for
+	// component-group can be "csi" which will help in identifying all the
+	// OpenEBS related cluster roles as well as cluster roles specific to CSI also.
+	OpenEBSComponentGroupLabelKey string = "openebs-upgrade.dao.mayadata.io/component-group"
+	// OpenEBSComponentSubGroupLabelKey is the label key which helps in identifying
+	// a particular subgroup of OpenEBS components i.e., the value for
+	// component-group for NDM components can be "ndm" which will help in identifying all the
+	// OpenEBS NDM related components, but it will have a component-subgroup too like
+	// operator or daemon which will tell that this particular NDM components is an operator or
+	// NDM daemon or something else.
+	OpenEBSComponentSubGroupLabelKey string = "openebs-upgrade.dao.mayadata.io/component-subgroup"
+	// OpenEBSComponentNameLabelKey is the label key which helps in
+	// identifying a particular OpenEBS component i.e., openebs-ndm will be the label value
+	// for ndm daemonset while openebs-ndm-operator will be the value for NDM operator.
+	OpenEBSComponentNameLabelKey string = "openebs-upgrade.dao.mayadata.io/component-name"
+
+	// OpenEBSSAComponentNameLabelValue is the value of the component-name label
+	// of OpenEBS service account.
+	OpenEBSSAComponentNameLabelValue string = "openebs-maya-operator"
+	// CStorCSICtrlSAComponentNameLabelValue is the value of the component-name label
+	// of OpenEBS CStor CSI controller service account.
+	CStorCSICtrlSAComponentNameLabelValue string = "cstor-csi-controller"
+	// CStorCSINodeSAComponentNameLabelValue is the value of the component-name label
+	// of OpenEBS CStor CSI node service account.
+	CStorCSINodeSAComponentNameLabelValue string = "cstor-csi-node"
+
+	// CSIComponentGroupLabelValue is the value of the component-group label
+	// of CSI components.
+	CSIComponentGroupLabelValue string = "csi"
+	// OpenEBSCStorCSIComponentGroupLabelValue is the value of the component-group label
+	// of CSI components.
+	OpenEBSCStorCSIComponentGroupLabelValue string = "cstor-csi"
+	// OpenEBSRoleComponentNameLabelValue is the value of the component-name label
+	// of OpenEBS cluster role.
+	OpenEBSRoleComponentNameLabelValue string = "openebs-maya-operator"
+
+	// OpenEBSRoleBindingComponentNameLabelValue is the value of the component-name label
+	// of OpenEBS cluster role.
+	OpenEBSRoleBindingComponentNameLabelValue string = "openebs-maya-operator"
+
+	// OpenEBSMayaAPIServerComponentGroupLabelValue is the value of the component-group label
+	// of OpenEBS apiservers.
+	OpenEBSMayaAPIServerComponentGroupLabelValue string = "maya-apiserver"
+	// OpenEBSProvisionerComponentGroupLabelValue is the value of the component-group label
+	// of OpenEBS provisioner.
+	OpenEBSProvisionerComponentGroupLabelValue string = "openebs-provisioner"
+	// OpenEBSOperatorComponentSubGroupLabelValue is the value of the component-subgroup label
+	// of OpenEBS operators.
+	OpenEBSOperatorComponentSubGroupLabelValue string = "operator"
+	// OpenEBSDaemonComponentSubGroupLabelValue is the value of the component-subgroup label
+	// of OpenEBS daemons.
+	OpenEBSDaemonComponentSubGroupLabelValue string = "daemon"
+	// OpenEBSAdmissionServerComponentGroupLabelValue is the value of the component-group label
+	// of OpenEBS admission server.
+	OpenEBSAdmissionServerComponentGroupLabelValue string = "admission-server"
+	// OpenEBSNDMComponentGroupLabelValue is the value of the component-group label
+	// of NDM components.
+	OpenEBSNDMComponentGroupLabelValue string = "ndm"
+	// CSPCComponentGroupLabelValue is the value of the component-group label
+	// of CSPC components.
+	CSPCComponentGroupLabelValue string = "cspc"
+	// CVCComponentGroupLabelValue is the value of the component-group label
+	// of CVC components.
+	CVCComponentGroupLabelValue string = "cvc"
 )

@@ -50,6 +50,17 @@ func (p *Planner) setLocalProvisionerDefaultsIfNotSet() error {
 // updateLocalProvisioner updates the localProvisioner structure as per the provided
 // values otherwise default values.
 func (p *Planner) updateLocalProvisioner(deploy *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := deploy.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for openebs-ndm-operator deploy
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-localpv-provisioner
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.LocalProvisionerNameKey
+	// set the desired labels
+	deploy.SetLabels(desiredLabels)
+
 	// update the daemonset containers
 	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
 	if err != nil {
