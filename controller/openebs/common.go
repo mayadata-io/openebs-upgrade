@@ -56,7 +56,13 @@ func (p *Planner) setDefaultStoragePathIfNotSet() error {
 // or not, if not then it adds one.
 func (p *Planner) setDefaultImagePrefixIfNotSet() error {
 	if p.ObservedOpenEBS.Spec.ImagePrefix == "" {
-		p.ObservedOpenEBS.Spec.ImagePrefix = "quay.io/openebs/"
+		// Default docker registry for OpenEBS enterprise installation will
+		// be "mayadataio/" while for community edition will be "quay.io/openebs/".
+		if strings.HasSuffix(p.ObservedOpenEBS.Spec.Version, "ee") {
+			p.ObservedOpenEBS.Spec.ImagePrefix = "mayadataio/"
+		} else {
+			p.ObservedOpenEBS.Spec.ImagePrefix = "quay.io/openebs/"
+		}
 	} else if !strings.HasSuffix(p.ObservedOpenEBS.Spec.ImagePrefix, "/") {
 		p.ObservedOpenEBS.Spec.ImagePrefix = p.ObservedOpenEBS.Spec.ImagePrefix + "/"
 	}
