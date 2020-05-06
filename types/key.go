@@ -167,6 +167,8 @@ const (
 	OpenEBSVersion180 string = "1.8.0"
 	// OpenEBSVersion190 is the OpenEBS version 1.9.0
 	OpenEBSVersion190 string = "1.9.0"
+	// OpenEBSVersion190EE is the OpenEBS version 1.9.0-ee
+	OpenEBSVersion190EE string = "1.9.0-ee"
 
 	// OSImageUbuntu1804 is the OS Image value of a Node.
 	OSImageUbuntu1804 string = "Ubuntu 18.04"
@@ -180,7 +182,7 @@ const (
 
 	// CSISupportedVersion is the k8s version from where csi is supported.
 	CSISupportedVersion string = "v1.14.0"
-  
+
 	// OpenEBSMayaOperatorSANameKey is the name of OpenEBS service account.
 	OpenEBSMayaOperatorSANameKey string = "openebs-maya-operator"
 	// OpenEBSMayaOperatorRoleNameKey is the name of OpenEBS cluster role.
