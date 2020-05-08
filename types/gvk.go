@@ -43,4 +43,7 @@ const (
 	// KindOpenEBS refers to custom resource with
 	// kind OpenEBS
 	KindOpenEBS Kind = "OpenEBS"
+	// KindAdoptOpenEBS refers to custom resource with
+	// kind AdoptOpenEBS
+	KindAdoptOpenEBS Kind = "AdoptOpenEBS"
 )
