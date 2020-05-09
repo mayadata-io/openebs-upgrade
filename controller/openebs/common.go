@@ -104,8 +104,6 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-1.8.0.yaml"
 	case types.OpenEBSVersion190:
 		yamlFile = "/templates/openebs-operator-1.9.0.yaml"
-	case types.OpenEBSVersion190EE:
-		yamlFile = "/templates/openebs-operator-1.9.0-ee.yaml"
 	default:
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
