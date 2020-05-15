@@ -29,6 +29,7 @@ const (
 
 // updateMayaAPIServer updates the MayaAPIServer manifest as per the reconcile.ObservedOpenEBS values.
 func (p *Planner) updateMayaAPIServer(deploy *unstructured.Unstructured) error {
+	deploy.SetName(p.ObservedOpenEBS.Spec.APIServer.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := deploy.GetLabels()
 	if desiredLabels == nil {
@@ -128,6 +129,12 @@ func (p *Planner) updateMayaAPIServer(deploy *unstructured.Unstructured) error {
 		// In order to update envs of other containers, just write an updateEnv
 		// function for specific containers.
 		if containerName == "maya-apiserver" {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.APIServer.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateMayaAPIServerEnv)
 			if err != nil {
 				return err
@@ -158,9 +165,19 @@ func (p *Planner) setAPIServerDefaultsIfNotSet() error {
 	if p.ObservedOpenEBS.Spec.APIServer == nil {
 		p.ObservedOpenEBS.Spec.APIServer = &types.APIServer{}
 	}
+	if p.ObservedOpenEBS.Spec.APIServer.Service == nil {
+		p.ObservedOpenEBS.Spec.APIServer.Service = &types.APIServerService{}
+	}
 	if p.ObservedOpenEBS.Spec.APIServer.Enabled == nil {
 		p.ObservedOpenEBS.Spec.APIServer.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.APIServer.Enabled = true
+	}
+	// set the name with which apiserver and apiserver service will be deployed
+	if len(p.ObservedOpenEBS.Spec.APIServer.Name) == 0 {
+		p.ObservedOpenEBS.Spec.APIServer.Name = types.MayaAPIServerNameKey
+	}
+	if len(p.ObservedOpenEBS.Spec.APIServer.Service.Name) == 0 {
+		p.ObservedOpenEBS.Spec.APIServer.Service.Name = types.MayaAPIServerServiceNameKey
 	}
 	if p.ObservedOpenEBS.Spec.APIServer.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.APIServer.ImageTag = p.ObservedOpenEBS.Spec.Version +
@@ -188,6 +205,7 @@ func (p *Planner) setAPIServerDefaultsIfNotSet() error {
 // updateMayaAPIServerService updates the maya-apiserver-service manifest as per the
 // reconcile.ObservedOpenEBS values.
 func (p *Planner) updateMayaAPIServerService(svc *unstructured.Unstructured) error {
+	svc.SetName(p.ObservedOpenEBS.Spec.APIServer.Service.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := svc.GetLabels()
 	if desiredLabels == nil {

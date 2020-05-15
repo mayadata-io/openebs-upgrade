@@ -93,6 +93,7 @@ type Components struct {
 	AdmissionServer  *AdmissionServer  `json:"admissionServer"`
 	NDMDaemon        *NDMDaemon        `json:"ndmDaemon"`
 	NDMOperator      *NDMOperator      `json:"ndmOperator"`
+	NDMConfigMap     *NDMConfigMap     `json:"ndmConfigMap"`
 	JivaConfig       *JivaConfig       `json:"jivaConfig"`
 	CstorConfig      *CstorConfig      `json:"cstorConfig"`
 	Helper           *Helper           `json:"helper"`
@@ -138,6 +139,7 @@ type Analytics struct {
 // replicas, nodeselector, etc.
 type Component struct {
 	Enabled      *bool                  `json:"enabled"`
+	Name         string                 `json:"name"`
 	Replicas     *int32                 `json:"replicas"`
 	Resources    map[string]interface{} `json:"resources"`
 	NodeSelector map[string]string      `json:"nodeSelector"`
@@ -156,7 +158,13 @@ type Component struct {
 type APIServer struct {
 	Component       `json:",inline"`
 	Container       `json:",inline"`
-	CstorSparsePool *CstorSparsePool `json:"cstorSparsePool"`
+	Service         *APIServerService `json:"service"`
+	CstorSparsePool *CstorSparsePool  `json:"cstorSparsePool"`
+}
+
+// APIServerService stores the maya-apiserver service details
+type APIServerService struct {
+	Name string `json:"name"`
 }
 
 // CstorSparsePool stores the configuration for sparse pools i.e. whether sparse
@@ -225,6 +233,11 @@ type NDMDaemon struct {
 	Sparse    *Sparse     `json:"sparse"`
 	Filters   *NDMFilters `json:"filters"`
 	Probes    *NDMProbes  `json:"probes"`
+}
+
+// NDMConfigMap stores the configuration for ndm configmap.
+type NDMConfigMap struct {
+	Name string `json:"name"`
 }
 
 // Sparse stores the configuration for sparse files.

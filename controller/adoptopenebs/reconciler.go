@@ -109,6 +109,7 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 	}
 
 	var observedAdoptOpenEBS *unstructured.Unstructured
+	var observedOpenEBS *unstructured.Unstructured
 	var observedAdoptOpenEBSComponents []*unstructured.Unstructured
 	for _, attachment := range request.Attachments.List() {
 		// this watch resource must be present in the list of attachments
@@ -118,6 +119,11 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 			observedAdoptOpenEBS = attachment
 			// add this to the response later after completion of its
 			// reconcile logic
+			continue
+		}
+		if attachment.GetKind() == string(types.KindOpenEBS) {
+			// this is the required OpenEBS
+			observedOpenEBS = attachment
 			continue
 		}
 		// If the attachments are not of Kind: AdoptOpenEBS then it will be
@@ -135,12 +141,13 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 	}
 
 	// reconciler is the one that will perform reconciliation of
-	// OpenEBS resource
+	// AdoptOpenEBS resource
 	reconciler, err :=
 		NewReconciler(
 			ReconcilerConfig{
 				ObservedAdoptOpenEBS:           observedAdoptOpenEBS,
-				observedAdoptOpenEBSComponents: observedAdoptOpenEBSComponents,
+				ObservedOpenEBS:                observedOpenEBS,
+				ObservedAdoptOpenEBSComponents: observedAdoptOpenEBSComponents,
 			})
 	if err != nil {
 		errHandler.handle(err)
@@ -151,10 +158,17 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		errHandler.handle(err)
 		return nil
 	}
-	// add all the desired AdoptOpenEBS components as attachments in the response
-	if resp.DesiredOpenEBSComponets != nil {
-		for _, desiredOpenEBSComponent := range resp.DesiredOpenEBSComponets {
-			response.Attachments = append(response.Attachments, desiredOpenEBSComponent)
+	// add all the desired adoptOpenEBS, OpenEBS and adoptOpenEBS components as attachments
+	// in the response.
+	if resp.DesiredAdoptOpenEBS != nil {
+		response.Attachments = append(response.Attachments, resp.DesiredAdoptOpenEBS)
+	}
+	if resp.DesiredOpenEBS != nil {
+		response.Attachments = append(response.Attachments, resp.DesiredOpenEBS)
+	}
+	if resp.DesiredAdoptOpenEBSComponents != nil {
+		for _, desiredAdoptOpenEBSComponent := range resp.DesiredAdoptOpenEBSComponents {
+			response.Attachments = append(response.Attachments, desiredAdoptOpenEBSComponent)
 		}
 	}
 
@@ -176,49 +190,102 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 
 // Reconciler enables reconciliation of AdoptOpenEBS instance
 type Reconciler struct {
-	ObservedAdoptOpenEBS           *types.OpenEBS
-	observedAdoptOpenEBSComponents []*unstructured.Unstructured
+	ObservedAdoptOpenEBS           *types.AdoptOpenEBS
+	ObservedOpenEBS                *types.OpenEBS
+	ObservedAdoptOpenEBSComponents []*unstructured.Unstructured
 }
 
 // ReconcilerConfig is a helper structure used to create a
 // new instance of Reconciler
 type ReconcilerConfig struct {
 	ObservedAdoptOpenEBS           *unstructured.Unstructured
-	observedAdoptOpenEBSComponents []*unstructured.Unstructured
+	ObservedOpenEBS                *unstructured.Unstructured
+	ObservedAdoptOpenEBSComponents []*unstructured.Unstructured
 }
 
 // ReconcileResponse is a helper struct used to form the response
 // of a successful reconciliation
 type ReconcileResponse struct {
-	DesiredAdoptOpenEBS     *unstructured.Unstructured
-	DesiredOpenEBSComponets []*unstructured.Unstructured
+	DesiredAdoptOpenEBS           *unstructured.Unstructured
+	DesiredOpenEBS                *unstructured.Unstructured
+	DesiredAdoptOpenEBSComponents []*unstructured.Unstructured
 }
 
 // Planner ensures if any of the instances need
 // to be created, or updated.
 type Planner struct {
-	ObservedOpenEBS           *types.OpenEBS
-	observedOpenEBSComponents []*unstructured.Unstructured
+	ObservedAdoptOpenEBS           *types.AdoptOpenEBS
+	ObservedOpenEBS                *types.OpenEBS
+	ObservedAdoptOpenEBSComponents []*unstructured.Unstructured
 
-	ComponentManifests map[string]*unstructured.Unstructured
+	DesiredAdoptOpenEBS           *unstructured.Unstructured
+	DesiredOpenEBS                *unstructured.Unstructured
+	DesiredAdoptOpenEBSComponents []*unstructured.Unstructured
+
+	OpenEBSVersion             string
+	DefaultStoragePath         string
+	ImagePrefix                string
+	CreateDefaultStorageConfig bool
+	ImagePullPolicy            string
+	JivaCtrlImageTag           string
+	JivaReplicaImageTag        string
+	JivaReplicaCount           int64
+	CStorTargetImageTag        string
+	CStorPoolImageTag          string
+	CStorPoolMgmtImageTag      string
+	CStorVolumeMgmtImageTag    string
+	CStorVolumeManagerImageTag string
+	CSPIMgmtImageTag           string
+	VolumeMonitorImageTag      string
+	PoolExporterImageTag       string
+	HelperImageTag             string
+	EnableAnalytics            bool
+
+	Resources              *unstructured.Unstructured
+	APIServerConfig        *unstructured.Unstructured
+	ProvisionerConfig      *unstructured.Unstructured
+	LocalProvisionerConfig *unstructured.Unstructured
+	AdmissionServerConfig  *unstructured.Unstructured
+	SnapshotOperatorConfig *unstructured.Unstructured
+	NDMDaemonConfig        *unstructured.Unstructured
+	NDMOperatorConfig      *unstructured.Unstructured
+	NDMConfigMapConfig     *unstructured.Unstructured
+	JivaConfig             *unstructured.Unstructured
+	CstorConfig            *unstructured.Unstructured
+	HelperConfig           *unstructured.Unstructured
+	PoliciesConfig         *unstructured.Unstructured
+	AnalyticsConfig        *unstructured.Unstructured
 }
 
 // NewReconciler returns a new instance of Reconciler
 func NewReconciler(config ReconcilerConfig) (*Reconciler, error) {
-	// transform OpenEBS from unstructured to typed
-	var openebsTyped types.OpenEBS
-	openebsRaw, err := config.ObservedOpenEBS.MarshalJSON()
+	// transform adoptOpenEBS from unstructured to typed
+	var adoptOpenEBSTyped types.AdoptOpenEBS
+	adoptOpenEBSRaw, err := config.ObservedAdoptOpenEBS.MarshalJSON()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Can't marshal OpenEBS")
+		return nil, errors.Wrapf(err, "Can't marshal adoptOpenEBS")
 	}
-	err = json.Unmarshal(openebsRaw, &openebsTyped)
+	err = json.Unmarshal(adoptOpenEBSRaw, &adoptOpenEBSTyped)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Can't unmarshal OpenEBS")
+		return nil, errors.Wrapf(err, "Can't unmarshal adoptOpenEBS")
+	}
+	// transform OpenEBS if present from unstructured to typed
+	var openebsTyped types.OpenEBS
+	if config.ObservedOpenEBS != nil {
+		openebsRaw, err := config.ObservedOpenEBS.MarshalJSON()
+		if err != nil {
+			return nil, errors.Wrapf(err, "Can't marshal OpenEBS")
+		}
+		err = json.Unmarshal(openebsRaw, &openebsTyped)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Can't unmarshal OpenEBS")
+		}
 	}
 	// use above constructed object to build Reconciler instance
 	return &Reconciler{
-		ObservedOpenEBS:           &openebsTyped,
-		observedOpenEBSComponents: config.observedOpenEBSComponents,
+		ObservedAdoptOpenEBS:           &adoptOpenEBSTyped,
+		ObservedOpenEBS:                &openebsTyped,
+		ObservedAdoptOpenEBSComponents: config.ObservedAdoptOpenEBSComponents,
 	}, nil
 }
 
@@ -228,8 +295,9 @@ func NewReconciler(config ReconcilerConfig) (*Reconciler, error) {
 //	Due care has been taken to let this logic be idempotent
 func (r *Reconciler) Reconcile() (ReconcileResponse, error) {
 	planner := Planner{
-		ObservedOpenEBS:           r.ObservedOpenEBS,
-		observedOpenEBSComponents: r.observedOpenEBSComponents,
+		ObservedAdoptOpenEBS:           r.ObservedAdoptOpenEBS,
+		ObservedOpenEBS:                r.ObservedOpenEBS,
+		ObservedAdoptOpenEBSComponents: r.ObservedAdoptOpenEBSComponents,
 	}
 	return planner.Plan()
 }
@@ -240,43 +308,30 @@ func (p *Planner) Plan() (ReconcileResponse, error) {
 	if err != nil {
 		return ReconcileResponse{}, err
 	}
-	return p.getDesiredOpenEBSComponents(), nil
+	return p.plan(), nil
 }
 
-// getDesiredOpenEBSComponents gets all the desired OpenEBS components which
-// needs to be created or updated.
-func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
+// plan forms the desired OpenEBS, AdoptOpenEBS and the AdoptOpenEBS components
+// with the help of discovered OpenEBS components.
+func (p *Planner) plan() ReconcileResponse {
 	response := ReconcileResponse{}
-	for key, value := range p.ComponentManifests {
-		if key == "_" {
-			continue
-		}
-		response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets, value)
+	response.DesiredAdoptOpenEBS = p.DesiredAdoptOpenEBS
+	response.DesiredOpenEBS = p.DesiredOpenEBS
+	for _, value := range p.DesiredAdoptOpenEBSComponents {
+		response.DesiredAdoptOpenEBSComponents = append(
+			response.DesiredAdoptOpenEBSComponents, value)
 	}
 	return response
 }
 
 func (p *Planner) init() error {
 	var initFuncs = []func() error{
-		p.getManifests,
-		p.setDefaultImagePullPolicyIfNotSet,
-		p.setDefaultStoragePathIfNotSet,
-		p.setDefaultImagePrefixIfNotSet,
-		p.setDefaultStorageConfigIfNotSet,
-		p.setAPIServerDefaultsIfNotSet,
-		p.setProvisionerDefaultsIfNotSet,
-		p.setLocalProvisionerDefaultsIfNotSet,
-		p.setSnapshotOperatorDefaultsIfNotSet,
-		p.setAdmissionServerDefaultsIfNotSet,
-		p.setNDMDefaultsIfNotSet,
-		p.setNDMOperatorDefaultsIfNotSet,
-		p.setJIVADefaultsIfNotSet,
-		p.setCStorDefaultsIfNotSet,
-		p.setHelperDefaultsIfNotSet,
-		p.setPoliciesDefaultsIfNotSet,
-		p.setAnalyticsDefaultsIfNotSet,
-		p.removeDisabledManifests,
-		p.getDesiredManifests,
+		p.IdentifyOpenEBSVersion,
+		p.getDesiredAdoptOpenEBS,
+		// Ordering of getDesiredAdoptOpenEBSComponents
+		// and getDesiredOpenEBS must be maintained.
+		p.getDesiredAdoptOpenEBSComponents,
+		p.getDesiredOpenEBS,
 	}
 	for _, fn := range initFuncs {
 		err := fn()
@@ -284,5 +339,100 @@ func (p *Planner) init() error {
 			return err
 		}
 	}
+	return nil
+}
+
+// getDesiredAdoptOpenEBS returns the desired adoptOpenEBS structure.
+func (p *Planner) getDesiredAdoptOpenEBS() error {
+	desiredAdoptOpenEBS := &unstructured.Unstructured{
+		Object: make(map[string]interface{}, 0),
+	}
+	rawObservedAdoptOpenEBS, err := json.Marshal(p.ObservedAdoptOpenEBS)
+	if err != nil {
+		return errors.Errorf("Error marshalling observed adoptOpenEBS: %+v, Error: %+v",
+			p.ObservedAdoptOpenEBS, err)
+	}
+	if err = json.Unmarshal(rawObservedAdoptOpenEBS, &desiredAdoptOpenEBS.Object); err != nil {
+		return errors.Errorf(
+			"Error unmarshalling observed adoptOpenEBS into unstructured, Error: %+v",
+			err)
+	}
+	p.DesiredAdoptOpenEBS = desiredAdoptOpenEBS
+	return nil
+}
+
+// getDesiredAdoptOpenEBSComponents returns the desired adoptOpenEBS components.
+func (p *Planner) getDesiredAdoptOpenEBSComponents() error {
+	var err error
+	desiredAdoptOpenEBSComponents := p.DesiredAdoptOpenEBSComponents
+	for _, observedAdoptOpenEBSComponent := range p.ObservedAdoptOpenEBSComponents {
+		openEBSIdentifier := OpenEBSIdentifier{
+			Object: observedAdoptOpenEBSComponent,
+		}
+		// Identify the type of this OpenEBS component and form the config based on that.
+		componentType, err := openEBSIdentifier.IdentifyOpenEBSComponentType()
+		if err != nil {
+			return errors.Errorf(
+				"Error identifying OpenEBS component type for component: %+v, Error: %+v",
+				observedAdoptOpenEBSComponent, err)
+		}
+		// If there is no error and still the type is not recognised then continue without
+		// forming any config. This could be some unknonwn/yet-to-be-identified OpenEBS resource.
+		if componentType == "" {
+			continue
+		}
+		// Form and set the OpenEBS CR config as per the components observed configuration.
+		err = p.formComponentOpenEBSConfig(observedAdoptOpenEBSComponent, componentType)
+		if err != nil {
+			return err
+		}
+
+		desiredAdoptOpenEBSComponents = append(desiredAdoptOpenEBSComponents, observedAdoptOpenEBSComponent)
+	}
+	// Now, form some of the configs which are common to all the components or can be
+	// used across components.
+	err = p.formCommonOpenEBSConfig()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// getDesiredOpenEBS returns the desired OpenEBS structure as per the discovered OpenEBS
+// components and their configuration.
+func (p *Planner) getDesiredOpenEBS() error {
+	openebs := &unstructured.Unstructured{}
+	openebs.SetUnstructuredContent(map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name":      "my-openebs-123",
+			"namespace": p.ObservedAdoptOpenEBS.Namespace,
+		},
+		"spec": map[string]interface{}{
+			"version":                    p.OpenEBSVersion,
+			"defaultStoragePath":         p.DefaultStoragePath,
+			"createDefaultStorageConfig": p.CreateDefaultStorageConfig,
+			"imagePrefix":                p.ImagePrefix,
+			"imagePullPolicy":            p.ImagePullPolicy,
+			"resources":                  p.Resources,
+			"apiServer":                  p.APIServerConfig,
+			"provisioner":                p.ProvisionerConfig,
+			"localProvisioner":           p.LocalProvisionerConfig,
+			"snapshotOperator":           p.SnapshotOperatorConfig,
+			"ndmDaemon":                  p.NDMDaemonConfig,
+			"ndmOperator":                p.NDMOperatorConfig,
+			"ndmConfigMap":               p.NDMConfigMapConfig,
+			"jivaConfig":                 p.JivaConfig,
+			"cstorConfig":                p.CstorConfig,
+			"admissionServer":            p.AdmissionServerConfig,
+			"helper":                     p.HelperConfig,
+			"policies":                   p.PoliciesConfig,
+			"analytics":                  p.AnalyticsConfig,
+		},
+	})
+	openebs.SetKind(string(types.KindOpenEBS))
+	openebs.SetAPIVersion(string(types.APIVersionDAOMayaDataV1Alpha1))
+
+	// set the desired OpenEBS structure
+	p.DesiredOpenEBS = openebs
 	return nil
 }

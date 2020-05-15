@@ -325,7 +325,7 @@ spec:
       # this field should only contain the image tag, for example, 1.9.0
       imageTag:
     admissionServer:
-      # example image for volumeManager -> "quay.io/openebs/cstor-webhook-amd64:1.10.0"
+      # example image for admissionServer -> "quay.io/openebs/cstor-webhook-amd64:1.10.0"
       # this field should only contain the image tag, for example, 1.10.0
       imageTag:
     cspcOperator:

@@ -15,6 +15,7 @@ package main
 
 import (
 	"flag"
+	"mayadata.io/openebs-upgrade/controller/adoptopenebs"
 	"os"
 
 	"k8s.io/client-go/kubernetes"
@@ -62,6 +63,7 @@ func main() {
 	k8s.Clientset = clientset
 
 	generic.AddToInlineRegistry("sync/openebs", openebs.Sync)
+	generic.AddToInlineRegistry("sync/adoptopenebs", adoptopenebs.Sync)
 
 	start.Start()
 }
