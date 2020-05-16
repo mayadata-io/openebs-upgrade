@@ -29,11 +29,14 @@ const (
 	// EnvOpenEBSNamespaceKey is the env key for openebs namespace
 	EnvOpenEBSNamespaceKey string = "OPENEBS_NAMESPACE"
 	// DefaultCSPCOperatorReplicaCount is the default replica count for
-	// cspc-operatot.
+	// cspc-operator.
 	DefaultCSPCOperatorReplicaCount int32 = 1
 	// DefaultCVCOperatorReplicaCount is the default replica count for
-	// cvc-operatot.
+	// cvc-operator.
 	DefaultCVCOperatorReplicaCount int32 = 1
+	// DefaultCStorAdmissionServerReplicaCount is the default replica count for
+	// AdmissionServer.
+	DefaultCStorAdmissionServerReplicaCount int32 = 1
 )
 
 // Set the default values for Cstor if not already given.
@@ -68,13 +71,26 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	}
 	p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-volume-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag
-
+	// form the cstor-volume-manager image
+	volumeManagerImageName := "cstor-volume-manager-amd64:"
+	if p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag = p.ObservedOpenEBS.Spec.Version
+	}
+	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
+		volumeManagerImageName = "cstor-volume-mgmt:"
+	}
+	p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		volumeManagerImageName + p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag
 	// form the cspi-mgmt image(CSPI_MGMT)
+	cspiImageName := "cstor-pool-manager-amd64:"
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
+	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
+		cspiImageName = "cspi-mgmt:"
+	}
 	p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-		"cspi-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag
+		cspiImageName + p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag
 
 	// set the CSPC operator defaults
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator == nil {
@@ -84,12 +100,17 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled = true
 	}
+	// form the CSPC image
+	cspcImage := "cspc-operator-amd64:"
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
+	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
+		cspcImage = "cspc-operator:"
+	}
 	// form the container image as per the image prefix and image tag.
 	p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-		"cspc-operator:" + p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag
+		cspcImage + p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Replicas == nil {
 		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Replicas = new(int32)
 		*p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Replicas = DefaultCSPCOperatorReplicaCount
@@ -102,15 +123,31 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled = true
 	}
+	// form the CVC image
+	cvcImage := "cvc-operator-amd64:"
 	if p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag = p.ObservedOpenEBS.Spec.Version
 	}
+	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
+		cvcImage = "cvc-operator:"
+	}
 	// form the container image as per the image prefix and image tag.
 	p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-		"cvc-operator:" + p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag
+		cvcImage + p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag
 	if p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas == nil {
 		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas = new(int32)
 		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas = DefaultCVCOperatorReplicaCount
+	}
+	// form the CStor admission server image
+	if p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag == "" {
+		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag = p.ObservedOpenEBS.Spec.Version
+	}
+	// form the container image as per the image prefix and image tag.
+	p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+		"cstor-webhook-amd64:" + p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag
+	if p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Replicas == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Replicas = new(int32)
+		*p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Replicas = DefaultCStorAdmissionServerReplicaCount
 	}
 
 	p.setCSIDefaultsIfNotSet()
@@ -730,6 +767,22 @@ func (p *Planner) updateCVCOperator(deploy *unstructured.Unstructured) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// updateCStorAdmissionServer updates the CStorAdmissionServer manifest as per the reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCStorAdmissionServer(deploy *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := deploy.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CStor admissionServer deploy
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: cstor-admission-server
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorAdmissionServerComponentNameLabelValue
+	// set the desired labels
+	deploy.SetLabels(desiredLabels)
 
 	return nil
 }

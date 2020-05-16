@@ -300,14 +300,23 @@ type JivaConfig struct {
 // in the k8s cluster.
 // CSI is the configuration for deploying cstor csi operator and driver.
 type CstorConfig struct {
-	Pool         Container     `json:"pool"`
-	PoolMgmt     Container     `json:"poolMgmt"`
-	Target       Container     `json:"target"`
-	VolumeMgmt   Container     `json:"volumeMgmt"`
-	CSPIMgmt     Container     `json:"cspiMgmt"`
-	CSPCOperator *CSPCOperator `json:"cspcOperator"`
-	CVCOperator  *CVCOperator  `json:"cvcOperator"`
-	CSI          CSI           `json:"csi"`
+	Pool            Container             `json:"pool"`
+	PoolMgmt        Container             `json:"poolMgmt"`
+	Target          Container             `json:"target"`
+	VolumeMgmt      Container             `json:"volumeMgmt"`
+	VolumeManager   Container             `json:"volumeManager"`
+	CSPIMgmt        Container             `json:"cspiMgmt"`
+	CSPCOperator    *CSPCOperator         `json:"cspcOperator"`
+	CVCOperator     *CVCOperator          `json:"cvcOperator"`
+	CSI             CSI                   `json:"csi"`
+	AdmissionServer *CStorAdmissionServer `json:"admissionServer"`
+}
+
+// CStorAdmissionServer stores the configuration details of CStor admission server
+// such as if it should be installed or not, image to be used, etc.
+type CStorAdmissionServer struct {
+	Component `json:",inline"`
+	Container `json:",inline"`
 }
 
 // CSPCOperator stores the configuration details of CSPCOperator such as

@@ -1,4 +1,3 @@
-
 # This configuration is for OpenEBS Installation, ControlPlaneUpgrade
 # and unInstallation.
 apiVersion: dao.mayadata.io/v1alpha1
@@ -325,6 +324,10 @@ spec:
       # example image for volumeManager -> "quay.io/openebs/cstor-volume-manager:1.9.0"
       # this field should only contain the image tag, for example, 1.9.0
       imageTag:
+    admissionServer:
+      # example image for volumeManager -> "quay.io/openebs/cstor-webhook-amd64:1.10.0"
+      # this field should only contain the image tag, for example, 1.10.0
+      imageTag:
     cspcOperator:
       enabled:
       # example image for cspc-operator -> "quay.io/openebs/cspc-operator:1.9.0"
@@ -397,6 +400,6 @@ spec:
   options:
 
 status:
-    # Online and Error could be some of the phases
-    phase:
-    reason:
+  # Online and Error could be some of the phases
+  phase:
+  reason:

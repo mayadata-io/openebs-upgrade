@@ -60,6 +60,21 @@ func (p *Planner) updateMayaAPIServer(deploy *unstructured.Unstructured) error {
 		} else if envName == "OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG" {
 			err = unstructured.SetNestedField(env.Object, strconv.FormatBool(
 				*p.ObservedOpenEBS.Spec.CreateDefaultStorageConfig), "spec", "value")
+		} else if envName == "OPENEBS_IO_BASE_DIR" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.DefaultStoragePath, "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_TARGET_DIR" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.DefaultStoragePath+"/sparse", "spec", "value")
+		} else if envName == "OPENEBS_IO_CSTOR_POOL_SPARSE_DIR" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.DefaultStoragePath+"/sparse", "spec", "value")
+		} else if envName == "OPENEBS_IO_JIVA_POOL_DIR" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.DefaultStoragePath, "spec", "value")
+		} else if envName == "OPENEBS_IO_LOCALPV_HOSTPATH_DIR" {
+			err = unstructured.SetNestedField(env.Object,
+				p.ObservedOpenEBS.Spec.DefaultStoragePath+"/local", "spec", "value")
 		} else if envName == "OPENEBS_IO_JIVA_CONTROLLER_IMAGE" {
 			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.JivaConfig.Image, "spec", "value")

@@ -36,6 +36,7 @@ var supportedNDMVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion180:   types.NDMVersion048,
 	types.OpenEBSVersion190:   types.NDMVersion049,
 	types.OpenEBSVersion190EE: types.NDMVersion049EE,
+	types.OpenEBSVersion1100:  types.NDMVersion050,
 }
 
 // add/update NDM defaults if not already provided
@@ -367,6 +368,12 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 			if err != nil {
 				return err
 			}
+		} else if volumeName == "basepath" {
+			err = unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.DefaultStoragePath+"/ndm", "spec", "hostPath", "path")
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -417,6 +424,12 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 		if vmName == "sparsepath" {
 			err = unstructured.SetNestedField(vm.Object,
 				p.ObservedOpenEBS.Spec.NDMDaemon.Sparse.Path, "spec", "mountPath")
+			if err != nil {
+				return err
+			}
+		} else if vmName == "basepath" {
+			err = unstructured.SetNestedField(vm.Object,
+				p.ObservedOpenEBS.Spec.DefaultStoragePath+"/ndm", "spec", "mountPath")
 			if err != nil {
 				return err
 			}

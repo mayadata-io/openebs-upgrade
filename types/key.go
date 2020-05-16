@@ -46,8 +46,18 @@ const (
 	VolumeSnapshotClassCRDNameKey string = "volumesnapshotclasses.snapshot.storage.k8s.io"
 	// VolumeSnapshotContentCRDNameKey is the name of the VolumeSnapshotContent CRD.
 	VolumeSnapshotContentCRDNameKey string = "volumesnapshotcontents.snapshot.storage.k8s.io"
+	// CStorVolumeAttachmentsCRDNameKey is the name of the CStorVolumeAttachments CRD.
+	CStorVolumeAttachmentsCRDNameKey string = "cstorvolumeattachments.cstor.openebs.io"
 	// VolumeSnapshotCRDNameKey is the name of the VolumeSnapshot CRD.
 	VolumeSnapshotCRDNameKey string = "volumesnapshots.snapshot.storage.k8s.io"
+	// CStorVolumesCRDV1NameKey is the name of CStorVolumes V1 CRD
+	CStorVolumesCRDV1NameKey string = "cstorvolumes.cstor.openebs.io"
+	// CStorVolumeConfigsCRDV1NameKey is the name of CStorVolumeConfigs V1 CRD
+	CStorVolumeConfigsCRDV1NameKey string = "cstorvolumeconfigs.cstor.openebs.io"
+	// CStorVolumePoliciesCRDV1NameKey is the name of CStorVolumePolicies V1 CRD
+	CStorVolumePoliciesCRDV1NameKey string = "cstorvolumepolicies.cstor.openebs.io"
+	// CStorVolumeReplicasCRDV1NameKey is the name of CStorVolumeReplicas V1 CRD
+	CStorVolumeReplicasCRDV1NameKey string = "cstorvolumereplicas.cstor.openebs.io"
 	// CStorCSISnapshottterBindingNameKey is the name of the cstor csi snapshotter cluster role binding.
 	CStorCSISnapshottterBindingNameKey string = "openebs-cstor-csi-snapshotter-binding"
 	// CStorCSISnapshottterRoleNameKey is the name of the cstor csi snapshotter cluster role.
@@ -127,6 +137,7 @@ const (
 	VolumeSnapshotClassCRDManifestKey          string = VolumeSnapshotClassCRDNameKey + "_" + KindCustomResourceDefinition
 	VolumeSnapshotContentCRDManifestKey        string = VolumeSnapshotContentCRDNameKey + "_" + KindCustomResourceDefinition
 	VolumeSnapshotCRDManifestKey               string = VolumeSnapshotCRDNameKey + "_" + KindCustomResourceDefinition
+	CStorVolumeAttachmentCRDManifestKey        string = CStorVolumeAttachmentsCRDNameKey + "_" + KindCustomResourceDefinition
 	CStorCSISnapshottterBindingManifestKey     string = CStorCSISnapshottterBindingNameKey + "_" + KindClusterRoleBinding
 	CStorCSISnapshottterRoleManifestKey        string = CStorCSISnapshottterRoleNameKey + "_" + KindClusterRole
 	CStorCSIControllerSAManifestKey            string = CStorCSIControllerSANameKey + "_" + KindServiceAccount
@@ -147,15 +158,27 @@ const (
 	CVCOperatorNameKey = "cvc-operator"
 	// CSPCOperatorNameKey is the name of cspc-operator deployment.
 	CSPCOperatorNameKey = "cspc-operator"
-	// CSPCCRDNameKey is the name of CSPC CRD
-	CSPCCRDNameKey = "cstorpoolclusters.cstor.openebs.io"
+	// CSPCCRDV1NameKey is the name of CSPC V1 CRD
+	CSPCCRDV1NameKey = "cstorpoolclusters.cstor.openebs.io"
+	// CSPCCRDV1alpha1NameKey is the name of v1alpha1 CSPC CRD
+	CSPCCRDV1alpha1NameKey = "cstorpoolclusters.openebs.io"
+	// CSPICRDV1NameKey is the name of v1 CSPI CRD
+	CSPICRDV1NameKey = "cstorpoolinstances.cstor.openebs.io"
+	// CStorAdmissionServerNameKey is the name of CStor admission server
+	CStorAdmissionServerNameKey = "openebs-cstor-admission-server"
 
+	// CStorAdmissionServerManifestKey is used to get the manifest of CStor admission server
+	CStorAdmissionServerManifestKey string = CStorAdmissionServerNameKey + "_" + KindDeployment
 	// CVCOperatorManifestKey is used to get the manifest of CVC operator
 	CVCOperatorManifestKey string = CVCOperatorNameKey + "_" + KindDeployment
 	// CSPCOperatorManifestKey is used to get the manifest of CSPC operator
 	CSPCOperatorManifestKey string = CSPCOperatorNameKey + "_" + KindDeployment
-	// CSPCCRDManifestKey is used to get the manifest of CSPC CRD
-	CSPCCRDManifestKey string = CSPCCRDNameKey + "_" + KindCustomResourceDefinition
+	// CSPCCRDV1ManifestKey is used to get the manifest of CSPC CRD
+	CSPCCRDV1ManifestKey string = CSPCCRDV1NameKey + "_" + KindCustomResourceDefinition
+	// CSPCCRDV1alpha1ManifestKey is used to get the manifest of CSPC CRD v1alpha1
+	CSPCCRDV1alpha1ManifestKey string = CSPCCRDV1alpha1NameKey + "_" + KindCustomResourceDefinition
+	// CSPICRDV1ManifestKey is used to get the manifest of CSPI CRD v1
+	CSPICRDV1ManifestKey string = CSPICRDV1NameKey + "_" + KindCustomResourceDefinition
 
 	// OpenEBSVersion150 is the OpenEBS version 1.5.0
 	OpenEBSVersion150 string = "1.5.0"
@@ -169,6 +192,8 @@ const (
 	OpenEBSVersion190 string = "1.9.0"
 	// OpenEBSVersion190EE is the OpenEBS version 1.9.0-ee
 	OpenEBSVersion190EE string = "1.9.0-ee"
+	// OpenEBSVersion1100 is the OpenEBS version 1.10.0
+	OpenEBSVersion1100 string = "1.10.0"
 
 	// OSImageUbuntu1804 is the OS Image value of a Node.
 	OSImageUbuntu1804 string = "Ubuntu 18.04"
@@ -261,7 +286,13 @@ const (
 	// CSPCComponentGroupLabelValue is the value of the component-group label
 	// of CSPC components.
 	CSPCComponentGroupLabelValue string = "cspc"
+	// CSPIComponentGroupLabelValue is the value of the component-group label
+	// of CSPI components.
+	CSPIComponentGroupLabelValue string = "cspi"
 	// CVCComponentGroupLabelValue is the value of the component-group label
 	// of CVC components.
 	CVCComponentGroupLabelValue string = "cvc"
+	// CStorAdmissionServerComponentNameLabelValue is the value of the component-name label
+	// of CStor admission server component.
+	CStorAdmissionServerComponentNameLabelValue string = "cstor-admission-server"
 )
