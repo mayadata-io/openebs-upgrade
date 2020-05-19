@@ -104,6 +104,8 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-1.8.0.yaml"
 	case types.OpenEBSVersion190:
 		yamlFile = "/templates/openebs-operator-1.9.0.yaml"
+	case types.OpenEBSVersion1100:
+		yamlFile = "/templates/openebs-operator-1.10.0.yaml"
 	default:
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
@@ -189,6 +191,7 @@ func (p *Planner) removeDisabledManifests() error {
 		delete(p.ComponentManifests, types.CStorCSINodeSAManifestKey)
 		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
 		delete(p.ComponentManifests, types.CStorCSIDriverManifestKey)
+		delete(p.ComponentManifests, types.CStorVolumeAttachmentCRDManifestKey)
 	}
 
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == false {
@@ -201,10 +204,16 @@ func (p *Planner) removeDisabledManifests() error {
 
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == false {
 		delete(p.ComponentManifests, types.CSPCOperatorManifestKey)
-		delete(p.ComponentManifests, types.CSPCCRDManifestKey)
+		delete(p.ComponentManifests, types.CSPCCRDV1alpha1ManifestKey)
+		delete(p.ComponentManifests, types.CSPCCRDV1ManifestKey)
+		delete(p.ComponentManifests, types.CSPICRDV1ManifestKey)
 	}
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled == false {
 		delete(p.ComponentManifests, types.CVCOperatorManifestKey)
+	}
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == false &&
+		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Enabled == false {
+		delete(p.ComponentManifests, types.CStorAdmissionServerManifestKey)
 	}
 
 	return nil
@@ -357,6 +366,15 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Affinity
 		err = p.updateCVCOperator(deploy)
+
+	case types.CStorAdmissionServerNameKey:
+		replicas = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Replicas
+		image = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Image
+		resources = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Affinity
+		err = p.updateCStorAdmissionServer(deploy)
 	}
 	if err != nil {
 		return deploy, err

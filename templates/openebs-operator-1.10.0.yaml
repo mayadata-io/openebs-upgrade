@@ -11,62 +11,47 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-maya-operator
 rules:
-- apiGroups: ["*"]
-  resources: ["nodes", "nodes/proxy"]
-  verbs: ["*"]
-- apiGroups: ["*"]
-  resources: ["namespaces", "services", "pods", "pods/exec", "deployments", "deployments/finalizers", "replicationcontrollers", "replicasets", "events", "endpoints", "configmaps", "secrets", "jobs", "cronjobs"]
-  verbs: ["*"]
-- apiGroups: ["*"]
-  resources: ["statefulsets", "daemonsets"]
-  verbs: ["*"]
-- apiGroups: ["*"]
-  resources: ["resourcequotas", "limitranges"]
-  verbs: ["list", "watch"]
-- apiGroups: ["*"]
-  resources: ["ingresses", "horizontalpodautoscalers", "verticalpodautoscalers", "certificatesigningrequests"]
-  verbs: ["list", "watch"]
-- apiGroups: ["*"]
-  resources: ["storageclasses", "persistentvolumeclaims", "persistentvolumes"]
-  verbs: ["*"]
-- apiGroups: ["volumesnapshot.external-storage.k8s.io"]
-  resources: ["volumesnapshots", "volumesnapshotdatas"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-- apiGroups: ["apiextensions.k8s.io"]
-  resources: ["customresourcedefinitions"]
-  verbs: [ "get", "list", "create", "update", "delete", "patch"]
-- apiGroups: ["*"]
-  resources: [ "disks", "blockdevices", "blockdeviceclaims"]
-  verbs: ["*" ]
-- apiGroups: ["*"]
-  resources: [ "cstorpoolclusters", "storagepoolclaims", "storagepoolclaims/finalizers", "cstorpoolclusters/finalizers", "storagepools"]
-  verbs: ["*" ]
-- apiGroups: ["*"]
-  resources: [ "castemplates", "runtasks"]
-  verbs: ["*" ]
-- apiGroups: ["*"]
-  resources: [ "cstorpools", "cstorpools/finalizers", "cstorvolumereplicas", "cstorvolumes", "cstorvolumeclaims", "cstorvolumepolicies"]
-  verbs: ["*" ]
-- apiGroups: ["*"]
-  resources: [ "cstorpoolinstances", "cstorpoolinstances/finalizers"]
-  verbs: ["*" ]
-- apiGroups: ["*"]
-  resources: [ "cstorbackups", "cstorrestores", "cstorcompletedbackups"]
-  verbs: ["*" ]
-- apiGroups: ["coordination.k8s.io"]
-  resources: ["leases"]
-  verbs: ["get", "watch", "list", "delete", "update", "create"]
-- apiGroups: ["admissionregistration.k8s.io"]
-  resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
-  verbs: ["get", "create", "list", "delete", "update", "patch"]
-- nonResourceURLs: ["/metrics"]
-  verbs: ["get"]
-- apiGroups: ["*"]
-  resources: ["upgradetasks"]
-  verbs: ["*"]
-- apiGroups: ["*"]
-  resources: ["poddisruptionbudgets"]
-  verbs: ["get", "list", "create", "delete", "watch"]
+  - apiGroups: ["*"]
+    resources: ["nodes", "nodes/proxy"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["namespaces", "services", "pods", "pods/exec", "deployments", "deployments/finalizers", "replicationcontrollers", "replicasets", "events", "endpoints", "configmaps", "secrets", "jobs", "cronjobs"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["statefulsets", "daemonsets"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["resourcequotas", "limitranges"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["*"]
+    resources: ["ingresses", "horizontalpodautoscalers", "verticalpodautoscalers", "certificatesigningrequests"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["*"]
+    resources: ["storageclasses", "persistentvolumeclaims", "persistentvolumes"]
+    verbs: ["*"]
+  - apiGroups: ["volumesnapshot.external-storage.k8s.io"]
+    resources: ["volumesnapshots", "volumesnapshotdatas"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: [ "get", "list", "create", "update", "delete", "patch"]
+  - apiGroups: ["openebs.io"]
+    resources: [ "*"]
+    verbs: ["*" ]
+  - apiGroups: ["cstor.openebs.io"]
+    resources: [ "*"]
+    verbs: ["*" ]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "watch", "list", "delete", "update", "create"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
+    verbs: ["get", "create", "list", "delete", "update", "patch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+  - apiGroups: ["*"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "create", "delete", "watch"]
 ---
 # Bind the Service Account with the Role Privileges.
 # TODO: Check if default account also needs to be there
@@ -75,9 +60,9 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: openebs-maya-operator
 subjects:
-- kind: ServiceAccount
-  name: openebs-maya-operator
-  namespace: openebs
+  - kind: ServiceAccount
+    name: openebs-maya-operator
+    namespace: openebs
 roleRef:
   kind: ClusterRole
   name: openebs-maya-operator
@@ -91,7 +76,7 @@ metadata:
   labels:
     name: maya-apiserver
     openebs.io/component-name: maya-apiserver
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   selector:
     matchLabels:
@@ -106,80 +91,136 @@ spec:
       labels:
         name: maya-apiserver
         openebs.io/component-name: maya-apiserver
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
-      - name: maya-apiserver
-        imagePullPolicy: IfNotPresent
-        image: quay.io/openebs/m-apiserver:1.9.0
-        ports:
-        - containerPort: 5656
-        env:
-        - name: OPENEBS_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: OPENEBS_SERVICE_ACCOUNT
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.serviceAccountName
-        - name: OPENEBS_MAYA_POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG
-          value: "true"
-        - name: OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL
-          value: "false"
-        - name: OPENEBS_IO_BASE_DIR
-          value: "/var/openebs"
-        - name: OPENEBS_IO_CSTOR_TARGET_DIR
-          value: "/var/openebs/sparse"
-        - name: OPENEBS_IO_CSTOR_POOL_SPARSE_DIR
-          value: "/var/openebs/sparse"
-        - name: OPENEBS_IO_JIVA_POOL_DIR
-          value: "/var/openebs"
-        - name: OPENEBS_IO_LOCALPV_HOSTPATH_DIR
-          value: "/var/openebs/local"
-        - name: OPENEBS_IO_JIVA_CONTROLLER_IMAGE
-          value: "quay.io/openebs/jiva:1.9.0"
-        - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
-          value: "quay.io/openebs/jiva:1.9.0"
-        - name: OPENEBS_IO_JIVA_REPLICA_COUNT
-          value: "3"
-        - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
-          value: "quay.io/openebs/cstor-istgt:1.9.0"
-        - name: OPENEBS_IO_CSTOR_POOL_IMAGE
-          value: "quay.io/openebs/cstor-pool:1.9.0"
-        - name: OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE
-          value: "quay.io/openebs/cstor-pool-mgmt:1.9.0"
-        - name: OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
-          value: "quay.io/openebs/cstor-volume-mgmt:1.9.0"
-        - name: OPENEBS_IO_VOLUME_MONITOR_IMAGE
-          value: "quay.io/openebs/m-exporter:1.9.0"
-        - name: OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
-          value: "quay.io/openebs/m-exporter:1.9.0"
-        - name: OPENEBS_IO_HELPER_IMAGE
-          value: "quay.io/openebs/linux-utils:1.9.0"
-        - name: OPENEBS_IO_ENABLE_ANALYTICS
-          value: "true"
-        - name: OPENEBS_IO_INSTALLER_TYPE
-          value: "openebs-operator"
-        livenessProbe:
-          exec:
-            command:
-            - /usr/local/bin/mayactl
-            - version
-          initialDelaySeconds: 30
-          periodSeconds: 60
-        readinessProbe:
-          exec:
-            command:
-            - /usr/local/bin/mayactl
-            - version
-          initialDelaySeconds: 30
-          periodSeconds: 60
+        - name: maya-apiserver
+          imagePullPolicy: IfNotPresent
+          image: quay.io/openebs/m-apiserver:1.10.0
+          ports:
+            - containerPort: 5656
+          env:
+            # OPENEBS_IO_KUBE_CONFIG enables maya api service to connect to K8s
+            # based on this config. This is ignored if empty.
+            # This is supported for maya api server version 0.5.2 onwards
+            #- name: OPENEBS_IO_KUBE_CONFIG
+            #  value: "/home/ubuntu/.kube/config"
+            # OPENEBS_IO_K8S_MASTER enables maya api service to connect to K8s
+            # based on this address. This is ignored if empty.
+            # This is supported for maya api server version 0.5.2 onwards
+            #- name: OPENEBS_IO_K8S_MASTER
+            #  value: "http://172.28.128.3:8080"
+            # OPENEBS_NAMESPACE provides the namespace of this deployment as an
+            # environment variable
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # OPENEBS_SERVICE_ACCOUNT provides the service account of this pod as
+            # environment variable
+            - name: OPENEBS_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            # OPENEBS_MAYA_POD_NAME provides the name of this pod as
+            # environment variable
+            - name: OPENEBS_MAYA_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # If OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG is false then OpenEBS default
+            # storageclass and storagepool will not be created.
+            - name: OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG
+              value: "true"
+            # OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL decides whether default cstor sparse pool should be
+            # configured as a part of openebs installation.
+            # If "true" a default cstor sparse pool will be configured, if "false" it will not be configured.
+            # This value takes effect only if OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG
+            # is set to true
+            - name: OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL
+              value: "false"
+            # OPENEBS_IO_INSTALL_CRD environment variable is used to enable/disable CRD installation
+            # from Maya API server. By default the CRDs will be installed
+            # - name: OPENEBS_IO_INSTALL_CRD
+            #   value: "true"
+            # OPENEBS_IO_BASE_DIR is used to configure base directory for openebs on host path.
+            # Where OpenEBS can store required files. Default base path will be /var/openebs
+            - name: OPENEBS_IO_BASE_DIR
+              value: "/var/openebs"
+            # OPENEBS_IO_CSTOR_TARGET_DIR can be used to specify the hostpath
+            # to be used for saving the shared content between the side cars
+            # of cstor volume pod.
+            # The default path used is /var/openebs/sparse
+            - name: OPENEBS_IO_CSTOR_TARGET_DIR
+              value: "/var/openebs/sparse"
+            # OPENEBS_IO_CSTOR_POOL_SPARSE_DIR can be used to specify the hostpath
+            # to be used for saving the shared content between the side cars
+            # of cstor pool pod. This ENV is also used to indicate the location
+            # of the sparse devices.
+            # The default path used is /var/openebs/sparse
+            - name: OPENEBS_IO_CSTOR_POOL_SPARSE_DIR
+              value: "/var/openebs/sparse"
+            # OPENEBS_IO_JIVA_POOL_DIR can be used to specify the hostpath
+            # to be used for default Jiva StoragePool loaded by OpenEBS
+            # The default path used is /var/openebs
+            # This value takes effect only if OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG
+            # is set to true
+            - name: OPENEBS_IO_JIVA_POOL_DIR
+              value: "/var/openebs"
+            # OPENEBS_IO_LOCALPV_HOSTPATH_DIR can be used to specify the hostpath
+            # to be used for default openebs-hostpath storageclass loaded by OpenEBS
+            # The default path used is /var/openebs/local
+            # This value takes effect only if OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG
+            # is set to true
+            - name: OPENEBS_IO_LOCALPV_HOSTPATH_DIR
+              value: "/var/openebs/local"
+            - name: OPENEBS_IO_JIVA_CONTROLLER_IMAGE
+              value: "quay.io/openebs/jiva:1.10.0"
+            - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
+              value: "quay.io/openebs/jiva:1.10.0"
+            - name: OPENEBS_IO_JIVA_REPLICA_COUNT
+              value: "3"
+            - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
+              value: "quay.io/openebs/cstor-istgt:1.10.0"
+            - name: OPENEBS_IO_CSTOR_POOL_IMAGE
+              value: "quay.io/openebs/cstor-pool:1.10.0"
+            - name: OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE
+              value: "quay.io/openebs/cstor-pool-mgmt:1.10.0"
+            - name: OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
+              value: "quay.io/openebs/cstor-volume-mgmt:1.10.0"
+            - name: OPENEBS_IO_VOLUME_MONITOR_IMAGE
+              value: "quay.io/openebs/m-exporter:1.10.0"
+            - name: OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
+              value: "quay.io/openebs/m-exporter:1.10.0"
+            - name: OPENEBS_IO_HELPER_IMAGE
+              value: "quay.io/openebs/linux-utils:1.10.0"
+            # OPENEBS_IO_ENABLE_ANALYTICS if set to true sends anonymous usage
+            # events to Google Analytics
+            - name: OPENEBS_IO_ENABLE_ANALYTICS
+              value: "true"
+            - name: OPENEBS_IO_INSTALLER_TYPE
+              value: "openebs-operator"
+          # OPENEBS_IO_ANALYTICS_PING_INTERVAL can be used to specify the duration (in hours)
+          # for periodic ping events sent to Google Analytics.
+          # Default is 24h.
+          # Minimum is 1h. You can convert this to weekly by setting 168h
+          #- name: OPENEBS_IO_ANALYTICS_PING_INTERVAL
+          #  value: "24h"
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/mayactl
+                - version
+            initialDelaySeconds: 30
+            periodSeconds: 60
+          readinessProbe:
+            exec:
+              command:
+                - /usr/local/bin/mayactl
+                - version
+            initialDelaySeconds: 30
+            periodSeconds: 60
 ---
 apiVersion: v1
 kind: Service
@@ -190,10 +231,10 @@ metadata:
     openebs.io/component-name: maya-apiserver-svc
 spec:
   ports:
-  - name: api
-    port: 5656
-    protocol: TCP
-    targetPort: 5656
+    - name: api
+      port: 5656
+      protocol: TCP
+      targetPort: 5656
   selector:
     name: maya-apiserver
   sessionAffinity: None
@@ -206,7 +247,7 @@ metadata:
   labels:
     name: openebs-provisioner
     openebs.io/component-name: openebs-provisioner
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   selector:
     matchLabels:
@@ -221,30 +262,52 @@ spec:
       labels:
         name: openebs-provisioner
         openebs.io/component-name: openebs-provisioner
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
-      - name: openebs-provisioner
-        imagePullPolicy: IfNotPresent
-        image: quay.io/openebs/openebs-k8s-provisioner:1.9.0
-        env:
-        - name: NODE_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-        - name: OPENEBS_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        livenessProbe:
-          exec:
-            command:
-            - sh
-            - -c
-            - test `pgrep -c "^openebs-provisi.*"` = 1
-          initialDelaySeconds: 30
-          periodSeconds: 60
+        - name: openebs-provisioner
+          imagePullPolicy: IfNotPresent
+          image: quay.io/openebs/openebs-k8s-provisioner:1.10.0
+          env:
+            # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
+            # based on this address. This is ignored if empty.
+            # This is supported for openebs provisioner version 0.5.2 onwards
+            #- name: OPENEBS_IO_K8S_MASTER
+            #  value: "http://10.128.0.12:8080"
+            # OPENEBS_IO_KUBE_CONFIG enables openebs provisioner to connect to K8s
+            # based on this config. This is ignored if empty.
+            # This is supported for openebs provisioner version 0.5.2 onwards
+            #- name: OPENEBS_IO_KUBE_CONFIG
+            #  value: "/home/ubuntu/.kube/config"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # OPENEBS_MAYA_SERVICE_NAME provides the maya-apiserver K8s service name,
+            # that provisioner should forward the volume create/delete requests.
+            # If not present, "maya-apiserver-service" will be used for lookup.
+            # This is supported for openebs provisioner version 0.5.3-RC1 onwards
+            #- name: OPENEBS_MAYA_SERVICE_NAME
+            #  value: "maya-apiserver-apiservice"
+            # Process name used for matching is limited to the 15 characters
+            # present in the pgrep output.
+            # So fullname can't be used here with pgrep (>15 chars).A regular expression
+            # that matches the entire command name has to specified.
+            # Anchor `^` : matches any string that starts with `openebs-provis`
+            # `.*`: matches any string that has `openebs-provis` followed by zero or more char
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test `pgrep -c "^openebs-provisi.*"` = 1
+            initialDelaySeconds: 30
+            periodSeconds: 60
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -254,7 +317,7 @@ metadata:
   labels:
     name: openebs-snapshot-operator
     openebs.io/component-name: openebs-snapshot-operator
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   selector:
     matchLabels:
@@ -268,40 +331,64 @@ spec:
       labels:
         name: openebs-snapshot-operator
         openebs.io/component-name: openebs-snapshot-operator
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: snapshot-controller
-          image: quay.io/openebs/snapshot-controller:1.9.0
+          image: quay.io/openebs/snapshot-controller:1.10.0
           imagePullPolicy: IfNotPresent
           env:
-          - name: OPENEBS_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can't be used here with pgrep (>15 chars).A regular expression
+          # that matches the entire command name has to specified.
+          # Anchor `^` : matches any string that starts with `snapshot-contro`
+          # `.*`: matches any string that has `snapshot-contro` followed by zero or more char
           livenessProbe:
             exec:
               command:
-              - sh
-              - -c
-              - test `pgrep -c "^snapshot-contro.*"` = 1
+                - sh
+                - -c
+                - test `pgrep -c "^snapshot-contro.*"` = 1
             initialDelaySeconds: 30
             periodSeconds: 60
+        # OPENEBS_MAYA_SERVICE_NAME provides the maya-apiserver K8s service name,
+        # that snapshot controller should forward the snapshot create/delete requests.
+        # If not present, "maya-apiserver-service" will be used for lookup.
+        # This is supported for openebs provisioner version 0.5.3-RC1 onwards
+        #- name: OPENEBS_MAYA_SERVICE_NAME
+        #  value: "maya-apiserver-apiservice"
         - name: snapshot-provisioner
-          image: quay.io/openebs/snapshot-provisioner:1.9.0
+          image: quay.io/openebs/snapshot-provisioner:1.10.0
           imagePullPolicy: IfNotPresent
           env:
-          - name: OPENEBS_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          # OPENEBS_MAYA_SERVICE_NAME provides the maya-apiserver K8s service name,
+          # that snapshot provisioner  should forward the clone create/delete requests.
+          # If not present, "maya-apiserver-service" will be used for lookup.
+          # This is supported for openebs provisioner version 0.5.3-RC1 onwards
+          #- name: OPENEBS_MAYA_SERVICE_NAME
+          #  value: "maya-apiserver-apiservice"
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can't be used here with pgrep (>15 chars).A regular expression
+          # that matches the entire command name has to specified.
+          # Anchor `^` : matches any string that starts with `snapshot-provis`
+          # `.*`: matches any string that has `snapshot-provis` followed by zero or more char
           livenessProbe:
             exec:
               command:
-              - sh
-              - -c
-              - test `pgrep -c "^snapshot-provis.*"` = 1
+                - sh
+                - -c
+                - test `pgrep -c "^snapshot-provis.*"` = 1
             initialDelaySeconds: 30
             periodSeconds: 60
 ---
@@ -315,6 +402,9 @@ metadata:
   labels:
     openebs.io/component-name: ndm-config
 data:
+  # udev-probe is default or primary probe which should be enabled to run ndm
+  # filterconfigs contails configs of filters - in their form fo include
+  # and exclude comma separated strings
   node-disk-manager.config: |
     probeconfigs:
       - key: udev-probe
@@ -350,7 +440,7 @@ metadata:
   labels:
     name: openebs-ndm
     openebs.io/component-name: ndm
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   selector:
     matchLabels:
@@ -363,71 +453,94 @@ spec:
       labels:
         name: openebs-ndm
         openebs.io/component-name: ndm
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
+      # By default the node-disk-manager will be run on all kubernetes nodes
+      # If you would like to limit this to only some nodes, say the nodes
+      # that have storage attached, you could label those node and use
+      # nodeSelector.
+      #
+      # e.g. label the storage nodes with - "openebs.io/nodegroup"="storage-node"
+      # kubectl label node <node-name> "openebs.io/nodegroup"="storage-node"
+      #nodeSelector:
+      #  "openebs.io/nodegroup": "storage-node"
       serviceAccountName: openebs-maya-operator
       hostNetwork: true
       containers:
-      - name: node-disk-manager
-        image: quay.io/openebs/node-disk-manager-amd64:v0.4.9
-        imagePullPolicy: Always
-        securityContext:
-          privileged: true
-        volumeMounts:
-        - name: config
-          mountPath: /host/node-disk-manager.config
-          subPath: node-disk-manager.config
-          readOnly: true
-        - name: udev
-          mountPath: /run/udev
-        - name: procmount
-          mountPath: /host/proc
-          readOnly: true
-        - name: basepath
-          mountPath: /var/openebs/ndm
-        - name: sparsepath
-          mountPath: /var/openebs/sparse
-        env:
-        - name: NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: NODE_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-        - name: SPARSE_FILE_DIR
-          value: "/var/openebs/sparse"
-        - name: SPARSE_FILE_SIZE
-          value: "10737418240"
-        - name: SPARSE_FILE_COUNT
-          value: "0"
-        livenessProbe:
-          exec:
-            command:
-            - pgrep
-            - "ndm"
-          initialDelaySeconds: 30
-          periodSeconds: 60
+        - name: node-disk-manager
+          image: quay.io/openebs/node-disk-manager-amd64:0.5.0
+          args:
+            - -v=4
+          # The feature-gate is used to enable the new UUID algorithm.
+          # This is a feature currently in Alpha state
+          #  - --feature-gates="GPTBasedUUID"
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: config
+              mountPath: /host/node-disk-manager.config
+              subPath: node-disk-manager.config
+              readOnly: true
+            - name: udev
+              mountPath: /run/udev
+            - name: procmount
+              mountPath: /host/proc
+              readOnly: true
+            - name: basepath
+              mountPath: /var/openebs/ndm
+            - name: sparsepath
+              mountPath: /var/openebs/sparse
+          env:
+            # namespace in which NDM is installed will be passed to NDM Daemonset
+            # as environment variable
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # pass hostname as env variable using downward API to the NDM container
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            # specify the directory where the sparse files need to be created.
+            # if not specified, then sparse files will not be created.
+            - name: SPARSE_FILE_DIR
+              value: "/var/openebs/sparse"
+            # Size(bytes) of the sparse file to be created.
+            - name: SPARSE_FILE_SIZE
+              value: "10737418240"
+            # Specify the number of sparse files to be created
+            - name: SPARSE_FILE_COUNT
+              value: "0"
+          livenessProbe:
+            exec:
+              command:
+                - pgrep
+                - "ndm"
+            initialDelaySeconds: 30
+            periodSeconds: 60
       volumes:
-      - name: config
-        configMap:
-          name: openebs-ndm-config
-      - name: udev
-        hostPath:
-          path: /run/udev
-          type: Directory
-      - name: procmount
-        hostPath:
-          path: /proc
-          type: Directory
-      - name: basepath
-        hostPath:
-          path: /var/openebs/ndm
-          type: DirectoryOrCreate
-      - name: sparsepath
-        hostPath:
-          path: /var/openebs/sparse
+        - name: config
+          configMap:
+            name: openebs-ndm-config
+        - name: udev
+          hostPath:
+            path: /run/udev
+            type: Directory
+        # mount /proc (to access mount file of process 1 of host) inside container
+        # to read mount-point of disks and partitions
+        - name: procmount
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: basepath
+          hostPath:
+            path: /var/openebs/ndm
+            type: DirectoryOrCreate
+        - name: sparsepath
+          hostPath:
+            path: /var/openebs/sparse
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -437,7 +550,7 @@ metadata:
   labels:
     name: openebs-ndm-operator
     openebs.io/component-name: ndm-operator
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   selector:
     matchLabels:
@@ -451,12 +564,12 @@ spec:
       labels:
         name: openebs-ndm-operator
         openebs.io/component-name: ndm-operator
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: node-disk-operator
-          image: quay.io/openebs/node-disk-operator-amd64:v0.4.9
+          image: quay.io/openebs/node-disk-operator-amd64:0.5.0
           imagePullPolicy: Always
           readinessProbe:
             exec:
@@ -475,6 +588,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            # the service account of the ndm-operator pod
             - name: SERVICE_ACCOUNT
               valueFrom:
                 fieldRef:
@@ -482,12 +596,19 @@ spec:
             - name: OPERATOR_NAME
               value: "node-disk-operator"
             - name: CLEANUP_JOB_IMAGE
-              value: "quay.io/openebs/linux-utils:1.9.0"
+              value: "quay.io/openebs/linux-utils:1.10.0"
+            # OPENEBS_IO_INSTALL_CRD environment variable is used to enable/disable CRD installation
+            # from NDM operator. By default the CRDs will be installed
+            #- name: OPENEBS_IO_INSTALL_CRD
+            #  value: "true"
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can be used here with pgrep (cmd is < 15 chars).
           livenessProbe:
             exec:
               command:
-              - pgrep
-              - "ndo"
+                - pgrep
+                - "ndo"
             initialDelaySeconds: 30
             periodSeconds: 60
 ---
@@ -499,7 +620,7 @@ metadata:
   labels:
     app: admission-webhook
     openebs.io/component-name: admission-webhook
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   replicas: 1
   strategy:
@@ -513,12 +634,12 @@ spec:
       labels:
         app: admission-webhook
         openebs.io/component-name: admission-webhook
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: admission-webhook
-          image: quay.io/openebs/admission-server:1.9.0
+          image: quay.io/openebs/admission-server:1.10.0
           imagePullPolicy: IfNotPresent
           args:
             - -alsologtostderr
@@ -531,12 +652,18 @@ spec:
                   fieldPath: metadata.namespace
             - name: ADMISSION_WEBHOOK_NAME
               value: "openebs-admission-server"
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can't be used here with pgrep (>15 chars).A regular expression
+          # Anchor `^` : matches any string that starts with `admission-serve`
+          # `.*`: matche any string that has `admission-serve` followed by zero or more char
+          # that matches the entire command name has to specified.
           livenessProbe:
             exec:
               command:
-              - sh
-              - -c
-              - test `pgrep -c "^admission-serve.*"` = 1
+                - sh
+                - -c
+                - test `pgrep -c "^admission-serve.*"` = 1
             initialDelaySeconds: 30
             periodSeconds: 60
 ---
@@ -548,7 +675,7 @@ metadata:
   labels:
     name: openebs-localpv-provisioner
     openebs.io/component-name: openebs-localpv-provisioner
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   selector:
     matchLabels:
@@ -562,55 +689,289 @@ spec:
       labels:
         name: openebs-localpv-provisioner
         openebs.io/component-name: openebs-localpv-provisioner
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
-      - name: openebs-provisioner-hostpath
-        imagePullPolicy: Always
-        image: quay.io/openebs/provisioner-localpv:1.9.0
-        env:
-        - name: NODE_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-        - name: OPENEBS_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: OPENEBS_SERVICE_ACCOUNT
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.serviceAccountName
-        - name: OPENEBS_IO_ENABLE_ANALYTICS
-          value: "true"
-        - name: OPENEBS_IO_INSTALLER_TYPE
-          value: "openebs-operator"
-        - name: OPENEBS_IO_HELPER_IMAGE
-          value: "quay.io/openebs/linux-utils:1.9.0"
-        livenessProbe:
-          exec:
-            command:
-            - sh
-            - -c
-            - test `pgrep -c "^provisioner-loc.*"` = 1
-          initialDelaySeconds: 30
-          periodSeconds: 60
+        - name: openebs-provisioner-hostpath
+          imagePullPolicy: Always
+          image: quay.io/openebs/provisioner-localpv:1.10.0
+          env:
+            # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
+            # based on this address. This is ignored if empty.
+            # This is supported for openebs provisioner version 0.5.2 onwards
+            #- name: OPENEBS_IO_K8S_MASTER
+            #  value: "http://10.128.0.12:8080"
+            # OPENEBS_IO_KUBE_CONFIG enables openebs provisioner to connect to K8s
+            # based on this config. This is ignored if empty.
+            # This is supported for openebs provisioner version 0.5.2 onwards
+            #- name: OPENEBS_IO_KUBE_CONFIG
+            #  value: "/home/ubuntu/.kube/config"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # OPENEBS_SERVICE_ACCOUNT provides the service account of this pod as
+            # environment variable
+            - name: OPENEBS_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: OPENEBS_IO_ENABLE_ANALYTICS
+              value: "true"
+            - name: OPENEBS_IO_INSTALLER_TYPE
+              value: "openebs-operator"
+            - name: OPENEBS_IO_HELPER_IMAGE
+              value: "quay.io/openebs/linux-utils:1.10.0"
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can't be used here with pgrep (>15 chars).A regular expression
+          # that matches the entire command name has to specified.
+          # Anchor `^` : matches any string that starts with `provisioner-loc`
+          # `.*`: matches any string that has `provisioner-loc` followed by zero or more char
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test `pgrep -c "^provisioner-loc.*"` = 1
+            initialDelaySeconds: 30
+            periodSeconds: 60
+---
+####################################################
+###########                             ############
+###########       CSPC and CSPI         ############
+###########                             ############
+####################################################
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorpoolclusters.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorpoolclusters
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorpoolcluster
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorPoolCluster
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cspc
+  additionalPrinterColumns:
+    - JSONPath: .status.healthyInstances
+      name: HealthyInstances
+      description: The number of healthy cStorPoolInstances
+      type: integer
+    - JSONPath: .status.provisionedInstances
+      name: ProvisionedInstances
+      description: The number of provisioned cStorPoolInstances
+      type: integer
+    - JSONPath: .status.desiredInstances
+      name: DesiredInstances
+      description: The number of desired cStorPoolInstances
+      type: integer
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: cstorpoolclusters.openebs.io
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorpoolinstances.cstor.openebs.io
 spec:
-  group: openebs.io
-  version: v1alpha1
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
   scope: Namespaced
   names:
-    plural: cstorpoolclusters
-    singular: cstorpoolcluster
-    kind: CStorPoolCluster
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorpoolinstances
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorpoolinstance
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorPoolInstance
+    # shortNames allow shorter string to match your resource on the CLI
     shortNames:
-    - cspc
+      - cspi
+  additionalPrinterColumns:
+    - JSONPath: .spec.hostName
+      name: HostName
+      description: Host name where cstorpool instances scheduled
+      type: string
+    - JSONPath: .status.capacity.used
+      name: Allocated
+      description: The amount of storage space within the pool that has been physically allocated
+      type: string
+    - JSONPath: .status.capacity.free
+      name: Free
+      description: The amount of free space available in the pool
+      type: string
+    - JSONPath: .status.capacity.total
+      name: Capacity
+      description: Total size of the storage pool
+      type: string
+    - JSONPath: .status.phase
+      name: Status
+      description: Identifies the current health of the pool
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorvolumes.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorVolume
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorvolumes
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorvolume
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cstorvolume
+      - cv
+  additionalPrinterColumns:
+    - JSONPath: .status.phase
+      name: Status
+      description: Identifies the current health of the volume
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - JSONPath: .status.capacity
+      description: Current volume capacity
+      name: Capacity
+      type: string
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorvolumeconfigs.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorVolumeConfig
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorvolumeconfigs
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorvolumeconfig
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cstorvolumeconfig
+      - cvc
+  additionalPrinterColumns:
+    - JSONPath: .status.phase
+      name: Status
+      description: Identifies the volume provisioning status
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorvolumepolicies.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorVolumePolicy
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorvolumepolicies
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorvolumepolicy
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cstorvolumepolicies
+      - cvp
+      - policy
+  additionalPrinterColumns:
+    - JSONPath: .status.phase
+      name: Status
+      description: Identifies the state of policy
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorvolumereplicas.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorVolumeReplica
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorvolumereplicas
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorvolumereplica
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cvr
+  additionalPrinterColumns:
+    - JSONPath: .status.capacity.used
+      name: Used
+      description: The amount of space that is "logically" consumed by this dataset
+      type: string
+    - JSONPath: .status.capacity.total
+      name: Allocated
+      description: The amount of disk space consumed by a dataset and all its descendents
+      type: string
+    - JSONPath: .status.phase
+      name: Status
+      description: Identifies the current state of the replicas
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -620,7 +981,7 @@ metadata:
   labels:
     name: cspc-operator
     openebs.io/component-name: cspc-operator
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   selector:
     matchLabels:
@@ -634,34 +995,45 @@ spec:
       labels:
         name: cspc-operator
         openebs.io/component-name: cspc-operator
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
-      - name: cspc-operator
-        imagePullPolicy: Always
-        image: quay.io/openebs/cspc-operator:1.9.0
-        env:
-        - name: OPENEBS_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: CSPC_OPERATOR_POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: OPENEBS_IO_BASE_DIR
-          value: "/var/openebs"
-        - name: OPENEBS_IO_CSTOR_POOL_SPARSE_DIR
-          value: "/var/openebs/sparse"
-        - name: OPENEBS_IO_CSPI_MGMT_IMAGE
-          value: "quay.io/openebs/cspi-mgmt:1.9.0"
-        - name: OPENEBS_IO_CSTOR_POOL_IMAGE
-          value: "quay.io/openebs/cstor-pool:1.9.0"
-        - name:  OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
-          value: "quay.io/openebs/m-exporter:1.9.0"
-        - name: RESYNC_INTERVAL
-          value: "30"
+        - name: cspc-operator
+          imagePullPolicy: IfNotPresent
+          image: quay.io/openebs/cspc-operator-amd64:1.10.0
+          env:
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPENEBS_SERVICEACCOUNT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: CSPC_OPERATOR_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # OPENEBS_IO_BASE_DIR is used to configure base directory for openebs on host path.
+            # Where OpenEBS can store required files. Default base path will be /var/openebs
+            - name: OPENEBS_IO_BASE_DIR
+              value: "/var/openebs"
+            # OPENEBS_IO_CSTOR_POOL_SPARSE_DIR can be used to specify the hostpath
+            # to be used for saving the shared content between the side cars
+            # of cstor pool pod. This ENV is also used to indicate the location
+            # of the sparse devices.
+            # The default path used is /var/openebs/sparse
+            - name: OPENEBS_IO_CSTOR_POOL_SPARSE_DIR
+              value: "/var/openebs/sparse"
+            - name: OPENEBS_IO_CSPI_MGMT_IMAGE
+              value: "quay.io/openebs/cstor-pool-manager-amd64:1.10.0"
+            - name: OPENEBS_IO_CSTOR_POOL_IMAGE
+              value: "quay.io/openebs/cstor-pool:1.10.0"
+            - name:  OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
+              value: "quay.io/openebs/m-exporter:1.10.0"
+            - name: RESYNC_INTERVAL
+              value: "30"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -671,7 +1043,7 @@ metadata:
   labels:
     name: cvc-operator
     openebs.io/component-name: cvc-operator
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   selector:
     matchLabels:
@@ -685,29 +1057,78 @@ spec:
       labels:
         name: cvc-operator
         openebs.io/component-name: cvc-operator
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
-      - name: cvc-operator
-        imagePullPolicy: IfNotPresent
-        image: quay.io/openebs/cvc-operator:1.9.0
-        env:
-        - name: OPENEBS_IO_BASE_DIR
-          value: "/var/openebs"
-        - name: OPENEBS_IO_CSTOR_TARGET_DIR
-          value: "/var/openebs/sparse"
-        - name: OPENEBS_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
-          value: "quay.io/openebs/cstor-istgt:1.9.0"
-        - name:  OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
-          value: "quay.io/openebs/cstor-volume-mgmt:1.9.0"
-        - name:  OPENEBS_IO_VOLUME_MONITOR_IMAGE
-          value: "quay.io/openebs/m-exporter:1.9.0"
-
+        - name: cvc-operator
+          imagePullPolicy: IfNotPresent
+          image: quay.io/openebs/cvc-operator-amd64:1.10.0
+          env:
+            # OPENEBS_IO_BASE_DIR is used to configure base directory for openebs on host path.
+            # Where OpenEBS can store required files. Default base path will be /var/openebs
+            - name: OPENEBS_IO_BASE_DIR
+              value: "/var/openebs"
+            # OPENEBS_IO_CSTOR_TARGET_DIR can be used to specify the hostpath
+            # that to be used for saving the core dump of cstor volume pod.
+            # The default path used is /var/openebs/sparse
+            - name: OPENEBS_IO_CSTOR_TARGET_DIR
+              value: "/var/openebs/sparse"
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPENEBS_SERVICEACCOUNT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
+              value: "quay.io/openebs/cstor-istgt:1.10.0"
+            - name:  OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
+              value: "quay.io/openebs/cstor-volume-manager-amd64:1.10.0"
+            - name:  OPENEBS_IO_VOLUME_MONITOR_IMAGE
+              value: "quay.io/openebs/m-exporter:1.10.0"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-cstor-admission-server
+  namespace: openebs
+  labels:
+    app: cstor-admission-webhook
+    openebs.io/component-name: cstor-admission-webhook
+    openebs.io/version: 1.10.0
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  selector:
+    matchLabels:
+      app: cstor-admission-webhook
+  template:
+    metadata:
+      labels:
+        app: cstor-admission-webhook
+        openebs.io/component-name: cstor-admission-webhook
+        openebs.io/version: 1.10.0
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: admission-webhook
+          image: quay.io/openebs/cstor-webhook-amd64:1.10.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -alsologtostderr
+            - -v=2
+            - 2>&1
+          env:
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ADMISSION_WEBHOOK_NAME
+              value: "openebs-cstor-admission-server"
 ---
 # This manifest deploys the OpenEBS CSI control plane components,
 # with associated CRs & RBAC rules. This manifest has been verified
@@ -722,7 +1143,7 @@ spec:
 #
 # For supporting a differnet OS other than the above,
 # 1) Get the list of shared object files required for iscsiadm binary in that OS version.
-# 2) Check which files are already present in the openebs-csi-plugin container present in csi node pod.
+# 2) Check which files are already present in the cstor-csi-driver container present in csi node pod.
 # 3) Mount the required missing files inside the container.
 #
 ####################################################
@@ -773,18 +1194,18 @@ status:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: csivolumes.openebs.io
+  name: cstorvolumeattachments.cstor.openebs.io
 spec:
-  group: openebs.io
-  version: v1alpha1
+  group: cstor.openebs.io
+  version: v1
   scope: Namespaced
   names:
-    plural: csivolumes
-    singular: csivolume
-    kind: CSIVolume
+    plural: cstorvolumeattachments
+    singular: cstorvolumeattachment
+    kind: CStorVolumeAttachment
     shortNames:
-      - csivolume
-      - csiv
+      - cstorvolumeattachment
+      - cva
 ---
 ##############################################
 ###########                       ############
@@ -1310,15 +1731,12 @@ rules:
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshotcontents"]
     verbs: ["get", "list"]
-  - apiGroups: ["*"]
-    resources: ["cstorvolumeclaims"]
-    verbs: ["*"]
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
     verbs: ["*"]
   - apiGroups: ["*"]
-    resources: ["csivolumes", "cstorvolumes","cstorvolumeclaims"]
-    verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
+    resources: ["cstorvolumeattachments", "cstorvolumes","cstorvolumeconfigs"]
+    verbs: ["*"]
 
 ---
 
@@ -1344,7 +1762,7 @@ metadata:
   labels:
     name: openebs-cstor-csi-controller
     openebs.io/component-name: openebs-cstor-csi-controller
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   selector:
     matchLabels:
@@ -1359,13 +1777,13 @@ spec:
         name: openebs-cstor-csi-controller
         openebs.io/component-name: openebs-cstor-csi-controller
         role: openebs-cstor-csi
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
       priorityClassName: system-cluster-critical
       serviceAccount: openebs-cstor-csi-controller-sa
       containers:
         - name: csi-resizer
-          image: quay.io/k8scsi/csi-resizer:v0.1.0
+          image: quay.io/k8scsi/csi-resizer:v0.4.0
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
@@ -1438,7 +1856,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: openebs-csi-plugin
-          image: quay.io/openebs/cstor-csi-driver:1.9.0
+          image: quay.io/openebs/cstor-csi-driver:1.10.0
           imagePullPolicy: IfNotPresent
           env:
             - name: OPENEBS_CONTROLLER_DRIVER
@@ -1447,11 +1865,9 @@ spec:
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: OPENEBS_CSI_API_URL
               value: https://api.openebs.com/
-            - name: OPENEBS_MAPI_SVC
-              value: maya-apiserver-service
             - name: OPENEBS_NAMESPACE
               value: openebs
-          args :
+          args:
             - "--endpoint=$(OPENEBS_CSI_ENDPOINT)"
             - "--url=$(OPENEBS_CSI_API_URL)"
             - "--plugin=$(OPENEBS_CONTROLLER_DRIVER)"
@@ -1552,7 +1968,7 @@ rules:
     resources: ["persistentvolumes", "nodes", "services"]
     verbs: ["get", "list", "patch"]
   - apiGroups: ["*"]
-    resources: ["csivolumes", "cstorvolumes","cstorvolumeclaims"]
+    resources: ["cstorvolumeattachments", "cstorvolumes","cstorvolumeconfigs"]
     verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
 
 ---
@@ -1580,7 +1996,7 @@ metadata:
   labels:
     name: openebs-cstor-csi-node
     openebs.io/component-name: openebs-cstor-csi-node
-    openebs.io/version: 1.9.0
+    openebs.io/version: 1.10.0
 spec:
   selector:
     matchLabels:
@@ -1592,7 +2008,7 @@ spec:
         name: openebs-cstor-csi-node
         openebs.io/component-name: openebs-cstor-csi-node
         role: openebs-cstor-csi
-        openebs.io/version: 1.9.0
+        openebs.io/version: 1.10.0
     spec:
       priorityClassName: system-node-critical
       serviceAccount: openebs-cstor-csi-node-sa
@@ -1631,7 +2047,7 @@ spec:
             capabilities:
               add: ["CAP_MKNOD", "CAP_SYS_ADMIN", "SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: quay.io/openebs/cstor-csi-driver:1.9.0
+          image: quay.io/openebs/cstor-csi-driver:1.10.0
           imagePullPolicy: IfNotPresent
           args:
             - "--nodeid=$(OPENEBS_NODE_ID)"
@@ -1649,8 +2065,6 @@ spec:
               value: node
             - name: OPENEBS_API_URL
               value: https://api.openebs.com/
-            - name: OPENEBS_MAPI_SVC
-              value: maya-apiserver-service
             - name: OPENEBS_NAMESPACE
               value: openebs
             - name: REMOUNT
@@ -1688,7 +2102,6 @@ spec:
           hostPath:
             path: /sbin/iscsiadm
             type: File
-
 ---
 apiVersion: storage.k8s.io/v1beta1
 kind: CSIDriver

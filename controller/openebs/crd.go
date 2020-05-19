@@ -22,8 +22,12 @@ import (
 func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	var err error
 	switch crd.GetName() {
-	case types.CSPCCRDNameKey:
-		err = p.updateCSPCCRD(crd)
+	case types.CSPCCRDV1alpha1NameKey:
+		err = p.updateCSPCCRDV1alpha1(crd)
+	case types.CSPCCRDV1NameKey:
+		err = p.updateCSPCCRDV1(crd)
+	case types.CSPICRDV1NameKey:
+		err = p.updateCSPICRDV1(crd)
 	case types.CSINodeInfoCRDNameKey:
 		err = p.updateCSINodeInfoCRD(crd)
 	case types.CSIVolumeCRDNameKey:
@@ -34,6 +38,16 @@ func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructu
 		err = p.updateVolumeSnapshotClassCRD(crd)
 	case types.VolumeSnapshotContentCRDNameKey:
 		err = p.updateVolumeSnapshotContentCRD(crd)
+	case types.CStorVolumeAttachmentsCRDNameKey:
+		err = p.updateCStorVolumeAttachmentsCRD(crd)
+	case types.CStorVolumesCRDV1NameKey:
+		err = p.updateCStorVolumesCRDV1(crd)
+	case types.CStorVolumeConfigsCRDV1NameKey:
+		err = p.updateCStorVolumeConfigsCRDV1(crd)
+	case types.CStorVolumeReplicasCRDV1NameKey:
+		err = p.updateCStorVolumeReplicasCRDV1(crd)
+	case types.CStorVolumePoliciesCRDV1NameKey:
+		err = p.updateCStorVolumePoliciesCRDV1(crd)
 	}
 	if err != nil {
 		return crd, err
@@ -139,8 +153,25 @@ func (p *Planner) updateVolumeSnapshotContentCRD(crd *unstructured.Unstructured)
 	return nil
 }
 
-// updateCSPCCRD updates the CSPC CRD manifest as per the reconcile.ObservedOpenEBS values.
-func (p *Planner) updateCSPCCRD(crd *unstructured.Unstructured) error {
+// updateCStorVolumeAttachmentsCRD updates the CStor volume attachments CRD manifest as per the
+// reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCStorVolumeAttachmentsCRD(crd *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := crd.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CStor volume attachments CRD
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: cstorvolumeattachments.cstor.openebs.io
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorVolumeAttachmentsCRDNameKey
+	// set the desired labels
+	crd.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCSPCCRDV1 updates the CSPC V1 CRD manifest as per the reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCSPCCRDV1(crd *unstructured.Unstructured) error {
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := crd.GetLabels()
 	if desiredLabels == nil {
@@ -151,7 +182,113 @@ func (p *Planner) updateCSPCCRD(crd *unstructured.Unstructured) error {
 	// 2. openebs-upgrade.dao.mayadata.io/component-name: cstorpoolclusters.cstor.openebs.io
 	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
 		types.CSPCComponentGroupLabelValue
-	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CSPCCRDNameKey
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CSPCCRDV1NameKey
+	// set the desired labels
+	crd.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCSPCCRDV1alpha1 updates the CSPC V1alpha1 CRD manifest as per the reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCSPCCRDV1alpha1(crd *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := crd.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CSPC CRD
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cspc
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: cstorpoolclusters.openebs.io
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.CSPCComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CSPCCRDV1alpha1NameKey
+	// set the desired labels
+	crd.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCSPICRDV1 updates the CSPI V1 CRD manifest as per the reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCSPICRDV1(crd *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := crd.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CSPI CRD
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cspi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: cstorpoolinstances.cstor.openebs.io
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.CSPIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CSPICRDV1NameKey
+	// set the desired labels
+	crd.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorVolumesCRDV1 updates the CStor volumes CRD(V1) manifest as per the
+// reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCStorVolumesCRDV1(crd *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := crd.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CStor volumes CRD
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: cstorvolumes.cstor.openebs.io
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorVolumesCRDV1NameKey
+	// set the desired labels
+	crd.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorVolumeConfigsCRDV1 updates the CStor volume configs CRD(V1) manifest as per the
+// reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCStorVolumeConfigsCRDV1(crd *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := crd.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CStor volume configs CRD
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: cstorvolumeconfigs.cstor.openebs.io
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorVolumeConfigsCRDV1NameKey
+	// set the desired labels
+	crd.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorVolumePoliciesCRDV1 updates the CStor volume policies CRD(V1) manifest as per the
+// reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCStorVolumePoliciesCRDV1(crd *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := crd.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CStor volume policies CRD
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: cstorvolumepolicies.cstor.openebs.io
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorVolumePoliciesCRDV1NameKey
+	// set the desired labels
+	crd.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateCStorVolumeReplicasCRDV1 updates the CStor volume replicas CRD(V1) manifest as per the
+// reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCStorVolumeReplicasCRDV1(crd *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := crd.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for CStor volume replicas CRD
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: cstorvolumereplicas.cstor.openebs.io
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorVolumeReplicasCRDV1NameKey
 	// set the desired labels
 	crd.SetLabels(desiredLabels)
 
