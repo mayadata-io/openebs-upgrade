@@ -138,6 +138,14 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas = new(int32)
 		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas = DefaultCVCOperatorReplicaCount
 	}
+	// set the admission server defaults
+	if p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer = &types.CStorAdmissionServer{}
+	}
+	if p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Enabled == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Enabled = new(bool)
+		*p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Enabled = true
+	}
 	// form the CStor admission server image
 	if p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag = p.ObservedOpenEBS.Spec.Version
