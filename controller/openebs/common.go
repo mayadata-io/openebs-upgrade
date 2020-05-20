@@ -58,7 +58,7 @@ func (p *Planner) setDefaultImagePrefixIfNotSet() error {
 	if p.ObservedOpenEBS.Spec.ImagePrefix == "" {
 		// Default docker registry for OpenEBS enterprise installation will
 		// be "mayadataio/" while for community edition will be "quay.io/openebs/".
-		if strings.HasSuffix(p.ObservedOpenEBS.Spec.Version, "ee") {
+		if strings.Contains(p.ObservedOpenEBS.Spec.Version, "ee") {
 			p.ObservedOpenEBS.Spec.ImagePrefix = "mayadataio/"
 		} else {
 			p.ObservedOpenEBS.Spec.ImagePrefix = "quay.io/openebs/"
@@ -85,6 +85,12 @@ type BasicComponentDetails struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 }
 
+// supportRCImagesForOpenEBS1100EE supports installation of OpenEBS 1.10.0-ee RC images.
+// TODO: Remove this once 1.10.0-ee images are available.
+func (p *Planner) supportRCImagesForOpenEBS1100EE() {
+	p.ObservedOpenEBS.Spec.Version = "1.10.0-ee-RC3"
+}
+
 // getManifests returns a mapping of component's "name_kind" to YAML of
 // the respective components based on a particular version.
 // Note: This method makes use of the various operator YAMLs to form this
@@ -106,6 +112,11 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-1.9.0.yaml"
 	case types.OpenEBSVersion1100:
 		yamlFile = "/templates/openebs-operator-1.10.0.yaml"
+	case types.OpenEBSVersion1100EE:
+		yamlFile = "/templates/openebs-operator-1.10.0-ee.yaml"
+		// Use 1.10.0-ee-RC3 images for OpenEBS version 1.10.0.
+		// TODO: Remove this once 1.10.0-ee images are available.
+		p.supportRCImagesForOpenEBS1100EE()
 	default:
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)

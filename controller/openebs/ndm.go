@@ -30,13 +30,14 @@ import (
 // order to install/update NDM components for a particular OpenEBS
 // version.
 var supportedNDMVersionForOpenEBSVersion = map[string]string{
-	types.OpenEBSVersion150:   types.NDMVersion045,
-	types.OpenEBSVersion160:   types.NDMVersion046,
-	types.OpenEBSVersion170:   types.NDMVersion047,
-	types.OpenEBSVersion180:   types.NDMVersion048,
-	types.OpenEBSVersion190:   types.NDMVersion049,
-	types.OpenEBSVersion190EE: types.NDMVersion049EE,
-	types.OpenEBSVersion1100:  types.NDMVersion050,
+	types.OpenEBSVersion150:       types.NDMVersion045,
+	types.OpenEBSVersion160:       types.NDMVersion046,
+	types.OpenEBSVersion170:       types.NDMVersion047,
+	types.OpenEBSVersion180:       types.NDMVersion048,
+	types.OpenEBSVersion190:       types.NDMVersion049,
+	types.OpenEBSVersion190EE:     types.NDMVersion049EE,
+	types.OpenEBSVersion1100:      types.NDMVersion050,
+	types.OpenEBSVersion1100EERC3: types.NDMVersion050EERC3,
 }
 
 // add/update NDM defaults if not already provided
