@@ -35,7 +35,8 @@ func (p *Planner) setLocalProvisionerDefaultsIfNotSet() error {
 		*p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled = true
 	}
 	if p.ObservedOpenEBS.Spec.LocalProvisioner.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.LocalProvisioner.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.LocalProvisioner.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	p.ObservedOpenEBS.Spec.LocalProvisioner.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"provisioner-localpv:" + p.ObservedOpenEBS.Spec.LocalProvisioner.ImageTag

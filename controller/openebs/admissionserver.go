@@ -39,7 +39,8 @@ func (p *Planner) setAdmissionServerDefaultsIfNotSet() error {
 		*p.ObservedOpenEBS.Spec.AdmissionServer.Enabled = true
 	}
 	if p.ObservedOpenEBS.Spec.AdmissionServer.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.AdmissionServer.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.AdmissionServer.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	p.ObservedOpenEBS.Spec.AdmissionServer.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"admission-server:" + p.ObservedOpenEBS.Spec.AdmissionServer.ImageTag

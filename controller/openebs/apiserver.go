@@ -163,7 +163,8 @@ func (p *Planner) setAPIServerDefaultsIfNotSet() error {
 		*p.ObservedOpenEBS.Spec.APIServer.Enabled = true
 	}
 	if p.ObservedOpenEBS.Spec.APIServer.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.APIServer.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.APIServer.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	// form the container image as per the image prefix and image tag.
 	p.ObservedOpenEBS.Spec.APIServer.Image = p.ObservedOpenEBS.Spec.ImagePrefix + "m-apiserver:" +

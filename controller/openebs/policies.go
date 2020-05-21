@@ -32,7 +32,8 @@ func (p *Planner) setPoliciesDefaultsIfNotSet() error {
 	// form the monitoring image which is used by cstor pool exporter
 	// and volume monitor containers.
 	if p.ObservedOpenEBS.Spec.Policies.Monitoring.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.Policies.Monitoring.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.Policies.Monitoring.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	p.ObservedOpenEBS.Spec.Policies.Monitoring.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"m-exporter:" + p.ObservedOpenEBS.Spec.Policies.Monitoring.ImageTag

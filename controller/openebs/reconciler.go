@@ -262,6 +262,7 @@ func (p *Planner) init() error {
 		p.setDefaultImagePullPolicyIfNotSet,
 		p.setDefaultStoragePathIfNotSet,
 		p.setDefaultImagePrefixIfNotSet,
+		p.setImageTagSuffixIfPresent,
 		p.setDefaultStorageConfigIfNotSet,
 		p.setAPIServerDefaultsIfNotSet,
 		p.setProvisionerDefaultsIfNotSet,
