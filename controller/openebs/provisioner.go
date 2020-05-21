@@ -34,7 +34,8 @@ func (p *Planner) setProvisionerDefaultsIfNotSet() error {
 		*p.ObservedOpenEBS.Spec.Provisioner.Enabled = true
 	}
 	if p.ObservedOpenEBS.Spec.Provisioner.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.Provisioner.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.Provisioner.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	// form the image for openebs-k8s-provisioner.
 	p.ObservedOpenEBS.Spec.Provisioner.Image = p.ObservedOpenEBS.Spec.ImagePrefix +

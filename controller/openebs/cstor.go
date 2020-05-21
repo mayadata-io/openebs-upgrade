@@ -46,35 +46,40 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	}
 	// form the cstor-pool image
 	if p.ObservedOpenEBS.Spec.CstorConfig.Pool.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.CstorConfig.Pool.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.CstorConfig.Pool.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	p.ObservedOpenEBS.Spec.CstorConfig.Pool.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-pool:" + p.ObservedOpenEBS.Spec.CstorConfig.Pool.ImageTag
 
 	// form the cstor-pool-mgmt image
 	if p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-pool-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.PoolMgmt.ImageTag
 
 	// form the cstor-istgt image
 	if p.ObservedOpenEBS.Spec.CstorConfig.Target.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.CstorConfig.Target.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.CstorConfig.Target.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	p.ObservedOpenEBS.Spec.CstorConfig.Target.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-istgt:" + p.ObservedOpenEBS.Spec.CstorConfig.Target.ImageTag
 
 	// form the cstor-volume-mgmt image
 	if p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"cstor-volume-mgmt:" + p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.ImageTag
 	// form the cstor-volume-manager image
 	volumeManagerImageName := "cstor-volume-manager-amd64:"
 	if p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
 		volumeManagerImageName = "cstor-volume-mgmt:"
@@ -84,7 +89,8 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	// form the cspi-mgmt image(CSPI_MGMT)
 	cspiImageName := "cstor-pool-manager-amd64:"
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
 		cspiImageName = "cspi-mgmt:"
@@ -103,7 +109,8 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	// form the CSPC image
 	cspcImage := "cspc-operator-amd64:"
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
 		cspcImage = "cspc-operator:"
@@ -126,7 +133,8 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	// form the CVC image
 	cvcImage := "cvc-operator-amd64:"
 	if p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
 		cvcImage = "cvc-operator:"
@@ -148,7 +156,8 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	}
 	// form the CStor admission server image
 	if p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	// form the container image as per the image prefix and image tag.
 	p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
@@ -188,7 +197,8 @@ func (p *Planner) setCSIDefaultsIfNotSet() {
 
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == true {
 		if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ImageTag == "" {
-			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ImageTag = p.ObservedOpenEBS.Spec.Version
+			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ImageTag = p.ObservedOpenEBS.Spec.Version +
+				p.ObservedOpenEBS.Spec.ImageTagSuffix
 		}
 		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 			"cstor-csi-driver:" + p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ImageTag
@@ -206,7 +216,8 @@ func (p *Planner) setCSIDefaultsIfNotSet() {
 
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == true {
 		if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ImageTag == "" {
-			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ImageTag = p.ObservedOpenEBS.Spec.Version
+			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ImageTag = p.ObservedOpenEBS.Spec.Version +
+				p.ObservedOpenEBS.Spec.ImageTagSuffix
 		}
 		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 			"cstor-csi-driver:" + p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ImageTag

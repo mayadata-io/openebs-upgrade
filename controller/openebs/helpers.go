@@ -25,7 +25,8 @@ func (p *Planner) setHelperDefaultsIfNotSet() error {
 	}
 	// form the linux-utils image
 	if p.ObservedOpenEBS.Spec.Helper.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.Helper.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.Helper.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	p.ObservedOpenEBS.Spec.Helper.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"linux-utils:" + p.ObservedOpenEBS.Spec.Helper.ImageTag

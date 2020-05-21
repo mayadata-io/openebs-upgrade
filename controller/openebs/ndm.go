@@ -30,13 +30,14 @@ import (
 // order to install/update NDM components for a particular OpenEBS
 // version.
 var supportedNDMVersionForOpenEBSVersion = map[string]string{
-	types.OpenEBSVersion150:   types.NDMVersion045,
-	types.OpenEBSVersion160:   types.NDMVersion046,
-	types.OpenEBSVersion170:   types.NDMVersion047,
-	types.OpenEBSVersion180:   types.NDMVersion048,
-	types.OpenEBSVersion190:   types.NDMVersion049,
-	types.OpenEBSVersion190EE: types.NDMVersion049EE,
-	types.OpenEBSVersion1100:  types.NDMVersion050,
+	types.OpenEBSVersion150:    types.NDMVersion045,
+	types.OpenEBSVersion160:    types.NDMVersion046,
+	types.OpenEBSVersion170:    types.NDMVersion047,
+	types.OpenEBSVersion180:    types.NDMVersion048,
+	types.OpenEBSVersion190:    types.NDMVersion049,
+	types.OpenEBSVersion190EE:  types.NDMVersion049EE,
+	types.OpenEBSVersion1100:   types.NDMVersion050,
+	types.OpenEBSVersion1100EE: types.NDMVersion050EE,
 }
 
 // add/update NDM defaults if not already provided
@@ -60,7 +61,8 @@ func (p *Planner) setNDMDefaultsIfNotSet() error {
 	if p.ObservedOpenEBS.Spec.NDMDaemon.ImageTag == "" {
 		if ndmVersion, exist :=
 			supportedNDMVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
-			p.ObservedOpenEBS.Spec.NDMDaemon.ImageTag = ndmVersion
+			p.ObservedOpenEBS.Spec.NDMDaemon.ImageTag = ndmVersion +
+				p.ObservedOpenEBS.Spec.ImageTagSuffix
 		} else {
 			return errors.Errorf("Failed to get NDM version for the given OpenEBS version: %s",
 				p.ObservedOpenEBS.Spec.Version)
@@ -236,7 +238,8 @@ func (p *Planner) setNDMOperatorDefaultsIfNotSet() error {
 	if p.ObservedOpenEBS.Spec.NDMOperator.ImageTag == "" {
 		if ndmOperatorVersion, exist :=
 			supportedNDMVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
-			p.ObservedOpenEBS.Spec.NDMOperator.ImageTag = ndmOperatorVersion
+			p.ObservedOpenEBS.Spec.NDMOperator.ImageTag = ndmOperatorVersion +
+				p.ObservedOpenEBS.Spec.ImageTagSuffix
 		} else {
 			return errors.Errorf(
 				"Failed to get NDM Operator version for the given OpenEBS version: %s",

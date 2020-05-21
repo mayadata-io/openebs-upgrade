@@ -58,13 +58,32 @@ func (p *Planner) setDefaultImagePrefixIfNotSet() error {
 	if p.ObservedOpenEBS.Spec.ImagePrefix == "" {
 		// Default docker registry for OpenEBS enterprise installation will
 		// be "mayadataio/" while for community edition will be "quay.io/openebs/".
-		if strings.HasSuffix(p.ObservedOpenEBS.Spec.Version, "ee") {
+		if strings.Contains(p.ObservedOpenEBS.Spec.Version, "ee") {
 			p.ObservedOpenEBS.Spec.ImagePrefix = "mayadataio/"
 		} else {
 			p.ObservedOpenEBS.Spec.ImagePrefix = "quay.io/openebs/"
 		}
 	} else if !strings.HasSuffix(p.ObservedOpenEBS.Spec.ImagePrefix, "/") {
 		p.ObservedOpenEBS.Spec.ImagePrefix = p.ObservedOpenEBS.Spec.ImagePrefix + "/"
+	}
+	return nil
+}
+
+// setImageTagSuffixIfPresent sets a custom image tag suffix that can be specified
+// for pulling the release candidate images for containers such as 1.10.0-RC1, etc.
+//
+// The value for this field can be RC1, RC2, etc which will be appended
+// to the given OpenEBS version.
+// For example, if version is 1.10.0 and the value of imageTagSuffix is RC1,
+// the images that will be used for configurable OpenEBS components will be
+// 1.10.0-RC1.
+func (p *Planner) setImageTagSuffixIfPresent() error {
+	if p.ObservedOpenEBS.Spec.ImageTagSuffix != "" {
+		// prepend the imageTagSuffix with a hyphen(-) which will be used to append
+		// the suffix to the given OpenEBS version.
+		// For example if version is 1.10.0 and imageTagSuffix is RC1 then the resultant
+		// image will be 1.10.0-RC1.
+		p.ObservedOpenEBS.Spec.ImageTagSuffix = "-" + p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	return nil
 }
@@ -106,6 +125,8 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-1.9.0.yaml"
 	case types.OpenEBSVersion1100:
 		yamlFile = "/templates/openebs-operator-1.10.0.yaml"
+	case types.OpenEBSVersion1100EE:
+		yamlFile = "/templates/openebs-operator-1.10.0-ee.yaml"
 	default:
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)

@@ -54,9 +54,11 @@ func (p *Planner) setJIVADefaultsIfNotSet() error {
 	// replica.
 	if p.ObservedOpenEBS.Spec.JivaConfig.ImageTag == "" {
 		if jivaVersion, exist := supportedJivaVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
-			p.ObservedOpenEBS.Spec.JivaConfig.ImageTag = jivaVersion
+			p.ObservedOpenEBS.Spec.JivaConfig.ImageTag = jivaVersion +
+				p.ObservedOpenEBS.Spec.ImageTagSuffix
 		} else {
-			p.ObservedOpenEBS.Spec.JivaConfig.ImageTag = p.ObservedOpenEBS.Spec.Version
+			p.ObservedOpenEBS.Spec.JivaConfig.ImageTag = p.ObservedOpenEBS.Spec.Version +
+				p.ObservedOpenEBS.Spec.ImageTagSuffix
 		}
 	}
 	p.ObservedOpenEBS.Spec.JivaConfig.Image = p.ObservedOpenEBS.Spec.ImagePrefix +

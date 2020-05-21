@@ -55,6 +55,16 @@ type OpenEBSSpec struct {
 	// the images to a custom registry.
 	ImagePrefix string `json:"imagePrefix"`
 
+	// A custom image tag suffix that can be specified for pulling the
+	// release candidate images for containers such as 1.10.0-RC1, etc.
+	//
+	// The value for this field can be RC1, RC2, etc which will be appended
+	// to the given OpenEBS version.
+	// For example, if version is 1.10.0 and the value of imageTagSuffix is RC1,
+	// the images that will be used for configurable OpenEBS components will be
+	// 1.10.0-RC1.
+	ImageTagSuffix string `json:"imageTagSuffix"`
+
 	// Defaults to IfNotPresent
 	// Note: This policy will be applicable to all the images being used
 	// for OpenEBS components.

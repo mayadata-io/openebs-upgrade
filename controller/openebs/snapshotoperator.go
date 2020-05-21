@@ -36,14 +36,16 @@ func (p *Planner) setSnapshotOperatorDefaultsIfNotSet() error {
 	}
 	// form the snapshot-provisioner image
 	if p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"snapshot-provisioner:" + p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ImageTag
 
 	// form the snapshot-controller image
 	if p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ImageTag == "" {
-		p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ImageTag = p.ObservedOpenEBS.Spec.Version
+		p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ImageTag = p.ObservedOpenEBS.Spec.Version +
+			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		"snapshot-controller:" + p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ImageTag
