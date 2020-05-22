@@ -254,6 +254,13 @@ func (p *Planner) getDesiredManifests() error {
 		componentLabels := value.GetLabels()
 		if componentLabels == nil {
 			componentLabels = make(map[string]string, 0)
+		} else {
+			if _, exist := componentLabels[types.OpenEBSVersionLabelKey]; exist {
+				// update the version label as per the given OpenEBS version and imageTagSuffix
+				// if given.
+				componentLabels[types.OpenEBSVersionLabelKey] =
+					p.ObservedOpenEBS.Spec.Version + p.ObservedOpenEBS.Spec.ImageTagSuffix
+			}
 		}
 		componentLabels[types.OpenEBSUpgradeDAOManagedLabelKey] =
 			types.OpenEBSUpgradeDAOManagedLabelValue
@@ -484,6 +491,11 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 			return deploy, err
 		}
 	}
+	// update pod version label
+	err = p.updatePodTemplateVersionLabel(deploy)
+	if err != nil {
+		return deploy, err
+	}
 	// create annotations that refers to the instance which
 	// triggered creation of this deployment
 	deploy.SetAnnotations(
@@ -614,6 +626,11 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 			return daemon, err
 		}
 	}
+	// update pod version label
+	err = p.updatePodTemplateVersionLabel(daemon)
+	if err != nil {
+		return daemon, err
+	}
 	// create annotations that refers to the instance which
 	// triggered creation of this DaemonSet
 	daemon.SetAnnotations(
@@ -626,15 +643,19 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 
 // getDesiredStatefulSet updates the statefulset manifest as per the given configuration.
 func (p *Planner) getDesiredStatefulSet(statefulset *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-
+	var err error
 	switch statefulset.GetName() {
 	case types.CStorCSIControllerNameKey:
-		err := p.updateOpenEBSCStorCSIController(statefulset)
+		err = p.updateOpenEBSCStorCSIController(statefulset)
 		if err != nil {
 			return statefulset, err
 		}
 	}
-
+	// update pod version label
+	err = p.updatePodTemplateVersionLabel(statefulset)
+	if err != nil {
+		return statefulset, err
+	}
 	// create annotations that refers to the instance which
 	// triggered creation of this StatefulSet
 	statefulset.SetAnnotations(
@@ -718,4 +739,29 @@ func compareVersion(v1, v2 string) (int, error) {
 	}
 
 	return 0, nil
+}
+
+// updatePodTemplateVersionLabel updates the version label of pod template present in the deployment,
+// daemonset, statefulset, etc with the given version and imageTagSuffix.
+func (p *Planner) updatePodTemplateVersionLabel(resource *unstructured.Unstructured) error {
+	// update pod version label
+	podLabels, exist, err := unstructured.NestedStringMap(resource.Object, "spec",
+		"template", "metadata", "labels")
+	if err != nil {
+		return err
+	}
+	if exist {
+		if _, exist := podLabels[types.OpenEBSVersionLabelKey]; exist {
+			// update the version label as per the given OpenEBS version and imageTagSuffix
+			// if given.
+			podLabels[types.OpenEBSVersionLabelKey] =
+				p.ObservedOpenEBS.Spec.Version + p.ObservedOpenEBS.Spec.ImageTagSuffix
+			err = unstructured.SetNestedStringMap(resource.Object, podLabels, "spec",
+				"template", "metadata", "labels")
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
