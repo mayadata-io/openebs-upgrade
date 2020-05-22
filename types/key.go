@@ -297,4 +297,7 @@ const (
 	// CStorAdmissionServerComponentNameLabelValue is the value of the component-name label
 	// of CStor admission server component.
 	CStorAdmissionServerComponentNameLabelValue string = "cstor-admission-server"
+	// OpenEBSVersionLabelKey is the version label which is present across all the
+	// OpenEBS components displaying the component version.
+	OpenEBSVersionLabelKey string = "openebs.io/version"
 )
