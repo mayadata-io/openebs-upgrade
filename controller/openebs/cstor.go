@@ -742,7 +742,7 @@ func (p *Planner) updateCVCOperator(deploy *unstructured.Unstructured) error {
 				p.ObservedOpenEBS.Spec.CstorConfig.Target.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE" {
 			err = unstructured.SetNestedField(env.Object,
-				p.ObservedOpenEBS.Spec.CstorConfig.VolumeMgmt.Image, "spec", "value")
+				p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.Image, "spec", "value")
 		} else if envName == "OPENEBS_IO_VOLUME_MONITOR_IMAGE" {
 			err = unstructured.SetNestedField(env.Object,
 				p.ObservedOpenEBS.Spec.Policies.Monitoring.Image, "spec", "value")
