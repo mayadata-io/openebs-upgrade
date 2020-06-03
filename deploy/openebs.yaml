@@ -349,6 +349,18 @@ spec:
       tolerations:
       affinity:
 
+  # mayastorConfig stores the configuration for MayaStor: CAS Data Engine.
+  mayastorConfig:
+    moac:
+      enabled:
+      imageTag:
+    mayastor:
+      enabled:
+      mayastor:
+        imageTag:
+      mayastorGrpc:
+        imageTag:
+
   # admissionServer is an implementation of kubernetes validation admission webhook.
   #
   # It is used for validating various operations before proceeding with them like

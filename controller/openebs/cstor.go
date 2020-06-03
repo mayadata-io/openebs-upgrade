@@ -24,8 +24,6 @@ import (
 )
 
 const (
-	// ContainerOpenEBSCSIPluginName is the name of the container openebs csi plugin
-	ContainerOpenEBSCSIPluginName string = "openebs-csi-plugin"
 	// EnvOpenEBSNamespaceKey is the env key for openebs namespace
 	EnvOpenEBSNamespaceKey string = "OPENEBS_NAMESPACE"
 	// DefaultCSPCOperatorReplicaCount is the default replica count for
@@ -374,13 +372,7 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 			return err
 		}
 
-		if containerName == ContainerOpenEBSCSIPluginName {
-			// Set the image of the container.
-			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Image,
-				"spec", "image")
-			if err != nil {
-				return err
-			}
+		if containerName == types.OpenEBSCstorCSINodeContainerKey {
 			// Set the environmets of the container.
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateOpenEBSCSIPluginEnv)
 			if err != nil {
@@ -598,7 +590,7 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 			return err
 		}
 
-		if containerName == ContainerOpenEBSCSIPluginName {
+		if containerName == types.OpenEBSCstorCSINodeContainerKey {
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Image,
 				"spec", "image")

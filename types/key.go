@@ -56,6 +56,16 @@ const (
 	// NDMDaemonContainerKey is the node-disk-manager container.
 	NDMDaemonContainerKey string = "node-disk-manager"
 
+	// MoacContainerKey is one of the container of moac deployment.
+	MoacContainerKey string = "moac"
+	// MayastorContainerKey is one of the container of mayastor daemonset.
+	MayastorContainerKey string = "mayastor"
+	// MayastorGRPCContainerKey is one of the container of mayastor daemonset.
+	MayastorGRPCContainerKey string = "mayastor-grpc"
+
+	// OpenEBSCstorCSINodeContainerKey is one of the container of openebs-cstor-csi-node daemonset
+	OpenEBSCstorCSINodeContainerKey string = "openebs-csi-plugin"
+
 	// CSINodeInfoCRDNameKey is the name of the CSINodeInfo CRD.
 	CSINodeInfoCRDNameKey string = "csinodeinfos.csi.storage.k8s.io"
 	// CSIVolumeCRDNameKey is the name of the CSIVolume CRD.
@@ -106,6 +116,19 @@ const (
 	CStorCSINodeNameKey string = "openebs-cstor-csi-node"
 	// CStorCSIDriverNameKey is the name of the cstor csi csidriver.
 	CStorCSIDriverNameKey string = "cstor.csi.openebs.io"
+
+	// MoacSANameKey is the name of the moac service account.
+	MoacSANameKey string = "moac"
+	// MoacClusterRoleNameKey is the name of the moac cluster role.
+	MoacClusterRoleNameKey string = "moac"
+	// MoacClusterRoleBindingNameKey is the name of the moac cluster role binding.
+	MoacClusterRoleBindingNameKey string = "moac"
+	// MoacDeploymentNameKey is the name of the moac deployment.
+	MoacDeploymentNameKey string = "moac"
+	// MoacServiceNameKey is the name of the moac service.
+	MoacServiceNameKey string = "moac"
+	// MayastorDaemonsetNameKey is the name of the mayastor daemonset
+	MayastorDaemonsetNameKey string = "mayastor"
 
 	// KindClusterRole is the k8s kind of cluster role
 	KindClusterRole string = "ClusterRole"
@@ -197,6 +220,19 @@ const (
 	CSPCCRDV1alpha1ManifestKey string = CSPCCRDV1alpha1NameKey + "_" + KindCustomResourceDefinition
 	// CSPICRDV1ManifestKey is used to get the manifest of CSPI CRD v1
 	CSPICRDV1ManifestKey string = CSPICRDV1NameKey + "_" + KindCustomResourceDefinition
+
+	// MoacSAManifestKey is used to get the manifest of moac service account.
+	MoacSAManifestKey string = MoacSANameKey + "_" + KindServiceAccount
+	// MoacClusterRoleManifestKey is used to get the manifest of moac cluster role.
+	MoacClusterRoleManifestKey string = MoacClusterRoleBindingNameKey + "_" + KindClusterRole
+	// MoacClusterRoleBindingManifestKey is used to get the manifest of moac cluster role binding.
+	MoacClusterRoleBindingManifestKey string = MoacClusterRoleBindingNameKey + "_" + KindClusterRoleBinding
+	// MoacDeploymentManifestKey is used to get the manifest of moac deployment.
+	MoacDeploymentManifestKey string = MoacDeploymentNameKey + "_" + KindDeployment
+	// MoacServiceManifestKey is used to get the manifest of moac service.
+	MoacServiceManifestKey string = MoacServiceNameKey + "_" + KindService
+	// MayastorDaemonsetManifestKey is used to get the manifest of mayastor daemonset.
+	MayastorDaemonsetManifestKey string = MayastorDaemonsetNameKey + "_" + KindDaemonSet
 
 	// OpenEBSVersion150 is the OpenEBS version 1.5.0
 	OpenEBSVersion150 string = "1.5.0"
@@ -322,6 +358,9 @@ const (
 	CStorAdmissionServerComponentNameLabelValue string = "cstor-admission-server"
 	// OpenEBSVersionLabelKey is the label that can be used to get the OpenEBS version.
 	OpenEBSVersionLabelKey string = "openebs.io/version"
+	// OpenEBSMayastorComponentGroupLabelValue is the value of the component-group label
+	// of mayastor components.
+	OpenEBSMayastorComponentGroupLabelValue string = "mayastor"
 
 	// ComponentNameLabelKey is the label key which is found in OpenEBS components.
 	// These labels and their values already exists in the OpenEBS components even

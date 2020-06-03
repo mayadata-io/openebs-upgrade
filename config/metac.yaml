@@ -68,6 +68,18 @@ spec:
         - openebs-cstor-csi-attacher-role
         - openebs-cstor-csi-cluster-registrar-role
         - openebs-cstor-csi-registrar-role
+    - apiVersion: rbac.authorization.k8s.io/v1
+      resource: clusterrolebindings
+      updateStrategy:
+        method: InPlace
+      nameSelector:
+        - moac
+    - apiVersion: rbac.authorization.k8s.io/v1
+      resource: clusterroles
+      updateStrategy:
+        method: InPlace
+      nameSelector:
+        - moac
     - apiVersion: v1
       resource: serviceaccounts
       updateStrategy:
