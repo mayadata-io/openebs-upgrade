@@ -63,9 +63,6 @@ const (
 	// MayastorGRPCContainerKey is one of the container of mayastor daemonset.
 	MayastorGRPCContainerKey string = "mayastor-grpc"
 
-	// OpenEBSCstorCSINodeContainerKey is one of the container of openebs-cstor-csi-node daemonset
-	OpenEBSCstorCSINodeContainerKey string = "openebs-csi-plugin"
-
 	// CSINodeInfoCRDNameKey is the name of the CSINodeInfo CRD.
 	CSINodeInfoCRDNameKey string = "csinodeinfos.csi.storage.k8s.io"
 	// CSIVolumeCRDNameKey is the name of the CSIVolume CRD.

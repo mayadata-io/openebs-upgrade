@@ -24,6 +24,8 @@ import (
 )
 
 const (
+	// ContainerOpenEBSCSIPluginName is the name of the container openebs csi plugin
+	ContainerOpenEBSCSIPluginName string = "openebs-csi-plugin"
 	// EnvOpenEBSNamespaceKey is the env key for openebs namespace
 	EnvOpenEBSNamespaceKey string = "OPENEBS_NAMESPACE"
 	// DefaultCSPCOperatorReplicaCount is the default replica count for
@@ -372,7 +374,13 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 			return err
 		}
 
-		if containerName == types.OpenEBSCstorCSINodeContainerKey {
+		if containerName == ContainerOpenEBSCSIPluginName {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
 			// Set the environmets of the container.
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateOpenEBSCSIPluginEnv)
 			if err != nil {
@@ -391,6 +399,18 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		// Append the new extra volume mounts with the existing volume mounts, required for the csi to work.
 		volumeMounts = append(volumeMounts, extraVolumeMounts...)
 		err = unstructured.SetNestedSlice(obj.Object, volumeMounts, "spec", "volumeMounts")
+		if err != nil {
+			return err
+		}
+
+		// Set the resource of the containers.
+		if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Resources != nil {
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Resources,
+				"spec", "resources")
+		} else if p.ObservedOpenEBS.Spec.Resources != nil {
+			err = unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
+		}
 		if err != nil {
 			return err
 		}
@@ -590,7 +610,7 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 			return err
 		}
 
-		if containerName == types.OpenEBSCstorCSINodeContainerKey {
+		if containerName == ContainerOpenEBSCSIPluginName {
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Image,
 				"spec", "image")
@@ -604,6 +624,18 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 			}
 		}
 		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
+		}
+
+		// Set the resource of the containers.
+		if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Resources != nil {
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Resources,
+				"spec", "resources")
+		} else if p.ObservedOpenEBS.Spec.Resources != nil {
+			err = unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
+		}
 		if err != nil {
 			return err
 		}

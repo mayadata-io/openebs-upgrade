@@ -237,16 +237,6 @@ func (p *Planner) removeDisabledManifests() error {
 		delete(p.ComponentManifests, types.CStorAdmissionServerManifestKey)
 	}
 
-	if *p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled == false &&
-		*p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled == false {
-		delete(p.ComponentManifests, types.MoacSAManifestKey)
-		delete(p.ComponentManifests, types.MoacClusterRoleManifestKey)
-		delete(p.ComponentManifests, types.MoacClusterRoleBindingManifestKey)
-		delete(p.ComponentManifests, types.MoacDeploymentManifestKey)
-		delete(p.ComponentManifests, types.MoacServiceManifestKey)
-		delete(p.ComponentManifests, types.MayastorDaemonsetManifestKey)
-	}
-
 	if *p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled == false {
 		delete(p.ComponentManifests, types.MoacSAManifestKey)
 		delete(p.ComponentManifests, types.MoacClusterRoleManifestKey)
@@ -550,12 +540,8 @@ func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructur
 // getDesiredDaemonSet updates the daemonset manifest as per the given configuration.
 func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	var (
-		image             string
-		mayastorImage     string
-		mayastorGRPCImage string
-		err               error
+		err error
 	)
-	resources := make(map[string]interface{})
 	nodeSelector := make(map[string]string)
 	tolerations := make([]interface{}, 0)
 	affinity := make(map[string]interface{})
@@ -563,18 +549,13 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 	daemon.SetNamespace(p.ObservedOpenEBS.Namespace)
 	switch daemon.GetName() {
 	case types.NDMNameKey:
-		image = p.ObservedOpenEBS.Spec.NDMDaemon.Image
-		resources = p.ObservedOpenEBS.Spec.NDMDaemon.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.NDMDaemon.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.NDMDaemon.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.NDMDaemon.Affinity
 		err = p.updateNDM(daemon)
 	case types.CStorCSINodeNameKey:
-		image = p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Image
 		err = p.updateOpenEBSCStorCSINode(daemon)
 	case types.MayastorDaemonsetNameKey:
-		mayastorImage = p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Mayastor.Image
-		mayastorGRPCImage = p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.MayastorGRPC.Image
 		err = p.updateMayastor(daemon)
 	}
 	if err != nil {
@@ -586,42 +567,8 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		return daemon, err
 	}
 	updateContainer := func(obj *unstructured.Unstructured) error {
-		if daemon.GetName() == types.MayastorDaemonsetNameKey {
-			containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
-			if err != nil {
-				return err
-			}
-			if containerName == types.MayastorContainerKey {
-				err = unstructured.SetNestedField(obj.Object, mayastorImage, "spec", "image")
-			}
-			if containerName == types.MayastorGRPCContainerKey {
-				err = unstructured.SetNestedField(obj.Object, mayastorGRPCImage, "spec", "image")
-			}
-		} else if daemon.GetName() == types.CStorCSINodeNameKey {
-			containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
-			if err != nil {
-				return err
-			}
-			if containerName == types.OpenEBSCstorCSINodeContainerKey {
-				err = unstructured.SetNestedField(obj.Object, image, "spec", "image")
-			}
-		} else {
-			err = unstructured.SetNestedField(obj.Object, image, "spec", "image")
-		}
-		if err != nil {
-			return err
-		}
 		err = unstructured.SetNestedField(obj.Object,
 			p.ObservedOpenEBS.Spec.ImagePullPolicy, "spec", "imagePullPolicy")
-		if err != nil {
-			return err
-		}
-		if resources != nil {
-			err = unstructured.SetNestedField(obj.Object, resources, "spec", "resources")
-		} else if p.ObservedOpenEBS.Spec.Resources != nil {
-			err = unstructured.SetNestedField(obj.Object,
-				p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
-		}
 		if err != nil {
 			return err
 		}

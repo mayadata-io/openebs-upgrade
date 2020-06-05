@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
+	"mayadata.io/openebs-upgrade/unstruct"
 )
 
 const (
@@ -26,7 +27,7 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 
 	if p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled == nil {
 		p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled = new(bool)
-		*p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled = true
+		*p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled = false
 	}
 
 	if *p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled == true {
@@ -52,7 +53,7 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 
 	if p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled == nil {
 		p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled = new(bool)
-		*p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled = true
+		*p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled = false
 	}
 
 	if *p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled == true {
@@ -140,6 +141,70 @@ func (p *Planner) updateMayastor(daemonset *unstructured.Unstructured) error {
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.MayastorDaemonsetNameKey
 	// set the desired labels
 	daemonset.SetLabels(desiredLabels)
+
+	containers, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+
+		if containerName == types.MayastorContainerKey {
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Mayastor.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
+
+			// Set the resource of the container.
+			resources := map[string]interface{}{
+				"limits": map[string]interface{}{
+					"cpu":           "1",
+					"memory":        "500Mi",
+					"hugepages-2Mi": "1Gi",
+				},
+				"requests": map[string]interface{}{
+					"cpu":           "1",
+					"memory":        "500Mi",
+					"hugepages-2Mi": "1Gi",
+				},
+			}
+			err = unstructured.SetNestedField(obj.Object, resources, "spec", "resources")
+		}
+		if containerName == types.MayastorGRPCContainerKey {
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.MayastorGRPC.Image,
+				"spec", "image")
+		}
+		if err != nil {
+			return err
+		}
+
+		if p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Resources != nil &&
+			containerName != types.MayastorContainerKey {
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Resources,
+				"spec", "resources")
+		} else if p.ObservedOpenEBS.Spec.Resources != nil &&
+			containerName != types.MayastorContainerKey {
+			err = unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
+		}
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+	err = unstructured.SetNestedSlice(daemonset.Object, containers, "spec",
+		"template", "spec", "containers")
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
