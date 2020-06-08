@@ -102,6 +102,10 @@ func (p *Planner) updateMoac(deploy *unstructured.Unstructured) error {
 	// set the desired labels
 	deploy.SetLabels(desiredLabels)
 
+	// Overwrite the namespace to mayastor for mayastor based components.
+	// Note: mayastor based components will be installed only in mayastor namespace only.
+	deploy.SetNamespace(types.MayastorNamespaceNameKey)
+
 	return nil
 }
 
@@ -122,6 +126,10 @@ func (p *Planner) updateMoacService(svc *unstructured.Unstructured) error {
 	// set the desired labels
 	svc.SetLabels(desiredLabels)
 
+	// Overwrite the namespace to mayastor for mayastor based components.
+	// Note: mayastor based components will be installed only in mayastor namespace only.
+	svc.SetNamespace(types.MayastorNamespaceNameKey)
+
 	return nil
 }
 
@@ -141,6 +149,10 @@ func (p *Planner) updateMayastor(daemonset *unstructured.Unstructured) error {
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.MayastorDaemonsetNameKey
 	// set the desired labels
 	daemonset.SetLabels(desiredLabels)
+
+	// Overwrite the namespace to mayastor for mayastor based components.
+	// Note: mayastor based components will be installed only in mayastor namespace only.
+	daemonset.SetNamespace(types.MayastorNamespaceNameKey)
 
 	containers, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "containers")
 	if err != nil {
@@ -205,6 +217,32 @@ func (p *Planner) updateMayastor(daemonset *unstructured.Unstructured) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// updateMayastorNamespace updates the mayastor namespace
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateMayastorNamespace(namespace *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := namespace.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for mayastor daemonset:
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: mayastor
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: mayastor
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSMayastorComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.MayastorNamespaceNameKey
+	// set the desired labels
+	namespace.SetLabels(desiredLabels)
+
+	namespace.SetName(types.MayastorNamespaceNameKey)
 
 	return nil
 }

@@ -22,7 +22,7 @@ import (
 // getDesiredNamespace updates the namespace manifest as per the given configuration
 // in OpenEBS CR.
 func (p *Planner) getDesiredNamespace(namespace *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	namespace.SetName(p.ObservedOpenEBS.Namespace)
+	var err error
 	// create annotations that refers to the instance which
 	// triggered creation of this namespace
 	namespace.SetAnnotations(
@@ -30,6 +30,14 @@ func (p *Planner) getDesiredNamespace(namespace *unstructured.Unstructured) (*un
 			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
 		},
 	)
+
+	switch namespace.GetName() {
+	case types.MayastorNamespaceNameKey:
+		err = p.updateMayastorNamespace(namespace)
+	}
+	if err != nil {
+		return namespace, err
+	}
 
 	return namespace, nil
 }
@@ -61,6 +69,9 @@ func (p *Planner) getDesiredServiceAccount(sa *unstructured.Unstructured) (*unst
 		sa.SetNamespace(types.NamespaceKubeSystem)
 		err = p.updateCStorCSINodeServiceAccount(sa)
 	case types.MoacSANameKey:
+		// Overwrite the namespace to mayastor for mayastor based components.
+		// Note: mayastor based components will be installed only in mayastor namespace only.
+		sa.SetNamespace(types.MayastorNamespaceNameKey)
 		err = p.updateMoacServiceAccount(sa)
 	}
 	if err != nil {
@@ -422,6 +433,13 @@ func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (
 		// Note: csi based components will be installed only in kube-system namespace only.
 		if objName == types.CStorCSINodeSANameKey || objName == types.CStorCSIControllerSANameKey {
 			err := unstructured.SetNestedField(obj.Object, types.NamespaceKubeSystem, "spec", "namespace")
+			if err != nil {
+				return err
+			}
+		} else if objName == types.MoacSANameKey {
+			// Overwrite the namespace to mayastor for mayastor based components.
+			// Note: mayastor based components will be installed only in mayastor namespace only.
+			err := unstructured.SetNestedField(obj.Object, types.MayastorNamespaceNameKey, "spec", "namespace")
 			if err != nil {
 				return err
 			}

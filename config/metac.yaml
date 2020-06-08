@@ -112,6 +112,12 @@ spec:
         method: InPlace
       nameSelector:
         - cstor.csi.openebs.io
+    - apiVersion: v1
+      resource: namespaces
+      updateStrategy:
+        method: InPlace
+      nameSelector:
+        - mayastor
   hooks:
     sync:
       inline:

@@ -126,6 +126,8 @@ const (
 	MoacServiceNameKey string = "moac"
 	// MayastorDaemonsetNameKey is the name of the mayastor daemonset
 	MayastorDaemonsetNameKey string = "mayastor"
+	// MayastorNamespaceNameKey is the name of the mayastor namespace
+	MayastorNamespaceNameKey string = "mayastor"
 
 	// KindClusterRole is the k8s kind of cluster role
 	KindClusterRole string = "ClusterRole"
@@ -230,6 +232,8 @@ const (
 	MoacServiceManifestKey string = MoacServiceNameKey + "_" + KindService
 	// MayastorDaemonsetManifestKey is used to get the manifest of mayastor daemonset.
 	MayastorDaemonsetManifestKey string = MayastorDaemonsetNameKey + "_" + KindDaemonSet
+	// MayastorNamespaceManifestKey is used to get the manifest of mayastor namespace.
+	MayastorNamespaceManifestKey string = MayastorNamespaceNameKey + "_" + KindNamespace
 
 	// OpenEBSVersion150 is the OpenEBS version 1.5.0
 	OpenEBSVersion150 string = "1.5.0"
