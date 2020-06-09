@@ -16,6 +16,7 @@ package openebs
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
+	"mayadata.io/openebs-upgrade/unstruct"
 )
 
 const (
@@ -38,6 +39,10 @@ func (p *Planner) setAdmissionServerDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.AdmissionServer.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.AdmissionServer.Enabled = true
 	}
+	// set the name which will be used to deploy
+	if len(p.ObservedOpenEBS.Spec.AdmissionServer.Name) == 0 {
+		p.ObservedOpenEBS.Spec.AdmissionServer.Name = types.AdmissionServerNameKey
+	}
 	if p.ObservedOpenEBS.Spec.AdmissionServer.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.AdmissionServer.ImageTag = p.ObservedOpenEBS.Spec.Version +
 			p.ObservedOpenEBS.Spec.ImageTagSuffix
@@ -55,6 +60,7 @@ func (p *Planner) setAdmissionServerDefaultsIfNotSet() error {
 // updateAdmissionServer updates the openebs-admission-server manifest as per the
 // reconcile.ObservedOpenEBS values.
 func (p *Planner) updateAdmissionServer(deploy *unstructured.Unstructured) error {
+	deploy.SetName(p.ObservedOpenEBS.Spec.AdmissionServer.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := deploy.GetLabels()
 	if desiredLabels == nil {
@@ -65,6 +71,37 @@ func (p *Planner) updateAdmissionServer(deploy *unstructured.Unstructured) error
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.AdmissionServerNameKey
 	// set the desired labels
 	deploy.SetLabels(desiredLabels)
+	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+	// update the containers
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if containerName == "admission-webhook" {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.AdmissionServer.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	// Update the containers.
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+	// Set back the value of the containers.
+	err = unstructured.SetNestedSlice(deploy.Object,
+		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

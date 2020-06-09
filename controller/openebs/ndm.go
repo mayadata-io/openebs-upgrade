@@ -23,13 +23,13 @@ import (
 	"mayadata.io/openebs-upgrade/unstruct"
 )
 
-// supportedNDMVersionForOpenEBSVersion stores the mapping for
+// SupportedNDMVersionForOpenEBSVersion stores the mapping for
 // NDM to OpenEBS version i.e., a NDM version for each of the
 // supported OpenEBS versions.
 // Note: This will be referred to form the container images in
 // order to install/update NDM components for a particular OpenEBS
 // version.
-var supportedNDMVersionForOpenEBSVersion = map[string]string{
+var SupportedNDMVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion150:    types.NDMVersion045,
 	types.OpenEBSVersion160:    types.NDMVersion046,
 	types.OpenEBSVersion170:    types.NDMVersion047,
@@ -55,12 +55,16 @@ func (p *Planner) setNDMDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.NDMDaemon.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.NDMDaemon.Enabled = true
 	}
+	// set the name with which ndm daemon will be deployed
+	if len(p.ObservedOpenEBS.Spec.NDMDaemon.Name) == 0 {
+		p.ObservedOpenEBS.Spec.NDMDaemon.Name = types.NDMNameKey
+	}
 	// Check if imageTag fiels is set or not, if not
 	// then set the NDM image tag as per the OpenEBS version
 	// given.
 	if p.ObservedOpenEBS.Spec.NDMDaemon.ImageTag == "" {
 		if ndmVersion, exist :=
-			supportedNDMVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+			SupportedNDMVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
 			p.ObservedOpenEBS.Spec.NDMDaemon.ImageTag = ndmVersion +
 				p.ObservedOpenEBS.Spec.ImageTagSuffix
 		} else {
@@ -234,10 +238,14 @@ func (p *Planner) setNDMOperatorDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.NDMOperator.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.NDMOperator.Enabled = true
 	}
+	// set the name with which ndm operator will be deployed
+	if len(p.ObservedOpenEBS.Spec.NDMOperator.Name) == 0 {
+		p.ObservedOpenEBS.Spec.NDMOperator.Name = types.NDMOperatorNameKey
+	}
 	// set the NDM operator image as per the given config values
 	if p.ObservedOpenEBS.Spec.NDMOperator.ImageTag == "" {
 		if ndmOperatorVersion, exist :=
-			supportedNDMVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+			SupportedNDMVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
 			p.ObservedOpenEBS.Spec.NDMOperator.ImageTag = ndmOperatorVersion +
 				p.ObservedOpenEBS.Spec.ImageTagSuffix
 		} else {
@@ -257,9 +265,23 @@ func (p *Planner) setNDMOperatorDefaultsIfNotSet() error {
 	return nil
 }
 
+// Set the NDM configmap default values if not set
+func (p *Planner) setNDMConfigMapDefaultsIfNotSet() error {
+	// Initialize NDM configmap field if not already set
+	if p.ObservedOpenEBS.Spec.NDMConfigMap == nil {
+		p.ObservedOpenEBS.Spec.NDMConfigMap = &types.NDMConfigMap{}
+	}
+	// set the name of NDM configMap.
+	if len(p.ObservedOpenEBS.Spec.NDMConfigMap.Name) == 0 {
+		p.ObservedOpenEBS.Spec.NDMConfigMap.Name = types.NDMConfigNameKey
+	}
+	return nil
+}
+
 // updateNDMConfig updates/sets the default values for ndm configmap
 // as per the values provided in the OpenEBS CR.
 func (p *Planner) updateNDMConfig(configmap *unstructured.Unstructured) error {
+	configmap.SetName(p.ObservedOpenEBS.Spec.NDMConfigMap.Name)
 	// Initialize NDM config data structure i.e., data field of the configmap
 	// in order to form the data to be put in the configmap with the updated values.
 	ndmConfigData := &types.NDMConfig{}
@@ -339,6 +361,7 @@ func (p *Planner) updateNDMConfig(configmap *unstructured.Unstructured) error {
 // updateNDM updates the NDM structure as per the provided values otherwise
 // default values.
 func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
+	daemonset.SetName(p.ObservedOpenEBS.Spec.NDMDaemon.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := daemonset.GetLabels()
 	if desiredLabels == nil {
@@ -495,6 +518,7 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 // updateNDMOperator updates the NDM Operator structure as per the provided values otherwise
 // default values.
 func (p *Planner) updateNDMOperator(deploy *unstructured.Unstructured) error {
+	deploy.SetName(p.ObservedOpenEBS.Spec.NDMOperator.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := deploy.GetLabels()
 	if desiredLabels == nil {
@@ -541,6 +565,12 @@ func (p *Planner) updateNDMOperator(deploy *unstructured.Unstructured) error {
 			return err
 		}
 		if containerName == "node-disk-operator" {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.NDMOperator.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateNDMOperatorEnv)
 			if err != nil {
 				return err

@@ -16,6 +16,7 @@ package openebs
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
+	"mayadata.io/openebs-upgrade/unstruct"
 )
 
 const (
@@ -29,6 +30,10 @@ const (
 func (p *Planner) setSnapshotOperatorDefaultsIfNotSet() error {
 	if p.ObservedOpenEBS.Spec.SnapshotOperator == nil {
 		p.ObservedOpenEBS.Spec.SnapshotOperator = &types.SnapshotOperator{}
+	}
+	// set the name with which snapshot-operator will be deployed
+	if len(p.ObservedOpenEBS.Spec.SnapshotOperator.Name) == 0 {
+		p.ObservedOpenEBS.Spec.SnapshotOperator.Name = types.SnapshotOperatorNameKey
 	}
 	if p.ObservedOpenEBS.Spec.SnapshotOperator.Enabled == nil {
 		p.ObservedOpenEBS.Spec.SnapshotOperator.Enabled = new(bool)
@@ -60,6 +65,8 @@ func (p *Planner) setSnapshotOperatorDefaultsIfNotSet() error {
 // updateSnapshotOperator updates the openebs-snapshot-operator manifest as per the
 // reconcile.ObservedOpenEBS values.
 func (p *Planner) updateSnapshotOperator(deploy *unstructured.Unstructured) error {
+	var err error
+	deploy.SetName(p.ObservedOpenEBS.Spec.SnapshotOperator.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := deploy.GetLabels()
 	if desiredLabels == nil {
@@ -71,5 +78,43 @@ func (p *Planner) updateSnapshotOperator(deploy *unstructured.Unstructured) erro
 	// set the desired labels
 	deploy.SetLabels(desiredLabels)
 
+	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+	// update the containers
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if containerName == types.SnapshotControllerContainerKey {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
+		} else if containerName == types.SnapshotProvisionerContainerKey {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	// Update the containers.
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+	// Set back the value of the containers.
+	err = unstructured.SetNestedSlice(deploy.Object,
+		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
 	return nil
 }

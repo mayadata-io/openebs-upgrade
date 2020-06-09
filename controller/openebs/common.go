@@ -304,15 +304,10 @@ func (p *Planner) getDesiredManifests() error {
 }
 
 // getDesiredDeployment updates the deployment manifest as per the given configuration.
-// TODO: Make this method modular, it is a big method which seems to be doing multiple
-// things.
 func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	var (
-		replicas         *int32
-		image            string
-		provisionerImage string
-		controllerImage  string
-		err              error
+		replicas *int32
+		err      error
 	)
 	nodeSelector := make(map[string]string)
 	tolerations := make([]interface{}, 0)
@@ -324,7 +319,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 	switch deploy.GetName() {
 	case types.MayaAPIServerNameKey:
 		replicas = p.ObservedOpenEBS.Spec.APIServer.Replicas
-		image = p.ObservedOpenEBS.Spec.APIServer.Image
 		resources = p.ObservedOpenEBS.Spec.APIServer.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.APIServer.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.APIServer.Tolerations
@@ -333,7 +327,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 
 	case types.ProvisionerNameKey:
 		replicas = p.ObservedOpenEBS.Spec.Provisioner.Replicas
-		image = p.ObservedOpenEBS.Spec.Provisioner.Image
 		resources = p.ObservedOpenEBS.Spec.Provisioner.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.Provisioner.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.Provisioner.Tolerations
@@ -342,8 +335,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 
 	case types.SnapshotOperatorNameKey:
 		replicas = p.ObservedOpenEBS.Spec.SnapshotOperator.Replicas
-		provisionerImage = p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.Image
-		controllerImage = p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.Image
 		resources = p.ObservedOpenEBS.Spec.SnapshotOperator.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.SnapshotOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.SnapshotOperator.Tolerations
@@ -352,7 +343,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 
 	case types.NDMOperatorNameKey:
 		replicas = p.ObservedOpenEBS.Spec.NDMOperator.Replicas
-		image = p.ObservedOpenEBS.Spec.NDMOperator.Image
 		resources = p.ObservedOpenEBS.Spec.NDMOperator.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.NDMOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.NDMOperator.Tolerations
@@ -361,7 +351,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 
 	case types.LocalProvisionerNameKey:
 		replicas = p.ObservedOpenEBS.Spec.LocalProvisioner.Replicas
-		image = p.ObservedOpenEBS.Spec.LocalProvisioner.Image
 		resources = p.ObservedOpenEBS.Spec.LocalProvisioner.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.LocalProvisioner.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.LocalProvisioner.Tolerations
@@ -370,7 +359,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 
 	case types.AdmissionServerNameKey:
 		replicas = p.ObservedOpenEBS.Spec.AdmissionServer.Replicas
-		image = p.ObservedOpenEBS.Spec.AdmissionServer.Image
 		resources = p.ObservedOpenEBS.Spec.AdmissionServer.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.AdmissionServer.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.AdmissionServer.Tolerations
@@ -379,7 +367,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 
 	case types.CSPCOperatorNameKey:
 		replicas = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Replicas
-		image = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Image
 		resources = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Tolerations
@@ -388,7 +375,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 
 	case types.CVCOperatorNameKey:
 		replicas = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas
-		image = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Image
 		resources = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Tolerations
@@ -397,7 +383,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 
 	case types.CStorAdmissionServerNameKey:
 		replicas = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Replicas
-		image = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Image
 		resources = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Tolerations
@@ -432,26 +417,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 			err = unstructured.SetNestedField(obj.Object, resources, "spec", "resources")
 		} else if p.ObservedOpenEBS.Spec.Resources != nil {
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
-		}
-		if err != nil {
-			return err
-		}
-		// Explicitly checking for openebs-snapshot-operator in order to update
-		// its multiple containers.
-		// TODO: handle multiple container update cases in a better way, this seems
-		// to be a very naive way.
-		if deploy.GetName() == types.SnapshotOperatorNameKey {
-			containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
-			if err != nil {
-				return err
-			}
-			if containerName == types.SnapshotControllerContainerKey {
-				err = unstructured.SetNestedField(obj.Object, controllerImage, "spec", "image")
-			} else if containerName == types.SnapshotProvisionerContainerKey {
-				err = unstructured.SetNestedField(obj.Object, provisionerImage, "spec", "image")
-			}
-		} else {
-			err = unstructured.SetNestedField(obj.Object, image, "spec", "image")
 		}
 		if err != nil {
 			return err

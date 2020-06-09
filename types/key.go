@@ -32,11 +32,29 @@ const (
 	SnapshotOperatorNameKey string = "openebs-snapshot-operator"
 	// AdmissionServerNameKey is the name of admission server deployment
 	AdmissionServerNameKey string = "openebs-admission-server"
+	// AdmissionServerSVCNameKey is the name of admission server service
+	AdmissionServerSVCNameKey string = "admission-server-svc"
 
 	// SnapshotControllerContainerKey is one of the container of snapshot operator
 	SnapshotControllerContainerKey string = "snapshot-controller"
 	// SnapshotProvisionerContainerKey is also one of the container of snapshot operator
 	SnapshotProvisionerContainerKey string = "snapshot-provisioner"
+	// OpenEBSProvisionerContainerKey is the name of the container of openebs-provisioner.
+	OpenEBSProvisionerContainerKey string = "openebs-provisioner"
+	// LocalPVProvisionerContainerKey is the container name of openebs-provisioner-hostpath
+	LocalPVProvisionerContainerKey string = "openebs-provisioner-hostpath"
+	// AdmissionServerContainerKey is the container name of admission server
+	AdmissionServerContainerKey string = "admission-webhook"
+	// CSPCOperatorContainerKey is the container name of cspc-operator
+	CSPCOperatorContainerKey string = "cspc-operator"
+	// CVCOperatorContainerKey is the container name of cvc-operator
+	CVCOperatorContainerKey string = "cvc-operator"
+	// CStorCSIControllerCSIPluginContainerKey is the openebs-csi-plugin container name.
+	CStorCSIControllerCSIPluginContainerKey string = "openebs-csi-plugin"
+	// CStorCSINodeCSIPluginContainerKey is the openebs-csi-plugin container name.
+	CStorCSINodeCSIPluginContainerKey string = "openebs-csi-plugin"
+	// NDMDaemonContainerKey is the node-disk-manager container.
+	NDMDaemonContainerKey string = "node-disk-manager"
 
 	// CSINodeInfoCRDNameKey is the name of the CSINodeInfo CRD.
 	CSINodeInfoCRDNameKey string = "csinodeinfos.csi.storage.k8s.io"
@@ -225,6 +243,11 @@ const (
 	// OpenEBSUpgradeDAOManagedLabelValue is the value for openebs-upgrade dao managed label
 	OpenEBSUpgradeDAOManagedLabelValue string = "true"
 
+	// OpenEBSUpgradeDAOAdoptLabelKey is the key for openebs-upgrade dao adopt label
+	OpenEBSUpgradeDAOAdoptLabelKey string = "openebs-upgrade.dao.mayadata.io/adopt"
+	// OpenEBSUpgradeDAOAdoptLabelValue is the value for openebs-upgrade dao adopt label
+	OpenEBSUpgradeDAOAdoptLabelValue string = "true"
+
 	// OpenEBSComponentGroupLabelKey is the label key which helps in identifying
 	// a particular group of OpenEBS components i.e., the component-type value for
 	// CSI related cluster roles can still be "cluster-role" but the value for
@@ -297,7 +320,38 @@ const (
 	// CStorAdmissionServerComponentNameLabelValue is the value of the component-name label
 	// of CStor admission server component.
 	CStorAdmissionServerComponentNameLabelValue string = "cstor-admission-server"
-	// OpenEBSVersionLabelKey is the version label which is present across all the
-	// OpenEBS components displaying the component version.
+	// OpenEBSVersionLabelKey is the label that can be used to get the OpenEBS version.
 	OpenEBSVersionLabelKey string = "openebs.io/version"
+
+	// ComponentNameLabelKey is the label key which is found in OpenEBS components.
+	// These labels and their values already exists in the OpenEBS components even
+	// if these are not installed via openebs-upgrade.
+	//
+	// NOTE: These keys and values can be used to identify a particular OpenEBS component.
+	ComponentNameLabelKey                     string = "openebs.io/component-name"
+	NDMComponentNameLabelValue                string = "ndm"
+	NDMOperatorComponentNameLabelValue        string = "ndm-operator"
+	NDMConfigComponentNameLabelValue          string = "ndm-config"
+	CSPCOperatorComponentNameLabelValue       string = "cspc-operator"
+	CVCOperatorComponentNameLabelValue        string = "cvc-operator"
+	MayaAPIServerComponentNameLabelValue      string = "maya-apiserver"
+	MayaAPIServerSVCComponentNameLabelValue   string = "maya-apiserver-svc"
+	AdmissionServerComponentNameLabelValue    string = "admission-webhook"
+	AdmissionServerSVCComponentNameLabelValue string = "admission-webhook-svc"
+	LocalPVProvisionerComponentNameLabelValue string = "openebs-localpv-provisioner"
+	OpenEBSProvisionerComponentNameLabelValue string = "openebs-provisioner"
+	SnapshotOperatorComponentNameLabelValue   string = "openebs-snapshot-operator"
+	CStorCSINodeComponentNameLabelValue       string = "openebs-cstor-csi-node"
+	CStorCSIControllerComponentNameLabelValue string = "openebs-cstor-csi-controller"
+
+	KeyName         string = "name"
+	KeyEnabled      string = "enabled"
+	KeyReplicas     string = "replicas"
+	KeyNodeSelector string = "nodeSelector"
+	KeyAffinity     string = "affinity"
+	KeyTolerations  string = "tolerations"
+	KeyResources    string = "resources"
+	KeyImage        string = "image"
+	KeyImageTag     string = "imageTag"
+	KeyISCSIPath    string = "iscsiPath"
 )

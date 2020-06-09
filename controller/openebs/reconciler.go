@@ -271,6 +271,7 @@ func (p *Planner) init() error {
 		p.setAdmissionServerDefaultsIfNotSet,
 		p.setNDMDefaultsIfNotSet,
 		p.setNDMOperatorDefaultsIfNotSet,
+		p.setNDMConfigMapDefaultsIfNotSet,
 		p.setJIVADefaultsIfNotSet,
 		p.setCStorDefaultsIfNotSet,
 		p.setHelperDefaultsIfNotSet,

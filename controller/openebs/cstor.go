@@ -108,6 +108,10 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	}
 	// form the CSPC image
 	cspcImage := "cspc-operator-amd64:"
+	// set the name with which cspc-operator will be deployed
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Name) == 0 {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Name = types.CSPCOperatorNameKey
+	}
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ImageTag = p.ObservedOpenEBS.Spec.Version +
 			p.ObservedOpenEBS.Spec.ImageTagSuffix
@@ -132,6 +136,10 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	}
 	// form the CVC image
 	cvcImage := "cvc-operator-amd64:"
+	// set the name with which cvc-operator will be deployed
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Name) == 0 {
+		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Name = types.CVCOperatorNameKey
+	}
 	if p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ImageTag = p.ObservedOpenEBS.Spec.Version +
 			p.ObservedOpenEBS.Spec.ImageTagSuffix
@@ -184,13 +192,15 @@ func (p *Planner) setCSIDefaultsIfNotSet() {
 	if !isCSISupported {
 		glog.V(5).Infof("Skipping CSI installation.")
 	}
-
 	// Set the default values for cstor csi controller statefulset in configuration.
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == nil {
 		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled = true
 	}
-
+	// set the name with which csi-controller will be deployed
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Name) == 0 {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Name = types.CStorCSIControllerNameKey
+	}
 	if !isCSISupported && *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == true {
 		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled = false
 	}
@@ -209,7 +219,10 @@ func (p *Planner) setCSIDefaultsIfNotSet() {
 		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled = true
 	}
-
+	// set the name with which csi-node will be deployed
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Name) == 0 {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Name = types.CStorCSINodeNameKey
+	}
 	if !isCSISupported && *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == true {
 		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled = false
 	}
@@ -254,6 +267,7 @@ func (p *Planner) isCSISupported() (bool, error) {
 
 // updateOpenEBSCStorCSINode updates the values of openebs-cstor-csi-node daemonset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured) error {
+	daemonset.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Name)
 	// overwrite the namespace to kube-system as csi based components will run only in kube-system namespace.
 	daemonset.SetNamespace(types.NamespaceKubeSystem)
 
@@ -538,6 +552,7 @@ func (p *Planner) getUbuntu1804VolumeMounts() ([]interface{}, []interface{}) {
 
 // updateOpenEBSCStorCSIController updates the values of openebs-cstor-csi-controller statefulset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unstructured) error {
+	statefulset.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Name)
 	// overwrite the namespace to kube-system as csi based components will run only in kube-system namespace.
 	statefulset.SetNamespace(types.NamespaceKubeSystem)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
@@ -620,6 +635,7 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 
 // updateCSPCOperator updates the CSPC operator manifest as per the reconcile.ObservedOpenEBS values.
 func (p *Planner) updateCSPCOperator(deploy *unstructured.Unstructured) error {
+	deploy.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := deploy.GetLabels()
 	if desiredLabels == nil {
@@ -680,6 +696,12 @@ func (p *Planner) updateCSPCOperator(deploy *unstructured.Unstructured) error {
 		// In order to update envs of other containers, just write an updateEnv
 		// function for specific containers.
 		if containerName == "cspc-operator" {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateCSPCOperatorEnv)
 			if err != nil {
 				return err
@@ -706,6 +728,7 @@ func (p *Planner) updateCSPCOperator(deploy *unstructured.Unstructured) error {
 
 // updateCVCOperator updates the CVC operator manifest as per the reconcile.ObservedOpenEBS values.
 func (p *Planner) updateCVCOperator(deploy *unstructured.Unstructured) error {
+	deploy.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := deploy.GetLabels()
 	if desiredLabels == nil {
@@ -766,6 +789,12 @@ func (p *Planner) updateCVCOperator(deploy *unstructured.Unstructured) error {
 		// In order to update envs of other containers, just write an updateEnv
 		// function for specific containers.
 		if containerName == "cvc-operator" {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateCVCOperatorEnv)
 			if err != nil {
 				return err
@@ -802,6 +831,39 @@ func (p *Planner) updateCStorAdmissionServer(deploy *unstructured.Unstructured) 
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorAdmissionServerComponentNameLabelValue
 	// set the desired labels
 	deploy.SetLabels(desiredLabels)
+
+	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+	// update the containers
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if containerName == "admission-webhook" {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	// Update the containers.
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+	// Set back the value of the containers.
+	err = unstructured.SetNestedSlice(deploy.Object,
+		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

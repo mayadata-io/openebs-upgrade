@@ -1,0 +1,9 @@
+# This configuration is for OpenEBS Adoption i.e., this CR will help in triggering
+# the adoption of existing OpenEBS configuration via openebs-upgrade.
+apiVersion: dao.mayadata.io/v1alpha1
+kind: AdoptOpenEBS
+metadata:
+  name: adopt-openebs-1.9.0
+  # Namespace i.e. the namespace where the OpenEBS components
+  # have been installed.
+  namespace: openebs

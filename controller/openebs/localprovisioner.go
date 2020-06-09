@@ -34,6 +34,10 @@ func (p *Planner) setLocalProvisionerDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.LocalProvisioner.Enabled = true
 	}
+	// set the name with which localpv-provisioner will be deployed
+	if len(p.ObservedOpenEBS.Spec.LocalProvisioner.Name) == 0 {
+		p.ObservedOpenEBS.Spec.LocalProvisioner.Name = types.LocalProvisionerNameKey
+	}
 	if p.ObservedOpenEBS.Spec.LocalProvisioner.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.LocalProvisioner.ImageTag = p.ObservedOpenEBS.Spec.Version +
 			p.ObservedOpenEBS.Spec.ImageTagSuffix
@@ -51,6 +55,7 @@ func (p *Planner) setLocalProvisionerDefaultsIfNotSet() error {
 // updateLocalProvisioner updates the localProvisioner structure as per the provided
 // values otherwise default values.
 func (p *Planner) updateLocalProvisioner(deploy *unstructured.Unstructured) error {
+	deploy.SetName(p.ObservedOpenEBS.Spec.LocalProvisioner.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := deploy.GetLabels()
 	if desiredLabels == nil {
@@ -91,6 +96,12 @@ func (p *Planner) updateLocalProvisioner(deploy *unstructured.Unstructured) erro
 			return err
 		}
 		if containerName == "openebs-provisioner-hostpath" {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.LocalProvisioner.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateProvisionerHostPathEnv)
 			if err != nil {
 				return err
