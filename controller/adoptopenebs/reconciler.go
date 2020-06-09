@@ -386,7 +386,11 @@ func (p *Planner) getDesiredAdoptOpenEBSComponents() error {
 		if err != nil {
 			return err
 		}
-
+		// update the component labels.
+		err = p.addAdoptOpenEBSLabels(observedAdoptOpenEBSComponent)
+		if err != nil {
+			return err
+		}
 		desiredAdoptOpenEBSComponents = append(desiredAdoptOpenEBSComponents, observedAdoptOpenEBSComponent)
 	}
 	// Now, form some of the configs which are common to all the components or can be
@@ -395,6 +399,26 @@ func (p *Planner) getDesiredAdoptOpenEBSComponents() error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// addAdoptOpenEBSLabels adds the desired labels to the adopted OpenEBS components.
+// It adds two labels, one which is specific to adoptOpenEBS i.e., it helps in identifying
+// if the components have been adopted or installed, label is
+// openebs-upgrade.dao.mayadata.io/adopt=true.
+// The second label which is added is a common label which is added both in case
+// of installation as well as adoption i.e., openebs-upgrade.dao.mayadata.io/managed=true.
+func (p *Planner) addAdoptOpenEBSLabels(component *unstructured.Unstructured) error {
+	desiredLabels := component.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	desiredLabels[types.OpenEBSUpgradeDAOManagedLabelKey] =
+		types.OpenEBSUpgradeDAOManagedLabelValue
+	desiredLabels[types.OpenEBSUpgradeDAOAdoptLabelKey] =
+		types.OpenEBSUpgradeDAOAdoptLabelValue
+	component.SetLabels(desiredLabels)
+
 	return nil
 }
 

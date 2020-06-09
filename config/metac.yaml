@@ -15,22 +15,37 @@ spec:
       resource: daemonsets
       updateStrategy:
         method: InPlace
+      labelSelector:
+        matchExpressions:
+          - {key: openebs-upgrade\.dao\.mayadata\.io/managed, operator: Exists}
     - apiVersion: apps/v1
       resource: deployments
       updateStrategy:
         method: InPlace
+      labelSelector:
+        matchExpressions:
+          - {key: openebs-upgrade\.dao\.mayadata\.io/managed, operator: Exists}
     - apiVersion: apps/v1
       resource: statefulsets
       updateStrategy:
         method: InPlace
+      labelSelector:
+        matchExpressions:
+          - {key: openebs-upgrade\.dao\.mayadata\.io/managed, operator: Exists}
     - apiVersion: v1
       resource: configmaps
       updateStrategy:
         method: InPlace
+      labelSelector:
+        matchExpressions:
+          - {key: openebs-upgrade\.dao\.mayadata\.io/managed, operator: Exists}
     - apiVersion: v1
       resource: services
       updateStrategy:
         method: InPlace
+      labelSelector:
+        matchExpressions:
+          - {key: openebs-upgrade\.dao\.mayadata\.io/managed, operator: Exists}
     - apiVersion: rbac.authorization.k8s.io/v1beta1
       resource: clusterrolebindings
       updateStrategy:
@@ -111,22 +126,37 @@ spec:
       resource: daemonsets
       updateStrategy:
         method: InPlace
+      labelSelector:
+        matchExpressions:
+          - {key: openebs-upgrade\.dao\.mayadata\.io/managed, operator: DoesNotExist}
     - apiVersion: apps/v1
       resource: deployments
       updateStrategy:
         method: InPlace
+      labelSelector:
+        matchExpressions:
+          - {key: openebs-upgrade\.dao\.mayadata\.io/managed, operator: DoesNotExist}
     - apiVersion: apps/v1
       resource: statefulsets
       updateStrategy:
         method: InPlace
+      labelSelector:
+        matchExpressions:
+          - {key: openebs-upgrade\.dao\.mayadata\.io/managed, operator: DoesNotExist}
     - apiVersion: v1
       resource: configmaps
       updateStrategy:
         method: InPlace
+      labelSelector:
+        matchExpressions:
+          - {key: openebs-upgrade\.dao\.mayadata\.io/managed, operator: DoesNotExist}
     - apiVersion: v1
       resource: services
       updateStrategy:
         method: InPlace
+      labelSelector:
+        matchExpressions:
+          - {key: openebs-upgrade\.dao\.mayadata\.io/managed, operator: DoesNotExist}
     - apiVersion: rbac.authorization.k8s.io/v1beta1
       resource: clusterrolebindings
       updateStrategy:

@@ -243,6 +243,11 @@ const (
 	// OpenEBSUpgradeDAOManagedLabelValue is the value for openebs-upgrade dao managed label
 	OpenEBSUpgradeDAOManagedLabelValue string = "true"
 
+	// OpenEBSUpgradeDAOAdoptLabelKey is the key for openebs-upgrade dao adopt label
+	OpenEBSUpgradeDAOAdoptLabelKey string = "openebs-upgrade.dao.mayadata.io/adopt"
+	// OpenEBSUpgradeDAOAdoptLabelValue is the value for openebs-upgrade dao adopt label
+	OpenEBSUpgradeDAOAdoptLabelValue string = "true"
+
 	// OpenEBSComponentGroupLabelKey is the label key which helps in identifying
 	// a particular group of OpenEBS components i.e., the component-type value for
 	// CSI related cluster roles can still be "cluster-role" but the value for
