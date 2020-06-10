@@ -279,3 +279,29 @@ func (p *Planner) updateMayastorNamespace(namespace *unstructured.Unstructured) 
 
 	return nil
 }
+
+// removeMayastorManifests removes the manifests of mayastor if disabled.
+func (p *Planner) removeMayastorManifests() {
+	if *p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled == false &&
+		*p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled == false {
+		delete(p.ComponentManifests, types.MayastorNamespaceManifestKey)
+		delete(p.ComponentManifests, types.MoacSAManifestKey)
+		delete(p.ComponentManifests, types.MoacClusterRoleManifestKey)
+		delete(p.ComponentManifests, types.MoacClusterRoleBindingManifestKey)
+		delete(p.ComponentManifests, types.MoacDeploymentManifestKey)
+		delete(p.ComponentManifests, types.MoacServiceManifestKey)
+		delete(p.ComponentManifests, types.MayastorDaemonsetManifestKey)
+	}
+
+	if *p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled == false {
+		delete(p.ComponentManifests, types.MoacSAManifestKey)
+		delete(p.ComponentManifests, types.MoacClusterRoleManifestKey)
+		delete(p.ComponentManifests, types.MoacClusterRoleBindingManifestKey)
+		delete(p.ComponentManifests, types.MoacDeploymentManifestKey)
+		delete(p.ComponentManifests, types.MoacServiceManifestKey)
+	}
+
+	if *p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled == false {
+		delete(p.ComponentManifests, types.MayastorDaemonsetManifestKey)
+	}
+}
