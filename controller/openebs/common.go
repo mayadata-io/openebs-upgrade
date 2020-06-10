@@ -414,7 +414,6 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 
 	case types.MoacDeploymentNameKey:
 		replicas = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Replicas
-		image = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Image
 		resources = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Tolerations

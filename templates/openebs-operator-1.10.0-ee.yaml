@@ -2210,15 +2210,21 @@ apiVersion: apps/v1
 metadata:
   name: moac
   namespace: mayastor
+  labels:
+    openebs.io/component-name: moac
+    openebs.io/version: 1.10.0-ee
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: moac
+      openebs.io/component-name: moac
   template:
     metadata:
       labels:
         app: moac
+        openebs.io/component-name: moac
+        openebs.io/version: 1.10.0-ee
     spec:
       serviceAccount: moac
       containers:
@@ -2296,10 +2302,13 @@ metadata:
   name: mayastor
   labels:
     openebs/engine: mayastor
+    openebs.io/component-name: mayastor
+    openebs.io/version: 1.10.0-ee
 spec:
   selector:
     matchLabels:
       app: mayastor
+      openebs.io/component-name: mayastor
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
@@ -2309,6 +2318,8 @@ spec:
     metadata:
       labels:
         app: mayastor
+        openebs.io/component-name: mayastor
+        openebs.io/version: 1.10.0-ee
     spec:
       hostNetwork: true
       nodeSelector:

@@ -106,6 +106,39 @@ func (p *Planner) updateMoac(deploy *unstructured.Unstructured) error {
 	// Note: mayastor based components will be installed only in mayastor namespace only.
 	deploy.SetNamespace(types.MayastorNamespaceNameKey)
 
+	containers, err := unstruct.GetNestedSliceOrError(deploy, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+	// update the containers
+	updateContainer := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if containerName == types.MoacContainerKey {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Image,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+	// Update the containers.
+	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+	if err != nil {
+		return err
+	}
+	// Set back the value of the containers.
+	err = unstructured.SetNestedSlice(deploy.Object,
+		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
