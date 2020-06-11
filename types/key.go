@@ -235,6 +235,9 @@ const (
 	// MayastorNamespaceManifestKey is used to get the manifest of mayastor namespace.
 	MayastorNamespaceManifestKey string = MayastorNamespaceNameKey + "_" + KindNamespace
 
+	// MayastorSupportedVersion is the openebs version from where mayastor is supported.
+	MayastorSupportedVersion string = "1.10.0-ee"
+
 	// OpenEBSVersion150 is the OpenEBS version 1.5.0
 	OpenEBSVersion150 string = "1.5.0"
 	// OpenEBSVersion160 is the OpenEBS version 1.6.0

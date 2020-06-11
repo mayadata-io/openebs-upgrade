@@ -1,10 +1,12 @@
 package openebs
 
 import (
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
 	"mayadata.io/openebs-upgrade/unstruct"
+	"strings"
 )
 
 const (
@@ -21,6 +23,18 @@ var supportedMayastorVersionForOpenEBSVersion = map[string]string{
 
 // Set the default values for Mayastor if not already given.
 func (p *Planner) setMayastorDefaultsIfNotSet() error {
+
+	isMayastorSupported, err := p.isMayastorSupported()
+	// Do not return the error as not to block installing other components.
+	if err != nil {
+		isMayastorSupported = false
+		glog.Errorf("Failed to set Mayastor defaults, error: %v", err)
+	}
+
+	if !isMayastorSupported {
+		glog.V(5).Infof("Skipping Mayastor installation.")
+	}
+
 	if p.ObservedOpenEBS.Spec.MayastorConfig == nil {
 		p.ObservedOpenEBS.Spec.MayastorConfig = &types.MayastorConfig{}
 	}
@@ -30,7 +44,7 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 		*p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled = false
 	}
 
-	if *p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled == true {
+	if isMayastorSupported && *p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled == true {
 		if p.ObservedOpenEBS.Spec.MayastorConfig.Moac.ImageTag == "" {
 			if moacVersion, exist :=
 				supportedMayastorVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
@@ -56,7 +70,7 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 		*p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled = false
 	}
 
-	if *p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled == true {
+	if isMayastorSupported && *p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled == true {
 		if p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Mayastor.ImageTag == "" {
 			if mayastorVersion, exist :=
 				supportedMayastorVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
@@ -85,6 +99,26 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 	}
 
 	return nil
+}
+
+// isMayastorSupported checks if mayastor is supported or not in the current kubernetes cluster of openebs version,
+// if not it will return false else true.
+func (p *Planner) isMayastorSupported() (bool, error) {
+	// compare the openebs version with the supported version of mayastor.
+	comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.MayastorSupportedVersion)
+	if err != nil {
+		return false, errors.Errorf("Error comparing versions, error: %v", err)
+	}
+
+	// if the versions are equal, check if that contains the "ee" in the image. As mayastor installation
+	// is supported from 1.10.0-ee.
+	if comp < 0 || (comp == 0 && !strings.Contains(p.ObservedOpenEBS.Spec.Version, "ee")) {
+		glog.Warningf("Mayastor is not supported in %s openebs version. "+
+			"Mayastor is supported from %s openebs version.", p.ObservedOpenEBS.Spec.Version, types.MayastorSupportedVersion)
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // updateMoac updates the moac manifest as per the reconcile.ObservedOpenEBS values.
