@@ -403,6 +403,18 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 			return err
 		}
 
+		// Set the resource of the containers.
+		if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Resources != nil {
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Resources,
+				"spec", "resources")
+		} else if p.ObservedOpenEBS.Spec.Resources != nil {
+			err = unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
+		}
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -612,6 +624,18 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 			}
 		}
 		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
+		}
+
+		// Set the resource of the containers.
+		if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Resources != nil {
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Resources,
+				"spec", "resources")
+		} else if p.ObservedOpenEBS.Spec.Resources != nil {
+			err = unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
+		}
 		if err != nil {
 			return err
 		}

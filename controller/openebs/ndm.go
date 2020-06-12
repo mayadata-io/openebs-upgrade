@@ -500,6 +500,18 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 		if err != nil {
 			return err
 		}
+
+		// Set the resource of the containers.
+		if p.ObservedOpenEBS.Spec.NDMDaemon.Resources != nil {
+			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.NDMDaemon.Resources,
+				"spec", "resources")
+		} else if p.ObservedOpenEBS.Spec.Resources != nil {
+			err = unstructured.SetNestedField(obj.Object,
+				p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
+		}
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)

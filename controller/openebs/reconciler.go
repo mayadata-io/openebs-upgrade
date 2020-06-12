@@ -274,6 +274,7 @@ func (p *Planner) init() error {
 		p.setNDMConfigMapDefaultsIfNotSet,
 		p.setJIVADefaultsIfNotSet,
 		p.setCStorDefaultsIfNotSet,
+		p.setMayastorDefaultsIfNotSet,
 		p.setHelperDefaultsIfNotSet,
 		p.setPoliciesDefaultsIfNotSet,
 		p.setAnalyticsDefaultsIfNotSet,

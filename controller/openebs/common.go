@@ -237,6 +237,7 @@ func (p *Planner) removeDisabledManifests() error {
 		delete(p.ComponentManifests, types.CStorAdmissionServerManifestKey)
 	}
 
+	p.removeMayastorManifests()
 	return nil
 }
 
@@ -388,6 +389,14 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Affinity
 		err = p.updateCStorAdmissionServer(deploy)
+
+	case types.MoacDeploymentNameKey:
+		replicas = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Replicas
+		resources = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Affinity
+		err = p.updateMoac(deploy)
 	}
 	if err != nil {
 		return deploy, err
@@ -500,6 +509,8 @@ func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructur
 	switch svc.GetName() {
 	case types.MayaAPIServerServiceNameKey:
 		err = p.updateMayaAPIServerService(svc)
+	case types.MoacServiceNameKey:
+		err = p.updateMoacService(svc)
 	}
 	if err != nil {
 		return svc, err
@@ -516,8 +527,9 @@ func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructur
 
 // getDesiredDaemonSet updates the daemonset manifest as per the given configuration.
 func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	var err error
-	resources := make(map[string]interface{})
+	var (
+		err error
+	)
 	nodeSelector := make(map[string]string)
 	tolerations := make([]interface{}, 0)
 	affinity := make(map[string]interface{})
@@ -525,13 +537,14 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 	daemon.SetNamespace(p.ObservedOpenEBS.Namespace)
 	switch daemon.GetName() {
 	case types.NDMNameKey:
-		resources = p.ObservedOpenEBS.Spec.NDMDaemon.Resources
 		nodeSelector = p.ObservedOpenEBS.Spec.NDMDaemon.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.NDMDaemon.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.NDMDaemon.Affinity
 		err = p.updateNDM(daemon)
 	case types.CStorCSINodeNameKey:
 		err = p.updateOpenEBSCStorCSINode(daemon)
+	case types.MayastorDaemonsetNameKey:
+		err = p.updateMayastor(daemon)
 	}
 	if err != nil {
 		return daemon, err
@@ -544,15 +557,6 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 	updateContainer := func(obj *unstructured.Unstructured) error {
 		err = unstructured.SetNestedField(obj.Object,
 			p.ObservedOpenEBS.Spec.ImagePullPolicy, "spec", "imagePullPolicy")
-		if err != nil {
-			return err
-		}
-		if resources != nil {
-			err = unstructured.SetNestedField(obj.Object, resources, "spec", "resources")
-		} else if p.ObservedOpenEBS.Spec.Resources != nil {
-			err = unstructured.SetNestedField(obj.Object,
-				p.ObservedOpenEBS.Spec.Resources, "spec", "resources")
-		}
 		if err != nil {
 			return err
 		}

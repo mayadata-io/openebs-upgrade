@@ -22,7 +22,7 @@ import (
 // getDesiredNamespace updates the namespace manifest as per the given configuration
 // in OpenEBS CR.
 func (p *Planner) getDesiredNamespace(namespace *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	namespace.SetName(p.ObservedOpenEBS.Namespace)
+	var err error
 	// create annotations that refers to the instance which
 	// triggered creation of this namespace
 	namespace.SetAnnotations(
@@ -30,6 +30,14 @@ func (p *Planner) getDesiredNamespace(namespace *unstructured.Unstructured) (*un
 			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
 		},
 	)
+
+	switch namespace.GetName() {
+	case types.MayastorNamespaceNameKey:
+		err = p.updateMayastorNamespace(namespace)
+	}
+	if err != nil {
+		return namespace, err
+	}
 
 	return namespace, nil
 }
@@ -60,6 +68,11 @@ func (p *Planner) getDesiredServiceAccount(sa *unstructured.Unstructured) (*unst
 		// Note: csi based components will be installed only in kube-system namespace only.
 		sa.SetNamespace(types.NamespaceKubeSystem)
 		err = p.updateCStorCSINodeServiceAccount(sa)
+	case types.MoacSANameKey:
+		// Overwrite the namespace to mayastor for mayastor based components.
+		// Note: mayastor based components will be installed only in mayastor namespace only.
+		sa.SetNamespace(types.MayastorNamespaceNameKey)
+		err = p.updateMoacServiceAccount(sa)
 	}
 	if err != nil {
 		return sa, err
@@ -84,6 +97,32 @@ func (p *Planner) updateOpenEBSServiceAccount(sa *unstructured.Unstructured) err
 	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
 		types.OpenEBSSAComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateMoacServiceAccount updates the moac service account
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateMoacServiceAccount(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for moac service account:
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: mayastor
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: moac
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSMayastorComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.MoacSANameKey
 
 	// set the desired labels
 	sa.SetLabels(desiredLabels)
@@ -161,6 +200,8 @@ func (p *Planner) getDesiredClusterRole(cr *unstructured.Unstructured) (*unstruc
 		err = p.updateCStorCSIClusterRegistrarRole(cr)
 	case types.CStorCSIRegistrarRoleNameKey:
 		err = p.updateCStorCSIRegistrarRole(cr)
+	case types.MoacClusterRoleNameKey:
+		err = p.updateMoacClusterRole(cr)
 	}
 	if err != nil {
 		return cr, err
@@ -190,6 +231,32 @@ func (p *Planner) updateOpenEBSClusterRole(sa *unstructured.Unstructured) error 
 	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
 		types.OpenEBSRoleComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateMoacClusterRole updates the moac cluster role
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateMoacClusterRole(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for moac cluster role:
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: mayastor
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: moac
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSMayastorComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.MoacClusterRoleNameKey
 
 	// set the desired labels
 	sa.SetLabels(desiredLabels)
@@ -345,6 +412,8 @@ func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (
 		err = p.updateCStorCSIClusterRegistrarBinding(crb)
 	case types.CStorCSIRegistrarBindingNameKey:
 		err = p.updateCStorCSIRegistrarBinding(crb)
+	case types.MoacClusterRoleBindingNameKey:
+		err = p.updateMoacClusterRoleBinding(crb)
 	}
 	if err != nil {
 		return crb, err
@@ -364,6 +433,13 @@ func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (
 		// Note: csi based components will be installed only in kube-system namespace only.
 		if objName == types.CStorCSINodeSANameKey || objName == types.CStorCSIControllerSANameKey {
 			err := unstructured.SetNestedField(obj.Object, types.NamespaceKubeSystem, "spec", "namespace")
+			if err != nil {
+				return err
+			}
+		} else if objName == types.MoacSANameKey {
+			// Overwrite the namespace to mayastor for mayastor based components.
+			// Note: mayastor based components will be installed only in mayastor namespace only.
+			err := unstructured.SetNestedField(obj.Object, types.MayastorNamespaceNameKey, "spec", "namespace")
 			if err != nil {
 				return err
 			}
@@ -410,6 +486,32 @@ func (p *Planner) updateOpenEBSClusterRoleBinding(sa *unstructured.Unstructured)
 	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
 		types.OpenEBSRoleBindingComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateMoacClusterRoleBinding updates the moac cluster role
+// binding structure as per the provided values otherwise default values.
+func (p *Planner) updateMoacClusterRoleBinding(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for moac cluster role binding:
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: mayastor
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: moac
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSMayastorComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.MoacClusterRoleBindingNameKey
 
 	// set the desired labels
 	sa.SetLabels(desiredLabels)

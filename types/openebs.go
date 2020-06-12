@@ -96,6 +96,7 @@ type Components struct {
 	NDMConfigMap     *NDMConfigMap     `json:"ndmConfigMap"`
 	JivaConfig       *JivaConfig       `json:"jivaConfig"`
 	CstorConfig      *CstorConfig      `json:"cstorConfig"`
+	MayastorConfig   *MayastorConfig   `json:"mayastorConfig"`
 	Helper           *Helper           `json:"helper"`
 	Policies         *Policies         `json:"policies"`
 	Analytics        *Analytics        `json:"analytics"`
@@ -374,6 +375,25 @@ type CSINode struct {
 	Container `json:",inline"`
 	// ISCSIPath is the path of the iscsiadm binary.
 	ISCSIPath string `json:"iscsiPath"`
+}
+
+// MayastorConfig stores the configuration for mayastor components.
+type MayastorConfig struct {
+	Moac     Moac     `json:"moac"`
+	Mayastor Mayastor `json:"mayastor"`
+}
+
+// Mayastor is the configuration for mayastor daemonset.
+type Mayastor struct {
+	Component    `json:",inline"`
+	Mayastor     Container `json:"mayastor"`
+	MayastorGRPC Container `json:"mayastorGrpc"`
+}
+
+// Moac is the configuration for moac deployment.
+type Moac struct {
+	Component `json:",inline"`
+	Container `json:",inline"`
 }
 
 // Container stores the details of a container
