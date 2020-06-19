@@ -154,6 +154,12 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas = new(int32)
 		*p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Replicas = DefaultCVCOperatorReplicaCount
 	}
+	if p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Service == nil {
+		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Service = &types.CVCOperatorService{}
+	}
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Service.Name) == 0 {
+		p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Service.Name = types.CVCOperatorServiceNameKey
+	}
 	// set the admission server defaults
 	if p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer == nil {
 		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer = &types.CStorAdmissionServer{}
@@ -888,6 +894,27 @@ func (p *Planner) updateCStorAdmissionServer(deploy *unstructured.Unstructured) 
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// updateCVCOperatorService updates the cvc-operator-service manifest as per the
+// reconcile.ObservedOpenEBS values.
+func (p *Planner) updateCVCOperatorService(svc *unstructured.Unstructured) error {
+	svc.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Service.Name)
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := svc.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for cvc-operator-service service
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cvc
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: cvc-operator-service
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.CVCComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CVCOperatorServiceNameKey
+	// set the desired labels
+	svc.SetLabels(desiredLabels)
 
 	return nil
 }

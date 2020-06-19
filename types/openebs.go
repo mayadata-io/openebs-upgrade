@@ -350,11 +350,17 @@ type CSPCOperator struct {
 	Container `json:",inline"`
 }
 
+// CVCOperatorService stores the cvc-operator service details
+type CVCOperatorService struct {
+	Name string `json:"name"`
+}
+
 // CVCOperator stores the configuration details of CVCOperator such as
 // if it should be installed or not, image to be used, etc.
 type CVCOperator struct {
 	Component `json:",inline"`
 	Container `json:",inline"`
+	Service   *CVCOperatorService `json:"service"`
 }
 
 // CSI stores the configuration for cstor csi operator and driver.

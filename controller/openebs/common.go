@@ -127,6 +127,8 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-1.10.0.yaml"
 	case types.OpenEBSVersion1100EE:
 		yamlFile = "/templates/openebs-operator-1.10.0-ee.yaml"
+	case types.OpenEBSVersion1110EE:
+		yamlFile = "/templates/openebs-operator-1.11.0-ee.yaml"
 	default:
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
@@ -511,6 +513,8 @@ func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructur
 		err = p.updateMayaAPIServerService(svc)
 	case types.MoacServiceNameKey:
 		err = p.updateMoacService(svc)
+	case types.CVCOperatorServiceNameKey:
+		err = p.updateCVCOperatorService(svc)
 	}
 	if err != nil {
 		return svc, err
