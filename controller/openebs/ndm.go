@@ -38,6 +38,7 @@ var SupportedNDMVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion190EE:  types.NDMVersion049EE,
 	types.OpenEBSVersion1100:   types.NDMVersion050,
 	types.OpenEBSVersion1100EE: types.NDMVersion050EE,
+	types.OpenEBSVersion1110EE: types.NDMVersion060EE,
 }
 
 // add/update NDM defaults if not already provided

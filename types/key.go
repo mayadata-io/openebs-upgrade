@@ -83,6 +83,12 @@ const (
 	CStorVolumePoliciesCRDV1NameKey string = "cstorvolumepolicies.cstor.openebs.io"
 	// CStorVolumeReplicasCRDV1NameKey is the name of CStorVolumeReplicas V1 CRD
 	CStorVolumeReplicasCRDV1NameKey string = "cstorvolumereplicas.cstor.openebs.io"
+	// CStorRestoresCRDV1alpha1NameKey is the name of CStorRestores v1alpha1 CRD
+	CStorRestoresCRDV1alpha1NameKey string = "cstorrestores.openebs.io"
+	// CStorCompletedBackupsCRDV1alpha1NameKey is the name of cstorcompletedbackups v1alpha1 CRD
+	CStorCompletedBackupsCRDV1alpha1NameKey string = "cstorcompletedbackups.openebs.io"
+	// CStorBackupsCRDV1alpha1NameKey is the name of CStorBackups v1alpha1 CRD
+	CStorBackupsCRDV1alpha1NameKey string = "cstorbackups.openebs.io"
 	// CStorCSISnapshottterBindingNameKey is the name of the cstor csi snapshotter cluster role binding.
 	CStorCSISnapshottterBindingNameKey string = "openebs-cstor-csi-snapshotter-binding"
 	// CStorCSISnapshottterRoleNameKey is the name of the cstor csi snapshotter cluster role.
@@ -196,6 +202,8 @@ const (
 
 	// CVCOperatorNameKey is the name of cvc-operator deployment.
 	CVCOperatorNameKey = "cvc-operator"
+	// CVCOperatorServiceNameKey is the name of cvc-operator service.
+	CVCOperatorServiceNameKey = "cvc-operator-service"
 	// CSPCOperatorNameKey is the name of cspc-operator deployment.
 	CSPCOperatorNameKey = "cspc-operator"
 	// CSPCCRDV1NameKey is the name of CSPC V1 CRD
@@ -254,6 +262,8 @@ const (
 	OpenEBSVersion1100 string = "1.10.0"
 	// OpenEBSVersion1100EE is the OpenEBS version 1.10.0-ee
 	OpenEBSVersion1100EE string = "1.10.0-ee"
+	// OpenEBSVersion1110EE is the OpenEBS version 1.11.0-ee
+	OpenEBSVersion1110EE string = "1.11.0-ee"
 
 	// OSImageUbuntu1804 is the OS Image value of a Node.
 	OSImageUbuntu1804 string = "Ubuntu 18.04"

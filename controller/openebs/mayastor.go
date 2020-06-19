@@ -11,6 +11,7 @@ import (
 
 const (
 	MayastorVersion010EE    string = "0.1.0-ee"
+	MayastorVersion020EE    string = "0.2.0-ee"
 	DefaultMoacReplicaCount int32  = 1
 )
 
@@ -19,6 +20,7 @@ const (
 // supported OpenEBS versions.
 var supportedMayastorVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1100EE: MayastorVersion010EE,
+	types.OpenEBSVersion1110EE: MayastorVersion020EE,
 }
 
 // Set the default values for Mayastor if not already given.
