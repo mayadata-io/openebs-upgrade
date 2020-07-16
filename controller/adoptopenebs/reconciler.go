@@ -426,10 +426,19 @@ func (p *Planner) addAdoptOpenEBSLabels(component *unstructured.Unstructured) er
 // components and their configuration.
 func (p *Planner) getDesiredOpenEBS() error {
 	openebs := &unstructured.Unstructured{}
+	openebsLabels := make(map[string]string)
+	// get the adoption job ID label which tells the ID of the job which has triggered
+	// the adoption process.
+	if p.ObservedAdoptOpenEBS.GetLabels() != nil {
+		if jobID, exist := p.ObservedAdoptOpenEBS.GetLabels()[types.KeyAdoptionJobID]; exist {
+			openebsLabels[types.KeyAdoptionJobID] = jobID
+		}
+	}
 	openebs.SetUnstructuredContent(map[string]interface{}{
 		"metadata": map[string]interface{}{
-			"name":      "my-openebs-123",
+			"name":      "my-openebs-config",
 			"namespace": p.ObservedAdoptOpenEBS.Namespace,
+			"labels":    openebsLabels,
 		},
 		"spec": map[string]interface{}{
 			"version":                    p.OpenEBSVersion,
