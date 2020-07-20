@@ -1,0 +1,2597 @@
+# Create Maya Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openebs-maya-operator
+  namespace: openebs
+---
+# Define Role that allows operations on K8s pods/deployments
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-maya-operator
+rules:
+  - apiGroups: ["*"]
+    resources: ["nodes", "nodes/proxy"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["namespaces", "services", "pods", "pods/exec", "deployments", "deployments/finalizers", "replicationcontrollers", "replicasets", "events", "endpoints", "configmaps", "secrets", "jobs", "cronjobs"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["statefulsets", "daemonsets"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["resourcequotas", "limitranges"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["*"]
+    resources: ["ingresses", "horizontalpodautoscalers", "verticalpodautoscalers", "certificatesigningrequests"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["*"]
+    resources: ["storageclasses", "persistentvolumeclaims", "persistentvolumes"]
+    verbs: ["*"]
+  - apiGroups: ["volumesnapshot.external-storage.k8s.io"]
+    resources: ["volumesnapshots", "volumesnapshotdatas"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: [ "get", "list", "create", "update", "delete", "patch"]
+  - apiGroups: ["openebs.io"]
+    resources: [ "*"]
+    verbs: ["*" ]
+  - apiGroups: ["cstor.openebs.io"]
+    resources: [ "*"]
+    verbs: ["*" ]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "watch", "list", "delete", "update", "create"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
+    verbs: ["get", "create", "list", "delete", "update", "patch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+  - apiGroups: ["*"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "create", "delete", "watch"]
+---
+# Bind the Service Account with the Role Privileges.
+# TODO: Check if default account also needs to be there
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-maya-operator
+subjects:
+  - kind: ServiceAccount
+    name: openebs-maya-operator
+    namespace: openebs
+roleRef:
+  kind: ClusterRole
+  name: openebs-maya-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maya-apiserver
+  namespace: openebs
+  labels:
+    name: maya-apiserver
+    openebs.io/component-name: maya-apiserver
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      name: maya-apiserver
+      openebs.io/component-name: maya-apiserver
+  replicas: 1
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    metadata:
+      labels:
+        name: maya-apiserver
+        openebs.io/component-name: maya-apiserver
+        openebs.io/version: 1.12.0-ee
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: maya-apiserver
+          imagePullPolicy: IfNotPresent
+          image: mayadataio/m-apiserver:1.12.0-ee
+          ports:
+            - containerPort: 5656
+          env:
+            # OPENEBS_IO_KUBE_CONFIG enables maya api service to connect to K8s
+            # based on this config. This is ignored if empty.
+            # This is supported for maya api server version 0.5.2 onwards
+            #- name: OPENEBS_IO_KUBE_CONFIG
+            #  value: "/home/ubuntu/.kube/config"
+            # OPENEBS_IO_K8S_MASTER enables maya api service to connect to K8s
+            # based on this address. This is ignored if empty.
+            # This is supported for maya api server version 0.5.2 onwards
+            #- name: OPENEBS_IO_K8S_MASTER
+            #  value: "http://172.28.128.3:8080"
+            # OPENEBS_NAMESPACE provides the namespace of this deployment as an
+            # environment variable
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # OPENEBS_SERVICE_ACCOUNT provides the service account of this pod as
+            # environment variable
+            - name: OPENEBS_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            # OPENEBS_MAYA_POD_NAME provides the name of this pod as
+            # environment variable
+            - name: OPENEBS_MAYA_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # If OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG is false then OpenEBS default
+            # storageclass and storagepool will not be created.
+            - name: OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG
+              value: "true"
+            # OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL decides whether default cstor sparse pool should be
+            # configured as a part of openebs installation.
+            # If "true" a default cstor sparse pool will be configured, if "false" it will not be configured.
+            # This value takes effect only if OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG
+            # is set to true
+            - name: OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL
+              value: "false"
+            # OPENEBS_IO_INSTALL_CRD environment variable is used to enable/disable CRD installation
+            # from Maya API server. By default the CRDs will be installed
+            # - name: OPENEBS_IO_INSTALL_CRD
+            #   value: "true"
+            # OPENEBS_IO_BASE_DIR is used to configure base directory for openebs on host path.
+            # Where OpenEBS can store required files. Default base path will be /var/openebs
+            - name: OPENEBS_IO_BASE_DIR
+              value: "/var/openebs"
+            # OPENEBS_IO_CSTOR_TARGET_DIR can be used to specify the hostpath
+            # to be used for saving the shared content between the side cars
+            # of cstor volume pod.
+            # The default path used is /var/openebs/sparse
+            - name: OPENEBS_IO_CSTOR_TARGET_DIR
+              value: "/var/openebs/sparse"
+            # OPENEBS_IO_CSTOR_POOL_SPARSE_DIR can be used to specify the hostpath
+            # to be used for saving the shared content between the side cars
+            # of cstor pool pod. This ENV is also used to indicate the location
+            # of the sparse devices.
+            # The default path used is /var/openebs/sparse
+            - name: OPENEBS_IO_CSTOR_POOL_SPARSE_DIR
+              value: "/var/openebs/sparse"
+            # OPENEBS_IO_JIVA_POOL_DIR can be used to specify the hostpath
+            # to be used for default Jiva StoragePool loaded by OpenEBS
+            # The default path used is /var/openebs
+            # This value takes effect only if OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG
+            # is set to true
+            - name: OPENEBS_IO_JIVA_POOL_DIR
+              value: "/var/openebs"
+            # OPENEBS_IO_LOCALPV_HOSTPATH_DIR can be used to specify the hostpath
+            # to be used for default openebs-hostpath storageclass loaded by OpenEBS
+            # The default path used is /var/openebs/local
+            # This value takes effect only if OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG
+            # is set to true
+            - name: OPENEBS_IO_LOCALPV_HOSTPATH_DIR
+              value: "/var/openebs/local"
+            - name: OPENEBS_IO_JIVA_CONTROLLER_IMAGE
+              value: "mayadataio/jiva:1.12.0-ee"
+            - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
+              value: "mayadataio/jiva:1.12.0-ee"
+            - name: OPENEBS_IO_JIVA_REPLICA_COUNT
+              value: "3"
+            - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
+              value: "mayadataio/cstor-istgt:1.12.0-ee"
+            - name: OPENEBS_IO_CSTOR_POOL_IMAGE
+              value: "mayadataio/cstor-pool:1.12.0-ee"
+            - name: OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE
+              value: "mayadataio/cstor-pool-mgmt:1.12.0-ee"
+            - name: OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
+              value: "mayadataio/cstor-volume-mgmt:1.12.0-ee"
+            - name: OPENEBS_IO_VOLUME_MONITOR_IMAGE
+              value: "mayadataio/m-exporter:1.12.0-ee"
+            - name: OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
+              value: "mayadataio/m-exporter:1.12.0-ee"
+            - name: OPENEBS_IO_HELPER_IMAGE
+              value: "mayadataio/linux-utils:1.12.0-ee"
+            # OPENEBS_IO_ENABLE_ANALYTICS if set to true sends anonymous usage
+            # events to Google Analytics
+            - name: OPENEBS_IO_ENABLE_ANALYTICS
+              value: "true"
+            - name: OPENEBS_IO_INSTALLER_TYPE
+              value: "openebs-operator"
+          # OPENEBS_IO_ANALYTICS_PING_INTERVAL can be used to specify the duration (in hours)
+          # for periodic ping events sent to Google Analytics.
+          # Default is 24h.
+          # Minimum is 1h. You can convert this to weekly by setting 168h
+          #- name: OPENEBS_IO_ANALYTICS_PING_INTERVAL
+          #  value: "24h"
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/mayactl
+                - version
+            initialDelaySeconds: 30
+            periodSeconds: 60
+          readinessProbe:
+            exec:
+              command:
+                - /usr/local/bin/mayactl
+                - version
+            initialDelaySeconds: 30
+            periodSeconds: 60
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: maya-apiserver-service
+  namespace: openebs
+  labels:
+    openebs.io/component-name: maya-apiserver-svc
+spec:
+  ports:
+    - name: api
+      port: 5656
+      protocol: TCP
+      targetPort: 5656
+  selector:
+    name: maya-apiserver
+  sessionAffinity: None
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-provisioner
+  namespace: openebs
+  labels:
+    name: openebs-provisioner
+    openebs.io/component-name: openebs-provisioner
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      name: openebs-provisioner
+      openebs.io/component-name: openebs-provisioner
+  replicas: 1
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    metadata:
+      labels:
+        name: openebs-provisioner
+        openebs.io/component-name: openebs-provisioner
+        openebs.io/version: 1.12.0-ee
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: openebs-provisioner
+          imagePullPolicy: IfNotPresent
+          image: mayadataio/openebs-k8s-provisioner:1.12.0-ee
+          env:
+            # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
+            # based on this address. This is ignored if empty.
+            # This is supported for openebs provisioner version 0.5.2 onwards
+            #- name: OPENEBS_IO_K8S_MASTER
+            #  value: "http://10.128.0.12:8080"
+            # OPENEBS_IO_KUBE_CONFIG enables openebs provisioner to connect to K8s
+            # based on this config. This is ignored if empty.
+            # This is supported for openebs provisioner version 0.5.2 onwards
+            #- name: OPENEBS_IO_KUBE_CONFIG
+            #  value: "/home/ubuntu/.kube/config"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # OPENEBS_MAYA_SERVICE_NAME provides the maya-apiserver K8s service name,
+            # that provisioner should forward the volume create/delete requests.
+            # If not present, "maya-apiserver-service" will be used for lookup.
+            # This is supported for openebs provisioner version 0.5.3-RC1 onwards
+            #- name: OPENEBS_MAYA_SERVICE_NAME
+            #  value: "maya-apiserver-apiservice"
+            # Process name used for matching is limited to the 15 characters
+            # present in the pgrep output.
+            # So fullname can't be used here with pgrep (>15 chars).A regular expression
+            # that matches the entire command name has to specified.
+            # Anchor `^` : matches any string that starts with `openebs-provis`
+            # `.*`: matches any string that has `openebs-provis` followed by zero or more char
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test `pgrep -c "^openebs-provisi.*"` = 1
+            initialDelaySeconds: 30
+            periodSeconds: 60
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-snapshot-operator
+  namespace: openebs
+  labels:
+    name: openebs-snapshot-operator
+    openebs.io/component-name: openebs-snapshot-operator
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      name: openebs-snapshot-operator
+      openebs.io/component-name: openebs-snapshot-operator
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: openebs-snapshot-operator
+        openebs.io/component-name: openebs-snapshot-operator
+        openebs.io/version: 1.12.0-ee
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: snapshot-controller
+          image: mayadataio/snapshot-controller:1.12.0-ee
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can't be used here with pgrep (>15 chars).A regular expression
+          # that matches the entire command name has to specified.
+          # Anchor `^` : matches any string that starts with `snapshot-contro`
+          # `.*`: matches any string that has `snapshot-contro` followed by zero or more char
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test `pgrep -c "^snapshot-contro.*"` = 1
+            initialDelaySeconds: 30
+            periodSeconds: 60
+        # OPENEBS_MAYA_SERVICE_NAME provides the maya-apiserver K8s service name,
+        # that snapshot controller should forward the snapshot create/delete requests.
+        # If not present, "maya-apiserver-service" will be used for lookup.
+        # This is supported for openebs provisioner version 0.5.3-RC1 onwards
+        #- name: OPENEBS_MAYA_SERVICE_NAME
+        #  value: "maya-apiserver-apiservice"
+        - name: snapshot-provisioner
+          image: mayadataio/snapshot-provisioner:1.12.0-ee
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          # OPENEBS_MAYA_SERVICE_NAME provides the maya-apiserver K8s service name,
+          # that snapshot provisioner  should forward the clone create/delete requests.
+          # If not present, "maya-apiserver-service" will be used for lookup.
+          # This is supported for openebs provisioner version 0.5.3-RC1 onwards
+          #- name: OPENEBS_MAYA_SERVICE_NAME
+          #  value: "maya-apiserver-apiservice"
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can't be used here with pgrep (>15 chars).A regular expression
+          # that matches the entire command name has to specified.
+          # Anchor `^` : matches any string that starts with `snapshot-provis`
+          # `.*`: matches any string that has `snapshot-provis` followed by zero or more char
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test `pgrep -c "^snapshot-provis.*"` = 1
+            initialDelaySeconds: 30
+            periodSeconds: 60
+---
+# This is the node-disk-manager related config.
+# It can be used to customize the disks probes and filters
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openebs-ndm-config
+  namespace: openebs
+  labels:
+    openebs.io/component-name: ndm-config
+data:
+  # udev-probe is default or primary probe which should be enabled to run ndm
+  # filterconfigs contails configs of filters - in their form fo include
+  # and exclude comma separated strings
+  node-disk-manager.config: |
+    probeconfigs:
+      - key: udev-probe
+        name: udev probe
+        state: true
+      - key: seachest-probe
+        name: seachest probe
+        state: false
+      - key: smart-probe
+        name: smart probe
+        state: true
+    filterconfigs:
+      - key: os-disk-exclude-filter
+        name: os disk exclude filter
+        state: true
+        exclude: "/,/etc/hosts,/boot"
+      - key: vendor-filter
+        name: vendor filter
+        state: true
+        include: ""
+        exclude: "CLOUDBYT,OpenEBS"
+      - key: path-filter
+        name: path filter
+        state: true
+        include: ""
+        exclude: "loop,/dev/fd0,/dev/sr0,/dev/ram,/dev/dm-,/dev/md,/dev/rbd"
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: openebs-ndm
+  namespace: openebs
+  labels:
+    name: openebs-ndm
+    openebs.io/component-name: ndm
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      name: openebs-ndm
+      openebs.io/component-name: ndm
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: openebs-ndm
+        openebs.io/component-name: ndm
+        openebs.io/version: 1.12.0-ee
+    spec:
+      # By default the node-disk-manager will be run on all kubernetes nodes
+      # If you would like to limit this to only some nodes, say the nodes
+      # that have storage attached, you could label those node and use
+      # nodeSelector.
+      #
+      # e.g. label the storage nodes with - "openebs.io/nodegroup"="storage-node"
+      # kubectl label node <node-name> "openebs.io/nodegroup"="storage-node"
+      #nodeSelector:
+      #  "openebs.io/nodegroup": "storage-node"
+      serviceAccountName: openebs-maya-operator
+      hostNetwork: true
+      containers:
+        - name: node-disk-manager
+          image: mayadataio/node-disk-manager:0.7.0-ee
+          args:
+            - -v=4
+          # The feature-gate is used to enable the new UUID algorithm.
+          # This is a feature currently in Alpha state
+          #  - --feature-gates="GPTBasedUUID"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: config
+              mountPath: /host/node-disk-manager.config
+              subPath: node-disk-manager.config
+              readOnly: true
+            - name: udev
+              mountPath: /run/udev
+            - name: procmount
+              mountPath: /host/proc
+              readOnly: true
+            - name: basepath
+              mountPath: /var/openebs/ndm
+            - name: sparsepath
+              mountPath: /var/openebs/sparse
+          env:
+            # namespace in which NDM is installed will be passed to NDM Daemonset
+            # as environment variable
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # pass hostname as env variable using downward API to the NDM container
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            # specify the directory where the sparse files need to be created.
+            # if not specified, then sparse files will not be created.
+            - name: SPARSE_FILE_DIR
+              value: "/var/openebs/sparse"
+            # Size(bytes) of the sparse file to be created.
+            - name: SPARSE_FILE_SIZE
+              value: "10737418240"
+            # Specify the number of sparse files to be created
+            - name: SPARSE_FILE_COUNT
+              value: "0"
+          livenessProbe:
+            exec:
+              command:
+                - pgrep
+                - "ndm"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+      volumes:
+        - name: config
+          configMap:
+            name: openebs-ndm-config
+        - name: udev
+          hostPath:
+            path: /run/udev
+            type: Directory
+        # mount /proc (to access mount file of process 1 of host) inside container
+        # to read mount-point of disks and partitions
+        - name: procmount
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: basepath
+          hostPath:
+            path: /var/openebs/ndm
+            type: DirectoryOrCreate
+        - name: sparsepath
+          hostPath:
+            path: /var/openebs/sparse
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-ndm-operator
+  namespace: openebs
+  labels:
+    name: openebs-ndm-operator
+    openebs.io/component-name: ndm-operator
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      name: openebs-ndm-operator
+      openebs.io/component-name: ndm-operator
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: openebs-ndm-operator
+        openebs.io/component-name: ndm-operator
+        openebs.io/version: 1.12.0-ee
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: node-disk-operator
+          image: mayadataio/node-disk-operator:0.7.0-ee
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            exec:
+              command:
+                - stat
+                - /tmp/operator-sdk-ready
+            initialDelaySeconds: 4
+            periodSeconds: 10
+            failureThreshold: 1
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # the service account of the ndm-operator pod
+            - name: SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: OPERATOR_NAME
+              value: "node-disk-operator"
+            - name: CLEANUP_JOB_IMAGE
+              value: "mayadataio/linux-utils:1.12.0-ee"
+            # OPENEBS_IO_INSTALL_CRD environment variable is used to enable/disable CRD installation
+            # from NDM operator. By default the CRDs will be installed
+            #- name: OPENEBS_IO_INSTALL_CRD
+            #  value: "true"
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can be used here with pgrep (cmd is < 15 chars).
+          livenessProbe:
+            exec:
+              command:
+                - pgrep
+                - "ndo"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-admission-server
+  namespace: openebs
+  labels:
+    app: admission-webhook
+    openebs.io/component-name: admission-webhook
+    openebs.io/version: 1.12.0-ee
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  selector:
+    matchLabels:
+      app: admission-webhook
+  template:
+    metadata:
+      labels:
+        app: admission-webhook
+        openebs.io/component-name: admission-webhook
+        openebs.io/version: 1.12.0-ee
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: admission-webhook
+          image: mayadataio/admission-server:1.12.0-ee
+          imagePullPolicy: IfNotPresent
+          args:
+            - -alsologtostderr
+            - -v=2
+            - 2>&1
+          env:
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ADMISSION_WEBHOOK_NAME
+              value: "openebs-admission-server"
+            - name: ADMISSION_WEBHOOK_FAILURE_POLICY
+              value: "Fail"
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can't be used here with pgrep (>15 chars).A regular expression
+          # Anchor `^` : matches any string that starts with `admission-serve`
+          # `.*`: matche any string that has `admission-serve` followed by zero or more char
+          # that matches the entire command name has to specified.
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test `pgrep -c "^admission-serve.*"` = 1
+            initialDelaySeconds: 30
+            periodSeconds: 60
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-localpv-provisioner
+  namespace: openebs
+  labels:
+    name: openebs-localpv-provisioner
+    openebs.io/component-name: openebs-localpv-provisioner
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      name: openebs-localpv-provisioner
+      openebs.io/component-name: openebs-localpv-provisioner
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: openebs-localpv-provisioner
+        openebs.io/component-name: openebs-localpv-provisioner
+        openebs.io/version: 1.12.0-ee
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: openebs-provisioner-hostpath
+          imagePullPolicy: IfNotPresent
+          image: mayadataio/provisioner-localpv:1.12.0-ee
+          env:
+            # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
+            # based on this address. This is ignored if empty.
+            # This is supported for openebs provisioner version 0.5.2 onwards
+            #- name: OPENEBS_IO_K8S_MASTER
+            #  value: "http://10.128.0.12:8080"
+            # OPENEBS_IO_KUBE_CONFIG enables openebs provisioner to connect to K8s
+            # based on this config. This is ignored if empty.
+            # This is supported for openebs provisioner version 0.5.2 onwards
+            #- name: OPENEBS_IO_KUBE_CONFIG
+            #  value: "/home/ubuntu/.kube/config"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # OPENEBS_SERVICE_ACCOUNT provides the service account of this pod as
+            # environment variable
+            - name: OPENEBS_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: OPENEBS_IO_ENABLE_ANALYTICS
+              value: "true"
+            - name: OPENEBS_IO_INSTALLER_TYPE
+              value: "openebs-operator"
+            - name: OPENEBS_IO_HELPER_IMAGE
+              value: "mayadataio/linux-utils:1.12.0-ee"
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can't be used here with pgrep (>15 chars).A regular expression
+          # that matches the entire command name has to specified.
+          # Anchor `^` : matches any string that starts with `provisioner-loc`
+          # `.*`: matches any string that has `provisioner-loc` followed by zero or more char
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test `pgrep -c "^provisioner-loc.*"` = 1
+            initialDelaySeconds: 30
+            periodSeconds: 60
+---
+####################################################
+###########                             ############
+###########       CSPC and CSPI         ############
+###########                             ############
+####################################################
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorpoolclusters.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorpoolclusters
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorpoolcluster
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorPoolCluster
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cspc
+  additionalPrinterColumns:
+    - JSONPath: .status.healthyInstances
+      name: HealthyInstances
+      description: The number of healthy cStorPoolInstances
+      type: integer
+    - JSONPath: .status.provisionedInstances
+      name: ProvisionedInstances
+      description: The number of provisioned cStorPoolInstances
+      type: integer
+    - JSONPath: .status.desiredInstances
+      name: DesiredInstances
+      description: The number of desired cStorPoolInstances
+      type: integer
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorpoolinstances.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorpoolinstances
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorpoolinstance
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorPoolInstance
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cspi
+  additionalPrinterColumns:
+    - JSONPath: .spec.hostName
+      name: HostName
+      description: Host name where cstorpool instances scheduled
+      type: string
+    - JSONPath: .status.capacity.used
+      name: Allocated
+      description: The amount of storage space within the pool that has been physically allocated
+      type: string
+    - JSONPath: .status.capacity.free
+      name: Free
+      description: The amount of usable free space available in the pool
+      type: string
+    - JSONPath: .status.capacity.total
+      name: Capacity
+      description: Total amount of usable space in pool
+      type: string
+    - JSONPath: .status.readOnly
+      name: ReadOnly
+      description: Identifies the pool read only mode
+      type: boolean
+    - JSONPath: .status.provisionedReplicas
+      name: ProvisionedReplicas
+      description: Represents no.of replicas present in the pool
+      type: integer
+    - JSONPath: .status.healthyReplicas
+      name: HealthyReplicas
+      description: Represents no.of healthy replicas present in the pool
+      type: integer
+    - JSONPath: .spec.poolConfig.dataRaidGroupType
+      name: Type
+      description: The type of the storage pool
+      type: string
+    - JSONPath: .status.phase
+      name: Status
+      description: Identifies the current health of the pool
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorvolumes.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorVolume
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorvolumes
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorvolume
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cstorvolume
+      - cv
+  additionalPrinterColumns:
+    - JSONPath: .status.phase
+      name: Status
+      description: Identifies the current health of the volume
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - JSONPath: .status.capacity
+      description: Current volume capacity
+      name: Capacity
+      type: string
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorvolumeconfigs.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorVolumeConfig
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorvolumeconfigs
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorvolumeconfig
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cstorvolumeconfig
+      - cvc
+  additionalPrinterColumns:
+    - JSONPath: .status.phase
+      name: Status
+      description: Identifies the volume provisioning status
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorvolumepolicies.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorVolumePolicy
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorvolumepolicies
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorvolumepolicy
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cstorvolumepolicies
+      - cvp
+      - policy
+  additionalPrinterColumns:
+    - JSONPath: .status.phase
+      name: Status
+      description: Identifies the state of policy
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorvolumereplicas.cstor.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: cstor.openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorVolumeReplica
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorvolumereplicas
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorvolumereplica
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cvr
+  additionalPrinterColumns:
+    - JSONPath: .status.capacity.used
+      name: Used
+      description: The amount of space that is "logically" consumed by this dataset
+      type: string
+    - JSONPath: .status.capacity.total
+      name: Allocated
+      description: The amount of disk space consumed by a dataset and all its descendents
+      type: string
+    - JSONPath: .status.phase
+      name: Status
+      description: Identifies the current state of the replicas
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cspc-operator
+  namespace: openebs
+  labels:
+    name: cspc-operator
+    openebs.io/component-name: cspc-operator
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      name: cspc-operator
+      openebs.io/component-name: cspc-operator
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: cspc-operator
+        openebs.io/component-name: cspc-operator
+        openebs.io/version: 1.12.0-ee
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: cspc-operator
+          imagePullPolicy: IfNotPresent
+          image: mayadataio/cspc-operator-amd64:1.12.0-ee
+          env:
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPENEBS_SERVICEACCOUNT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: CSPC_OPERATOR_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # OPENEBS_IO_BASE_DIR is used to configure base directory for openebs on host path.
+            # Where OpenEBS can store required files. Default base path will be /var/openebs
+            - name: OPENEBS_IO_BASE_DIR
+              value: "/var/openebs"
+            # OPENEBS_IO_CSTOR_POOL_SPARSE_DIR can be used to specify the hostpath
+            # to be used for saving the shared content between the side cars
+            # of cstor pool pod. This ENV is also used to indicate the location
+            # of the sparse devices.
+            # The default path used is /var/openebs/sparse
+            - name: OPENEBS_IO_CSTOR_POOL_SPARSE_DIR
+              value: "/var/openebs/sparse"
+            - name: OPENEBS_IO_CSPI_MGMT_IMAGE
+              value: "mayadataio/cstor-pool-manager-amd64:1.12.0-ee"
+            - name: OPENEBS_IO_CSTOR_POOL_IMAGE
+              value: "mayadataio/cstor-pool:1.12.0-ee"
+            - name:  OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
+              value: "mayadataio/m-exporter:1.12.0-ee"
+            - name: RESYNC_INTERVAL
+              value: "30"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cvc-operator
+  namespace: openebs
+  labels:
+    name: cvc-operator
+    openebs.io/component-name: cvc-operator
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      name: cvc-operator
+      openebs.io/component-name: cvc-operator
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: cvc-operator
+        openebs.io/component-name: cvc-operator
+        openebs.io/version: 1.12.0-ee
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: cvc-operator
+          imagePullPolicy: IfNotPresent
+          image: mayadataio/cvc-operator-amd64:1.12.0-ee
+          env:
+            # OPENEBS_IO_BASE_DIR is used to configure base directory for openebs on host path.
+            # Where OpenEBS can store required files. Default base path will be /var/openebs
+            - name: OPENEBS_IO_BASE_DIR
+              value: "/var/openebs"
+            # OPENEBS_IO_CSTOR_TARGET_DIR can be used to specify the hostpath
+            # that to be used for saving the core dump of cstor volume pod.
+            # The default path used is /var/openebs/sparse
+            - name: OPENEBS_IO_CSTOR_TARGET_DIR
+              value: "/var/openebs/sparse"
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPENEBS_SERVICEACCOUNT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
+              value: "mayadataio/cstor-istgt:1.12.0-ee"
+            - name:  OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
+              value: "mayadataio/cstor-volume-manager-amd64:1.12.0-ee"
+            - name:  OPENEBS_IO_VOLUME_MONITOR_IMAGE
+              value: "mayadataio/m-exporter:1.12.0-ee"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cvc-operator-service
+  namespace: openebs
+  labels:
+    openebs.io/component-name: cvc-operator-svc
+spec:
+  ports:
+    - name: api
+      port: 5757
+      protocol: TCP
+      targetPort: 5757
+  selector:
+    name: cvc-operator
+  sessionAffinity: None
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-cstor-admission-server
+  namespace: openebs
+  labels:
+    app: cstor-admission-webhook
+    openebs.io/component-name: cstor-admission-webhook
+    openebs.io/version: 1.12.0-ee
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  selector:
+    matchLabels:
+      app: cstor-admission-webhook
+  template:
+    metadata:
+      labels:
+        app: cstor-admission-webhook
+        openebs.io/component-name: cstor-admission-webhook
+        openebs.io/version: 1.12.0-ee
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: admission-webhook
+          image: mayadataio/cstor-webhook-amd64:1.12.0-ee
+          imagePullPolicy: IfNotPresent
+          args:
+            - -alsologtostderr
+            - -v=2
+            - 2>&1
+          env:
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ADMISSION_WEBHOOK_NAME
+              value: "openebs-cstor-admission-server"
+            - name: ADMISSION_WEBHOOK_FAILURE_POLICY
+              value: "Fail"
+---
+# This manifest deploys the OpenEBS CSI control plane components,
+# with associated CRs & RBAC rules. This manifest has been verified
+# only with Ubuntu 16.04 and CentOS hosts, due to dependencies on
+# kernel components of iSCSI protocol.  For other ubuntu flavours and
+# linux distros, this needs to be modified.
+#
+# Instructions to modify:
+# Ubuntu-18.04 and above: https://github.com/openebs/cstor-csi/blob/master/deploy/iscsiadm-ubuntu-18.04-and-above-deps.yaml
+# SUSE Linux Enterprise Server 12:  https://github.com/openebs/cstor-csi/blob/master/deploy/iscsiadm-suse-enterprise-server-12-deps.yaml
+# SUSE Linux Enterprise Server 15:  https://github.com/openebs/cstor-csi/blob/master/deploy/iscsiadm-suse-enterprise-server-15-deps.yaml
+#
+# For supporting a differnet OS other than the above,
+# 1) Get the list of shared object files required for iscsiadm binary in that OS version.
+# 2) Check which files are already present in the cstor-csi-driver container present in csi node pod.
+# 3) Mount the required missing files inside the container.
+#
+####################################################
+###########                             ############
+###########  CSI Node and Driver CRDs   ############
+###########                             ############
+####################################################
+
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: csinodeinfos.csi.storage.k8s.io
+spec:
+  group: csi.storage.k8s.io
+  names:
+    kind: CSINodeInfo
+    plural: csinodeinfos
+  scope: Cluster
+  validation:
+    openAPIV3Schema:
+      properties:
+        csiDrivers:
+          description: List of CSI drivers running on the node and their properties.
+          items:
+            properties:
+              driver:
+                description: The CSI driver that this object refers to.
+                type: string
+              nodeID:
+                description: The node from the driver point of view.
+                type: string
+              topologyKeys:
+                description: List of keys supported by the driver.
+                items:
+                  type: string
+                type: array
+          type: array
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: cstorvolumeattachments.cstor.openebs.io
+spec:
+  group: cstor.openebs.io
+  version: v1
+  scope: Namespaced
+  names:
+    plural: cstorvolumeattachments
+    singular: cstorvolumeattachment
+    kind: CStorVolumeAttachment
+    shortNames:
+      - cstorvolumeattachment
+      - cva
+---
+##############################################
+###########                       ############
+###########   Snapshot CRDs       ############
+###########                       ############
+##############################################
+
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: volumesnapshotclasses.snapshot.storage.k8s.io
+spec:
+  group: snapshot.storage.k8s.io
+  names:
+    kind: VolumeSnapshotClass
+    listKind: VolumeSnapshotClassList
+    plural: volumesnapshotclasses
+    singular: volumesnapshotclass
+  scope: Cluster
+  # this field is supported in kubernetes 1.15+
+  # https://v1-15.docs.kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/
+  #preserveUnknownFields: false
+  validation:
+    openAPIV3Schema:
+      description: VolumeSnapshotClass specifies parameters that a underlying storage
+        system uses when creating a volume snapshot. A specific VolumeSnapshotClass
+        is used by specifying its name in a VolumeSnapshot object. VolumeSnapshotClasses
+        are non-namespaced
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        deletionPolicy:
+          description: deletionPolicy determines whether a VolumeSnapshotContent created
+            through the VolumeSnapshotClass should be deleted when its bound VolumeSnapshot
+            is deleted. Supported values are "Retain" and "Delete". "Retain" means
+            that the VolumeSnapshotContent and its physical snapshot on underlying
+            storage system are kept. "Delete" means that the VolumeSnapshotContent
+            and its physical snapshot on underlying storage system are deleted. Required.
+          enum:
+            - Delete
+            - Retain
+          type: string
+        driver:
+          description: driver is the name of the storage driver that handles this
+            VolumeSnapshotClass. Required.
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        parameters:
+          additionalProperties:
+            type: string
+          description: parameters is a key-value map with storage driver specific
+            parameters for creating snapshots. These values are opaque to Kubernetes.
+          type: object
+      required:
+        - deletionPolicy
+        - driver
+      type: object
+  version: v1beta1
+  versions:
+    - name: v1beta1
+      served: true
+      storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: volumesnapshotcontents.snapshot.storage.k8s.io
+spec:
+  group: snapshot.storage.k8s.io
+  names:
+    kind: VolumeSnapshotContent
+    listKind: VolumeSnapshotContentList
+    plural: volumesnapshotcontents
+    singular: volumesnapshotcontent
+  scope: Cluster
+  subresources:
+    status: {}
+  # this field is supported in kubernetes 1.15+
+  # https://v1-15.docs.kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/
+  #preserveUnknownFields: false
+  validation:
+    openAPIV3Schema:
+      description: VolumeSnapshotContent represents the actual "on-disk" snapshot
+        object in the underlying storage system
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        spec:
+          description: spec defines properties of a VolumeSnapshotContent created
+            by the underlying storage system. Required.
+          properties:
+            deletionPolicy:
+              description: deletionPolicy determines whether this VolumeSnapshotContent
+                and its physical snapshot on the underlying storage system should
+                be deleted when its bound VolumeSnapshot is deleted. Supported values
+                are "Retain" and "Delete". "Retain" means that the VolumeSnapshotContent
+                and its physical snapshot on underlying storage system are kept. "Delete"
+                means that the VolumeSnapshotContent and its physical snapshot on
+                underlying storage system are deleted. In dynamic snapshot creation
+                case, this field will be filled in with the "DeletionPolicy" field
+                defined in the VolumeSnapshotClass the VolumeSnapshot refers to. For
+                pre-existing snapshots, users MUST specify this field when creating
+                the VolumeSnapshotContent object. Required.
+              enum:
+                - Delete
+                - Retain
+              type: string
+            driver:
+              description: driver is the name of the CSI driver used to create the
+                physical snapshot on the underlying storage system. This MUST be the
+                same as the name returned by the CSI GetPluginName() call for that
+                driver. Required.
+              type: string
+            source:
+              description: source specifies from where a snapshot will be created.
+                This field is immutable after creation. Required.
+              properties:
+                snapshotHandle:
+                  description: snapshotHandle specifies the CSI "snapshot_id" of a
+                    pre-existing snapshot on the underlying storage system. This field
+                    is immutable.
+                  type: string
+                volumeHandle:
+                  description: volumeHandle specifies the CSI "volume_id" of the volume
+                    from which a snapshot should be dynamically taken from. This field
+                    is immutable.
+                  type: string
+              type: object
+            volumeSnapshotClassName:
+              description: name of the VolumeSnapshotClass to which this snapshot
+                belongs.
+              type: string
+            volumeSnapshotRef:
+              description: volumeSnapshotRef specifies the VolumeSnapshot object to
+                which this VolumeSnapshotContent object is bound. VolumeSnapshot.Spec.VolumeSnapshotContentName
+                field must reference to this VolumeSnapshotContent's name for the
+                bidirectional binding to be valid. For a pre-existing VolumeSnapshotContent
+                object, name and namespace of the VolumeSnapshot object MUST be provided
+                for binding to happen. This field is immutable after creation. Required.
+              properties:
+                apiVersion:
+                  description: API version of the referent.
+                  type: string
+                fieldPath:
+                  description: 'If referring to a piece of an object instead of an
+                    entire object, this string should contain a valid JSON/Go field
+                    access statement, such as desiredState.manifest.containers[2].
+                    For example, if the object reference is to a container within
+                    a pod, this would take on a value like: "spec.containers{name}"
+                    (where "name" refers to the name of the container that triggered
+                    the event) or if no container name is specified "spec.containers[2]"
+                    (container with index 2 in this pod). This syntax is chosen only
+                    to have some well-defined way of referencing a part of an object.
+                    TODO: this design is not final and this field is subject to change
+                    in the future.'
+                  type: string
+                kind:
+                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+                  type: string
+                name:
+                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                  type: string
+                namespace:
+                  description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                  type: string
+                resourceVersion:
+                  description: 'Specific resourceVersion to which this reference is
+                    made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency'
+                  type: string
+                uid:
+                  description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                  type: string
+              type: object
+          required:
+            - deletionPolicy
+            - driver
+            - source
+            - volumeSnapshotRef
+          type: object
+        status:
+          description: status represents the current information of a snapshot.
+          properties:
+            creationTime:
+              description: creationTime is the timestamp when the point-in-time snapshot
+                is taken by the underlying storage system. In dynamic snapshot creation
+                case, this field will be filled in with the "creation_time" value
+                returned from CSI "CreateSnapshotRequest" gRPC call. For a pre-existing
+                snapshot, this field will be filled with the "creation_time" value
+                returned from the CSI "ListSnapshots" gRPC call if the driver supports
+                it. If not specified, it indicates the creation time is unknown. The
+                format of this field is a Unix nanoseconds time encoded as an int64.
+                On Unix, the command `date +%s%N` returns the current time in nanoseconds
+                since 1970-01-01 00:00:00 UTC.
+              format: int64
+              type: integer
+            error:
+              description: error is the latest observed error during snapshot creation,
+                if any.
+              properties:
+                message:
+                  description: 'message is a string detailing the encountered error
+                    during snapshot creation if specified. NOTE: message may be logged,
+                    and it should not contain sensitive information.'
+                  type: string
+                time:
+                  description: time is the timestamp when the error was encountered.
+                  format: date-time
+                  type: string
+              type: object
+            readyToUse:
+              description: readyToUse indicates if a snapshot is ready to be used
+                to restore a volume. In dynamic snapshot creation case, this field
+                will be filled in with the "ready_to_use" value returned from CSI
+                "CreateSnapshotRequest" gRPC call. For a pre-existing snapshot, this
+                field will be filled with the "ready_to_use" value returned from the
+                CSI "ListSnapshots" gRPC call if the driver supports it, otherwise,
+                this field will be set to "True". If not specified, it means the readiness
+                of a snapshot is unknown.
+              type: boolean
+            restoreSize:
+              description: restoreSize represents the complete size of the snapshot
+                in bytes. In dynamic snapshot creation case, this field will be filled
+                in with the "size_bytes" value returned from CSI "CreateSnapshotRequest"
+                gRPC call. For a pre-existing snapshot, this field will be filled
+                with the "size_bytes" value returned from the CSI "ListSnapshots"
+                gRPC call if the driver supports it. When restoring a volume from
+                this snapshot, the size of the volume MUST NOT be smaller than the
+                restoreSize if it is specified, otherwise the restoration will fail.
+                If not specified, it indicates that the size is unknown.
+              format: int64
+              minimum: 0
+              type: integer
+            snapshotHandle:
+              description: snapshotHandle is the CSI "snapshot_id" of a snapshot on
+                the underlying storage system. If not specified, it indicates that
+                dynamic snapshot creation has either failed or it is still in progress.
+              type: string
+          type: object
+      required:
+        - spec
+      type: object
+  version: v1beta1
+  versions:
+    - name: v1beta1
+      served: true
+      storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: volumesnapshots.snapshot.storage.k8s.io
+spec:
+  group: snapshot.storage.k8s.io
+  names:
+    kind: VolumeSnapshot
+    listKind: VolumeSnapshotList
+    plural: volumesnapshots
+    singular: volumesnapshot
+  scope: Namespaced
+  subresources:
+    status: {}
+  # this field is supported in kubernetes 1.15+
+  # https://v1-15.docs.kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/
+  #preserveUnknownFields: false
+  validation:
+    openAPIV3Schema:
+      description: VolumeSnapshot is a user's request for either creating a point-in-time
+        snapshot of a persistent volume, or binding to a pre-existing snapshot.
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        spec:
+          description: 'spec defines the desired characteristics of a snapshot requested
+            by a user. More info: https://kubernetes.io/docs/concepts/storage/volume-snapshots#volumesnapshots
+            Required.'
+          properties:
+            source:
+              description: source specifies where a snapshot will be created from.
+                This field is immutable after creation. Required.
+              properties:
+                persistentVolumeClaimName:
+                  description: persistentVolumeClaimName specifies the name of the
+                    PersistentVolumeClaim object in the same namespace as the VolumeSnapshot
+                    object where the snapshot should be dynamically taken from. This
+                    field is immutable.
+                  type: string
+                volumeSnapshotContentName:
+                  description: volumeSnapshotContentName specifies the name of a pre-existing
+                    VolumeSnapshotContent object. This field is immutable.
+                  type: string
+              type: object
+            volumeSnapshotClassName:
+              description: 'volumeSnapshotClassName is the name of the VolumeSnapshotClass
+                requested by the VolumeSnapshot. If not specified, the default snapshot
+                class will be used if one exists. If not specified, and there is no
+                default snapshot class, dynamic snapshot creation will fail. Empty
+                string is not allowed for this field. TODO(xiangqian): a webhook validation
+                on empty string. More info: https://kubernetes.io/docs/concepts/storage/volume-snapshot-classes'
+              type: string
+          required:
+            - source
+          type: object
+        status:
+          description: 'status represents the current information of a snapshot. NOTE:
+            status can be modified by sources other than system controllers, and must
+            not be depended upon for accuracy. Controllers should only use information
+            from the VolumeSnapshotContent object after verifying that the binding
+            is accurate and complete.'
+          properties:
+            boundVolumeSnapshotContentName:
+              description: 'boundVolumeSnapshotContentName represents the name of
+                the VolumeSnapshotContent object to which the VolumeSnapshot object
+                is bound. If not specified, it indicates that the VolumeSnapshot object
+                has not been successfully bound to a VolumeSnapshotContent object
+                yet. NOTE: Specified boundVolumeSnapshotContentName alone does not
+                mean binding       is valid. Controllers MUST always verify bidirectional
+                binding between       VolumeSnapshot and VolumeSnapshotContent to
+                avoid possible security issues.'
+              type: string
+            creationTime:
+              description: creationTime is the timestamp when the point-in-time snapshot
+                is taken by the underlying storage system. In dynamic snapshot creation
+                case, this field will be filled in with the "creation_time" value
+                returned from CSI "CreateSnapshotRequest" gRPC call. For a pre-existing
+                snapshot, this field will be filled with the "creation_time" value
+                returned from the CSI "ListSnapshots" gRPC call if the driver supports
+                it. If not specified, it indicates that the creation time of the snapshot
+                is unknown.
+              format: date-time
+              type: string
+            error:
+              description: error is the last observed error during snapshot creation,
+                if any. This field could be helpful to upper level controllers(i.e.,
+                application controller) to decide whether they should continue on
+                waiting for the snapshot to be created based on the type of error
+                reported.
+              properties:
+                message:
+                  description: 'message is a string detailing the encountered error
+                    during snapshot creation if specified. NOTE: message may be logged,
+                    and it should not contain sensitive information.'
+                  type: string
+                time:
+                  description: time is the timestamp when the error was encountered.
+                  format: date-time
+                  type: string
+              type: object
+            readyToUse:
+              description: readyToUse indicates if a snapshot is ready to be used
+                to restore a volume. In dynamic snapshot creation case, this field
+                will be filled in with the "ready_to_use" value returned from CSI
+                "CreateSnapshotRequest" gRPC call. For a pre-existing snapshot, this
+                field will be filled with the "ready_to_use" value returned from the
+                CSI "ListSnapshots" gRPC call if the driver supports it, otherwise,
+                this field will be set to "True". If not specified, it means the readiness
+                of a snapshot is unknown.
+              type: boolean
+            restoreSize:
+              description: restoreSize represents the complete size of the snapshot
+                in bytes. In dynamic snapshot creation case, this field will be filled
+                in with the "size_bytes" value returned from CSI "CreateSnapshotRequest"
+                gRPC call. For a pre-existing snapshot, this field will be filled
+                with the "size_bytes" value returned from the CSI "ListSnapshots"
+                gRPC call if the driver supports it. When restoring a volume from
+                this snapshot, the size of the volume MUST NOT be smaller than the
+                restoreSize if it is specified, otherwise the restoration will fail.
+                If not specified, it indicates that the size is unknown.
+              type: string
+          type: object
+      required:
+        - spec
+      type: object
+  version: v1beta1
+  versions:
+    - name: v1beta1
+      served: true
+      storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+##############################################
+###########                       ############
+###########  Backup Restore CRDs  ############
+###########                       ############
+##############################################
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: cstorbackups.openebs.io
+spec:
+  group: openebs.io
+  version: v1alpha1
+  scope: Namespaced
+  names:
+    plural: cstorbackups
+    singular: cstorbackup
+    kind: CStorBackup
+    shortNames:
+      - cbkp
+      - cbkps
+      - cbackups
+      - cbackup
+  additionalPrinterColumns:
+    - JSONPath: .spec.volumeName
+      name: volume
+      description: volume on which backup performed
+      type: string
+    - JSONPath: .spec.backupName
+      name: backup/schedule
+      description: Backup/schedule name
+      type: string
+    - JSONPath: .status
+      name: Status
+      description: Backup status
+      type: string
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: cstorcompletedbackups.openebs.io
+spec:
+  group: openebs.io
+  version: v1alpha1
+  scope: Namespaced
+  names:
+    plural: cstorcompletedbackups
+    singular: cstorcompletedbackup
+    kind: CStorCompletedBackup
+    shortNames:
+      - cbkpc
+      - cbackupcompleted
+  additionalPrinterColumns:
+    - JSONPath: .spec.volumeName
+      name: volume
+      description: volume on which backup performed
+      type: string
+    - JSONPath: .spec.backupName
+      name: backup/schedule
+      description: Backup/schedule name
+      type: string
+    - JSONPath: .spec.prevSnapName
+      name: lastSnap
+      description: Last successful backup snapshot
+      type: string
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: cstorrestores.openebs.io
+spec:
+  group: openebs.io
+  version: v1alpha1
+  scope: Namespaced
+  names:
+    plural: cstorrestores
+    singular: cstorrestore
+    kind: CStorRestore
+    shortNames:
+      - crst
+      - crsts
+      - crestores
+      - crestore
+  additionalPrinterColumns:
+    - JSONPath: .spec.restoreName
+      name: backup
+      description: backup name which is  restored
+      type: string
+    - JSONPath: .spec.volumeName
+      name: volume
+      description: volume on which restore performed
+      type: string
+    - JSONPath: .status
+      name: Status
+      description: Restore status
+      type: string
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-cstor-csi-snapshotter-binding
+subjects:
+  - kind: ServiceAccount
+    name: openebs-cstor-csi-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: openebs-cstor-csi-snapshotter-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-cstor-csi-snapshotter-role
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["create", "get", "list", "watch", "update", "delete"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents/status"]
+    verbs: ["update"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots/status"]
+    verbs: ["update"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "watch", "list", "delete", "update", "create"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["create", "list", "watch", "delete", "get", "update"]
+
+---
+##############################################
+###########                       ############
+###########   Controller plugin   ############
+###########                       ############
+##############################################
+
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: openebs-cstor-csi-controller-sa
+  namespace: kube-system
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-cstor-csi-provisioner-role
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes", "services"]
+    verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims/status"]
+    verbs: ["update", "patch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "csinodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments"]
+    verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["get", "list"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["cstorvolumeattachments", "cstorvolumes","cstorvolumeconfigs"]
+    verbs: ["*"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-cstor-csi-provisioner-binding
+subjects:
+  - kind: ServiceAccount
+    name: openebs-cstor-csi-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: openebs-cstor-csi-provisioner-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: openebs-cstor-csi-controller
+  namespace: kube-system
+  labels:
+    name: openebs-cstor-csi-controller
+    openebs.io/component-name: openebs-cstor-csi-controller
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      name: openebs-cstor-csi-controller
+      openebs.io/component-name: openebs-cstor-csi-controller
+      role: openebs-cstor-csi
+  serviceName: "openebs-csi"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: openebs-cstor-csi-controller
+        openebs.io/component-name: openebs-cstor-csi-controller
+        role: openebs-cstor-csi
+        openebs.io/version: 1.12.0-ee
+    spec:
+      priorityClassName: system-cluster-critical
+      serviceAccount: openebs-cstor-csi-controller-sa
+      containers:
+        - name: csi-resizer
+          image: quay.io/k8scsi/csi-resizer:v0.4.0
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--leader-election"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-snapshotter
+          image: quay.io/k8scsi/csi-snapshotter:v2.0.1
+          args:
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: snapshot-controller
+          image: quay.io/k8scsi/snapshot-controller:v2.0.1
+          args:
+            - "--v=5"
+            - "--leader-election=false"
+          imagePullPolicy: IfNotPresent
+        - name: csi-provisioner
+          image: quay.io/k8scsi/csi-provisioner:v1.6.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--provisioner=cstor.csi.openebs.io"
+            - "--csi-address=$(ADDRESS)"
+            - "--v=5"
+            - "--feature-gates=Topology=true"
+            - "--extra-create-metadata=true"
+          env:
+            - name: MY_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-attacher
+          image: quay.io/k8scsi/csi-attacher:v2.0.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-cluster-driver-registrar
+          image: quay.io/k8scsi/csi-cluster-driver-registrar:v1.0.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--v=5"
+            - "--driver-requires-attachment=true"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: openebs-csi-plugin
+          image: mayadataio/cstor-csi-driver:1.12.0-ee
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OPENEBS_CONTROLLER_DRIVER
+              value: controller
+            - name: OPENEBS_CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: OPENEBS_CSI_API_URL
+              value: https://openebs.io
+              # OpenEBS namespace where the openebs cstor operator components has been installed
+            - name: OPENEBS_NAMESPACE
+              value: openebs
+          args:
+            - "--endpoint=$(OPENEBS_CSI_ENDPOINT)"
+            - "--url=$(OPENEBS_CSI_API_URL)"
+            - "--plugin=$(OPENEBS_CONTROLLER_DRIVER)"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+      volumes:
+        - name: socket-dir
+          emptyDir: {}
+---
+
+############################## CSI- Attacher #######################
+# Attacher must be able to work with PVs, nodes and VolumeAttachments
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-cstor-csi-attacher-role
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csinodeinfos"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments", "csinodes"]
+    verbs: ["get", "list", "watch", "update"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-cstor-csi-attacher-binding
+subjects:
+  - kind: ServiceAccount
+    name: openebs-cstor-csi-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: openebs-cstor-csi-attacher-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-cstor-csi-cluster-registrar-role
+rules:
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csidrivers"]
+    verbs: ["create", "delete"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-cstor-csi-cluster-registrar-binding
+subjects:
+  - kind: ServiceAccount
+    name: openebs-cstor-csi-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: openebs-cstor-csi-cluster-registrar-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+########################################
+###########                 ############
+###########   Node plugin   ############
+###########                 ############
+########################################
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openebs-cstor-csi-node-sa
+  namespace: kube-system
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-cstor-csi-registrar-role
+rules:
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes", "nodes", "services"]
+    verbs: ["get", "list", "patch"]
+  - apiGroups: ["*"]
+    resources: ["cstorvolumeattachments", "cstorvolumes","cstorvolumeconfigs"]
+    verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: openebs-cstor-csi-registrar-binding
+subjects:
+  - kind: ServiceAccount
+    name: openebs-cstor-csi-node-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: openebs-cstor-csi-registrar-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: openebs-cstor-csi-node
+  namespace: kube-system
+  labels:
+    name: openebs-cstor-csi-node
+    openebs.io/component-name: openebs-cstor-csi-node
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      name: openebs-cstor-csi-node
+      openebs.io/component-name: openebs-cstor-csi-node
+  template:
+    metadata:
+      labels:
+        name: openebs-cstor-csi-node
+        openebs.io/component-name: openebs-cstor-csi-node
+        role: openebs-cstor-csi
+        openebs.io/version: 1.12.0-ee
+    spec:
+      priorityClassName: system-node-critical
+      serviceAccount: openebs-cstor-csi-node-sa
+      hostNetwork: true
+      containers:
+        - name: csi-node-driver-registrar
+          image: quay.io/k8scsi/csi-node-driver-registrar:v1.0.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "rm -rf /registration/cstor.csi.openebs.io /registration/cstor.csi.openebs.io-reg.sock"]
+          env:
+            - name: ADDRESS
+              value: /plugin/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: /var/lib/kubelet/plugins/cstor.csi.openebs.io/csi.sock
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: NODE_DRIVER
+              value: openebs-cstor-csi
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /plugin
+            - name: registration-dir
+              mountPath: /registration
+        - name: openebs-csi-plugin
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["CAP_MKNOD", "CAP_SYS_ADMIN", "SYS_ADMIN"]
+            allowPrivilegeEscalation: true
+          image: mayadataio/cstor-csi-driver:1.12.0-ee
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--nodeid=$(OPENEBS_NODE_ID)"
+            - "--endpoint=$(OPENEBS_CSI_ENDPOINT)"
+            - "--url=$(OPENEBS_CSI_API_URL)"
+            - "--plugin=$(OPENEBS_NODE_DRIVER)"
+          env:
+            - name: OPENEBS_NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: OPENEBS_CSI_ENDPOINT
+              value: unix:///plugin/csi.sock
+            - name: OPENEBS_NODE_DRIVER
+              value: node
+            - name: OPENEBS_CSI_API_URL
+              value: https://openebs.io
+              # OpenEBS namespace where the openebs cstor operator components has been installed
+            - name: OPENEBS_NAMESPACE
+              value: openebs
+              # Enable/Disable auto-remount feature, when volumes
+              # recovers form the read-only state
+            - name: REMOUNT
+              value: "false"
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /plugin
+            - name: device-dir
+              mountPath: /dev
+            - name: pods-mount-dir
+              mountPath: /var/lib/kubelet/
+              # needed so that any mounts setup inside this container are
+              # propagated back to the host machine.
+              mountPropagation: "Bidirectional"
+            - name: iscsiadm-bin
+              mountPath: /sbin/iscsiadm
+      volumes:
+        - name: device-dir
+          hostPath:
+            path: /dev
+            type: Directory
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: DirectoryOrCreate
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/cstor.csi.openebs.io/
+            type: DirectoryOrCreate
+        - name: pods-mount-dir
+          hostPath:
+            path: /var/lib/kubelet/
+            type: Directory
+        - name: iscsiadm-bin
+          hostPath:
+            path: /sbin/iscsiadm
+            type: File
+---
+apiVersion: storage.k8s.io/v1beta1
+kind: CSIDriver
+metadata:
+  name: cstor.csi.openebs.io
+spec:
+  # Supports persistent and ephemeral inline volumes.
+  volumeLifecycleModes:
+    - Persistent
+    - Ephemeral
+  # To determine at runtime which mode a volume uses, pod info and its
+  # "csi.storage.k8s.io/ephemeral" entry are needed.
+  podInfoOnMount: true
+  attachRequired: true
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mayastor
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: moac
+  namespace: mayastor
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: moac
+rules:
+  # must create mayastor crd if it doesn't exist
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["create"]
+    # must read csi plugin info
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["csinodes"]
+    verbs: ["get", "list", "watch"]
+    # must read mayastor pools info
+  - apiGroups: ["openebs.io"]
+    resources: ["mayastorpools"]
+    verbs: ["get", "list", "watch", "update"]
+    # must update mayastor pools status
+  - apiGroups: ["openebs.io"]
+    resources: ["mayastorpools/status"]
+    verbs: ["update"]
+    # must read/write mayastor volume resources
+  - apiGroups: ["openebs.io"]
+    resources: ["mayastorvolumes"]
+    verbs: ["get", "list", "watch", "update", "create", "delete"]
+    # must update mayastor volumes status
+  - apiGroups: ["openebs.io"]
+    resources: ["mayastorvolumes/status"]
+    verbs: ["update"]
+
+    # external provisioner & attacher
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "update", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+
+    # external provisioner
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+
+    # external attacher
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments"]
+    verbs: ["get", "list", "watch", "update"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: moac
+subjects:
+  - kind: ServiceAccount
+    name: moac
+    namespace: mayastor
+roleRef:
+  kind: ClusterRole
+  name: moac
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: moac
+  namespace: mayastor
+  labels:
+    openebs.io/component-name: moac
+    openebs.io/version: 1.12.0-ee
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: moac
+      openebs.io/component-name: moac
+  template:
+    metadata:
+      labels:
+        app: moac
+        openebs.io/component-name: moac
+        openebs.io/version: 1.12.0-ee
+    spec:
+      serviceAccount: moac
+      containers:
+        - name: csi-provisioner
+          image: quay.io/k8scsi/csi-provisioner:v1.6.0
+          args:
+            - "--v=2"
+            - "--csi-address=$(ADDRESS)"
+            - "--feature-gates=Topology=true"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+
+        - name: csi-attacher
+          image: quay.io/k8scsi/csi-attacher:v2.2.0
+          args:
+            - "--v=2"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+
+        - name: moac
+          image: mayadataio/moac:0.2.0-ee
+          imagePullPolicy: Always
+          args:
+            - "--csi-address=$(CSI_ENDPOINT)"
+            - "--namespace=$(MY_POD_NAMESPACE)"
+            - "--port=4000"
+            - "-v"
+          env:
+            - name: CSI_ENDPOINT
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+          ports:
+            - containerPort: 4000
+              protocol: TCP
+              name: "rest-api"
+      volumes:
+        - name: socket-dir
+          emptyDir:
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: moac
+  namespace: mayastor
+spec:
+  selector:
+    app: moac
+  ports:
+    - protocol: TCP
+      port: 4000
+      targetPort: 4000
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: mayastor
+  name: mayastor
+  labels:
+    openebs/engine: mayastor
+    openebs.io/component-name: mayastor
+    openebs.io/version: 1.12.0-ee
+spec:
+  selector:
+    matchLabels:
+      app: mayastor
+      openebs.io/component-name: mayastor
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        app: mayastor
+        openebs.io/component-name: mayastor
+        openebs.io/version: 1.12.0-ee
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      # NOTE: Each container must have mem/cpu limits defined in order to
+      # belong to Guaranteed QoS class, hence can never get evicted in case of
+      # pressure unless they exceed those limits. limits and requests must be
+      # the same.
+      containers:
+        - name: mayastor
+          image: mayadataio/mayastor:0.2.0-ee
+          imagePullPolicy: Always
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          args: ["-r", "/mayastor/mayastor.sock"]
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: device
+              mountPath: /dev
+            - name: dshm
+              mountPath: /dev/shm
+            - name: mayastor-dir
+              mountPath: /mayastor
+          resources:
+            limits:
+              cpu: "1"
+              memory: "500Mi"
+              hugepages-2Mi: "1Gi"
+            requests:
+              cpu: "1"
+              memory: "500Mi"
+              hugepages-2Mi: "1Gi"
+        - name: mayastor-grpc
+          image: mayadataio/mayastor-grpc:0.2.0-ee
+          imagePullPolicy: Always
+          # we need privileged because we mount filesystems and use mknod
+          securityContext:
+            privileged: true
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: RUST_BACKTRACE
+              value: "1"
+            - name: ISCSIADM
+              value: "/bin/mayastor-iscsiadm"
+          args:
+            - "--csi-socket=/csi/csi.sock"
+            - "--mayastor-socket=/mayastor/mayastor.sock"
+            - "--node-name=$(MY_NODE_NAME)"
+            - "--address=$(MY_POD_IP)"
+            - "-v"
+          volumeMounts:
+            - name: device
+              mountPath: /dev
+            - name: host-root
+              mountPath: /host
+            - name: mayastor-dir
+              mountPath: /mayastor
+            - name: plugin-dir
+              mountPath: /csi
+            - name: kubelet-dir
+              mountPath: /var/lib/kubelet
+              mountPropagation: "Bidirectional"
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "50Mi"
+            requests:
+              cpu: "100m"
+              memory: "50Mi"
+          ports:
+            - containerPort: 10124
+              protocol: TCP
+              name: mayastor
+        - name: csi-driver-registrar
+          image: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
+          args:
+            - "--csi-address=/csi/csi.sock"
+            - "--kubelet-registration-path=/var/lib/kubelet/plugins/mayastor.openebs.io/csi.sock"
+          lifecycle:
+            preStop:
+              exec:
+                # this is needed in order for CSI to detect that the plugin is gone
+                command: ["/bin/sh", "-c", "rm -f /registration/io.openebs.csi-mayastor-reg.sock /csi/csi.sock"]
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+            - name: registration-dir
+              mountPath: /registration
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "50Mi"
+            requests:
+              cpu: "100m"
+              memory: "50Mi"
+      volumes:
+        - name: device
+          hostPath:
+            path: /dev
+            type: Directory
+        - name: host-root
+          hostPath:
+            path: /
+            type: Directory
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: "1Gi"
+        - name: hugepage
+          emptyDir:
+            medium: HugePages
+        - name: mayastor-dir
+          emptyDir: {}
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: Directory
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/mayastor.openebs.io/
+            type: DirectoryOrCreate
+        - name: kubelet-dir
+          hostPath:
+            path: /var/lib/kubelet
+            type: Directory
