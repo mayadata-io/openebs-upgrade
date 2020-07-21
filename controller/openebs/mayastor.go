@@ -21,6 +21,7 @@ const (
 var supportedMayastorVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1100EE: MayastorVersion010EE,
 	types.OpenEBSVersion1110EE: MayastorVersion020EE,
+	types.OpenEBSVersion1120EE: MayastorVersion020EE,
 }
 
 // Set the default values for Mayastor if not already given.
