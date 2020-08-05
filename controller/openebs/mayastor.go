@@ -24,9 +24,44 @@ var supportedMayastorVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1120EE: MayastorVersion020EE,
 }
 
+var (
+	// List of images which are by default fetched from quay.io/k8scsi registry.
+	CSIProvisionerForMOACImage             string
+	CSIAttacherForMOACImage                string
+	CSINodeDriverRegistrarForMayastorImage string
+)
+
+// SupportedCSIProvisionerVersionForMOACVersion stores the mapping for
+// CSI provisioner to moac(Mayastor) version.
+var SupportedCSIProvisionerVersionForMOACVersion = map[string]string{
+	types.OpenEBSVersion1100:   types.CSIProvisionerVersion150,
+	types.OpenEBSVersion1100EE: types.CSIProvisionerVersion111,
+	types.OpenEBSVersion1110EE: types.CSIProvisionerVersion160,
+}
+
+// SupportedCSIAttacherVersionForMOACVersion stores the mapping for
+// CSI provisioner to MOAC(mayastor) version.
+var SupportedCSIAttacherVersionForMOACVersion = map[string]string{
+	types.OpenEBSVersion1100:   types.CSIAttacherVersion111,
+	types.OpenEBSVersion1100EE: types.CSIAttacherVersion111,
+	types.OpenEBSVersion1110EE: types.CSIAttacherVersion220,
+}
+
+// SupportedCSINodeDriverRegistrarVersionForMayastorVersion stores the mapping for
+// CSINodeDriverRegistrar to mayastor version.
+var SupportedCSINodeDriverRegistrarVersionForMayastorVersion = map[string]string{
+	types.OpenEBSVersion1100EE: types.CSINodeDriverRegistrarVersion110,
+	types.OpenEBSVersion1110EE: types.CSINodeDriverRegistrarVersion130,
+}
+
 // Set the default values for Mayastor if not already given.
 func (p *Planner) setMayastorDefaultsIfNotSet() error {
-
+	var (
+		// List of images which are by default fetched from quay.io/k8scsi registry.
+		CSIProvisionerForMOACImageTag             string
+		CSIAttacherForMOACImageTag                string
+		CSINodeDriverRegistrarForMayastorImageTag string
+	)
 	isMayastorSupported, err := p.isMayastorSupported()
 	// Do not return the error as not to block installing other components.
 	if err != nil {
@@ -57,15 +92,37 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 				return errors.Errorf("Failed to get moac version for the given OpenEBS version: %s",
 					p.ObservedOpenEBS.Spec.Version)
 			}
-
-			p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-				"moac:" + p.ObservedOpenEBS.Spec.MayastorConfig.Moac.ImageTag
-
-			if p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Replicas == nil {
-				p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Replicas = new(int32)
-				*p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Replicas = DefaultMoacReplicaCount
-			}
 		}
+		p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
+			"moac:" + p.ObservedOpenEBS.Spec.MayastorConfig.Moac.ImageTag
+
+		if p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Replicas == nil {
+			p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Replicas = new(int32)
+			*p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Replicas = DefaultMoacReplicaCount
+		}
+
+		// form the CSI provisioner image for MOAC(Mayastor)
+		if csiProvisionerForMOAC, exist :=
+			SupportedCSIProvisionerVersionForMOACVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+			CSIProvisionerForMOACImageTag = "csi-provisioner:" +
+				csiProvisionerForMOAC
+		} else {
+			return errors.Errorf(
+				"Failed to get csi-provisioner version for moac(mayastor) for the given OpenEBS version: %s",
+				p.ObservedOpenEBS.Spec.Version)
+		}
+
+		// form the CSI attacher image for MOAC(mayastor)
+		if csiAttacherForMOAC, exist :=
+			SupportedCSIAttacherVersionForMOACVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+			CSIAttacherForMOACImageTag = "csi-attacher:" +
+				csiAttacherForMOAC
+		} else {
+			return errors.Errorf(
+				"Failed to get csi-attacher version for moac(mayastor) for the given OpenEBS version: %s",
+				p.ObservedOpenEBS.Spec.Version)
+		}
+
 	}
 
 	if p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled == nil {
@@ -99,6 +156,32 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 			"mayastor:" + p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Mayastor.ImageTag
 		p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.MayastorGRPC.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 			"mayastor-grpc:" + p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.MayastorGRPC.ImageTag
+
+		// form the csi-node-driver-registrar image for mayastor for the given OpenEBS version
+		if csiNodeDriverRegistrar, exist :=
+			SupportedCSINodeDriverRegistrarVersionForMayastorVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+			CSINodeDriverRegistrarForMayastorImageTag = "csi-node-driver-registrar:" +
+				csiNodeDriverRegistrar
+		} else {
+			return errors.Errorf(
+				"Failed to get csi-node-driver-registrar version for mayastor for the given OpenEBS version: %s",
+				p.ObservedOpenEBS.Spec.Version)
+		}
+	}
+
+	// check if the image registry is the default ones i.e., quay.io/openebs/, openebs/ or mayadataio/,
+	// if not then form the k8s repositories related images also so that they can also be pulled from
+	// the specified repository only.
+	if !(p.ObservedOpenEBS.Spec.ImagePrefix == types.QUAYIOOPENEBSREGISTRY ||
+		p.ObservedOpenEBS.Spec.ImagePrefix == types.MAYADATAIOREGISTRY ||
+		p.ObservedOpenEBS.Spec.ImagePrefix == types.OPENEBSREGISTRY) {
+		CSIProvisionerForMOACImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSIProvisionerForMOACImageTag
+		CSIAttacherForMOACImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSIAttacherForMOACImageTag
+		CSINodeDriverRegistrarForMayastorImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSINodeDriverRegistrarForMayastorImageTag
+	} else {
+		CSIProvisionerForMOACImage = types.QUAYIOK8SCSI + CSIProvisionerForMOACImageTag
+		CSIAttacherForMOACImage = types.QUAYIOK8SCSI + CSIAttacherForMOACImageTag
+		CSINodeDriverRegistrarForMayastorImage = types.QUAYIOK8SCSI + CSINodeDriverRegistrarForMayastorImageTag
 	}
 
 	return nil
@@ -157,9 +240,17 @@ func (p *Planner) updateMoac(deploy *unstructured.Unstructured) error {
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Image,
 				"spec", "image")
-			if err != nil {
-				return err
-			}
+		} else if containerName == ContainerCSIProvisionerName {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, CSIProvisionerForMOACImage,
+				"spec", "image")
+		} else if containerName == ContainerCSIAttacherName {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, CSIAttacherForMOACImage,
+				"spec", "image")
+		}
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -262,6 +353,15 @@ func (p *Planner) updateMayastor(daemonset *unstructured.Unstructured) error {
 		}
 		if err != nil {
 			return err
+		}
+		// set the image of csi-driver-registrar container
+		if containerName == ContainerCSIDriverRegistrarName {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, CSINodeDriverRegistrarForMayastorImage,
+				"spec", "image")
+			if err != nil {
+				return err
+			}
 		}
 
 		if p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Resources != nil &&

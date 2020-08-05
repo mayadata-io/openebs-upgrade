@@ -26,6 +26,22 @@ import (
 const (
 	// ContainerOpenEBSCSIPluginName is the name of the container openebs csi plugin
 	ContainerOpenEBSCSIPluginName string = "openebs-csi-plugin"
+	// ContainerCSIResizerName is the name of csi-resizer container
+	ContainerCSIResizerName string = "csi-resizer"
+	// ContainerCSISnapshotterName is the name of csi-snapshotter container
+	ContainerCSISnapshotterName string = "csi-snapshotter"
+	// ContainerCSISnapshotControllerName is the name of snapshot-controller container
+	ContainerCSISnapshotControllerName string = "snapshot-controller"
+	// ContainerCSIProvisionerName is the name of csi-provisioner container
+	ContainerCSIProvisionerName string = "csi-provisioner"
+	// ContainerCSIAttacherName is the name of csi-attacher container
+	ContainerCSIAttacherName string = "csi-attacher"
+	// ContainerCSIClusterDriverRegistrarName is the name of csi-cluster-driver-registrar container
+	ContainerCSIClusterDriverRegistrarName string = "csi-cluster-driver-registrar"
+	// ContainerCSINodeDriverRegistrarName is the name of csi-node-driver-registrar container
+	ContainerCSINodeDriverRegistrarName string = "csi-node-driver-registrar"
+	// ContainerCSIDriverRegistrarName is the name of csi-driver-registrar container
+	ContainerCSIDriverRegistrarName string = "csi-driver-registrar"
 	// EnvOpenEBSNamespaceKey is the env key for openebs namespace
 	EnvOpenEBSNamespaceKey string = "OPENEBS_NAMESPACE"
 	// DefaultCSPCOperatorReplicaCount is the default replica count for
@@ -38,6 +54,87 @@ const (
 	// AdmissionServer.
 	DefaultCStorAdmissionServerReplicaCount int32 = 1
 )
+
+var (
+	// List of images which are by default fetched from quay.io/k8scsi registry.
+	CSIResizerImage                       string
+	CSISnapshotterImage                   string
+	CSISnapshotControllerImage            string
+	CSIProvisionerForCSIControllerImage   string
+	CSIAttacherForCSIControllerImage      string
+	CSIClusterDriverRegistrarImage        string
+	CSINodeDriverRegistrarForCSINodeImage string
+)
+
+// SupportedCSIResizerVersionForOpenEBSVersion stores the mapping for
+// CSI resizer to OpenEBS version.
+var SupportedCSIResizerVersionForOpenEBSVersion = map[string]string{
+	types.OpenEBSVersion190:    types.CSIResizerVersion010,
+	types.OpenEBSVersion190EE:  types.CSIResizerVersion010,
+	types.OpenEBSVersion1100:   types.CSIResizerVersion040,
+	types.OpenEBSVersion1100EE: types.CSIResizerVersion040,
+	types.OpenEBSVersion1110EE: types.CSIResizerVersion040,
+}
+
+// SupportedCSISnapshotterVersionForOpenEBSVersion stores the mapping for
+// CSI snapshotter to OpenEBS version.
+var SupportedCSISnapshotterVersionForOpenEBSVersion = map[string]string{
+	types.OpenEBSVersion190:    types.CSISnapshotterVersion201,
+	types.OpenEBSVersion190EE:  types.CSISnapshotterVersion201,
+	types.OpenEBSVersion1100:   types.CSISnapshotterVersion201,
+	types.OpenEBSVersion1100EE: types.CSISnapshotterVersion201,
+	types.OpenEBSVersion1110EE: types.CSISnapshotterVersion201,
+}
+
+// SupportedCSISnapshotControllerVersionForOpenEBSVersion stores the mapping for
+// CSI snapshot controller to OpenEBS version.
+var SupportedCSISnapshotControllerVersionForOpenEBSVersion = map[string]string{
+	types.OpenEBSVersion190:    types.CSISnapshotControllerVersion201,
+	types.OpenEBSVersion190EE:  types.CSISnapshotControllerVersion201,
+	types.OpenEBSVersion1100:   types.CSISnapshotControllerVersion201,
+	types.OpenEBSVersion1100EE: types.CSISnapshotControllerVersion201,
+	types.OpenEBSVersion1110EE: types.CSISnapshotControllerVersion201,
+}
+
+// SupportedCSIProvisionerVersionForCSIControllerVersion stores the mapping for
+// CSI provisioner to csi-controller version.
+var SupportedCSIProvisionerVersionForCSIControllerVersion = map[string]string{
+	types.OpenEBSVersion190:    types.CSIProvisionerVersion150,
+	types.OpenEBSVersion190EE:  types.CSIProvisionerVersion150,
+	types.OpenEBSVersion1100:   types.CSIProvisionerVersion150,
+	types.OpenEBSVersion1100EE: types.CSIProvisionerVersion150,
+	types.OpenEBSVersion1110EE: types.CSIProvisionerVersion160,
+}
+
+// SupportedCSIAttacherVersionForCSIControllerVersion stores the mapping for
+// CSI provisioner to CSIController version.
+var SupportedCSIAttacherVersionForCSIControllerVersion = map[string]string{
+	types.OpenEBSVersion190:    types.CSIAttacherVersion200,
+	types.OpenEBSVersion190EE:  types.CSIAttacherVersion200,
+	types.OpenEBSVersion1100:   types.CSIAttacherVersion200,
+	types.OpenEBSVersion1100EE: types.CSIAttacherVersion200,
+	types.OpenEBSVersion1110EE: types.CSIAttacherVersion200,
+}
+
+// SupportedCSIClusterDriverRegistrarVersionForOpenEBSVersion stores the mapping for
+// CSIClusterDriverRegistrar to OpenEBS version.
+var SupportedCSIClusterDriverRegistrarVersionForOpenEBSVersion = map[string]string{
+	types.OpenEBSVersion190:    types.CSIClusterDriverRegistrarVersion101,
+	types.OpenEBSVersion190EE:  types.CSIClusterDriverRegistrarVersion101,
+	types.OpenEBSVersion1100:   types.CSIClusterDriverRegistrarVersion101,
+	types.OpenEBSVersion1100EE: types.CSIClusterDriverRegistrarVersion101,
+	types.OpenEBSVersion1110EE: types.CSIClusterDriverRegistrarVersion101,
+}
+
+// SupportedCSINodeDriverRegistrarVersionForCSINodeVersion stores the mapping for
+// CSINodeDriverRegistrar to CSI node version.
+var SupportedCSINodeDriverRegistrarVersionForCSINodeVersion = map[string]string{
+	types.OpenEBSVersion190:    types.CSINodeDriverRegistrarVersion101,
+	types.OpenEBSVersion190EE:  types.CSINodeDriverRegistrarVersion101,
+	types.OpenEBSVersion1100:   types.CSINodeDriverRegistrarVersion101,
+	types.OpenEBSVersion1100EE: types.CSINodeDriverRegistrarVersion101,
+	types.OpenEBSVersion1110EE: types.CSINodeDriverRegistrarVersion101,
+}
 
 // Set the default values for Cstor if not already given.
 func (p *Planner) setCStorDefaultsIfNotSet() error {
@@ -181,13 +278,25 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 		*p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Replicas = DefaultCStorAdmissionServerReplicaCount
 	}
 
-	p.setCSIDefaultsIfNotSet()
+	err := p.setCSIDefaultsIfNotSet()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (p *Planner) setCSIDefaultsIfNotSet() {
-
+func (p *Planner) setCSIDefaultsIfNotSet() error {
+	var (
+		// List of images which are by default fetched from quay.io/k8scsi registry.
+		CSIResizerImageTag                       string
+		CSISnapshotterImageTag                   string
+		CSISnapshotControllerImageTag            string
+		CSIProvisionerForCSIControllerImageTag   string
+		CSIAttacherForCSIControllerImageTag      string
+		CSIClusterDriverRegistrarImageTag        string
+		CSINodeDriverRegistrarForCSINodeImageTag string
+	)
 	isCSISupported, err := p.isCSISupported()
 	// Do not return the error as not to block installing other components.
 	if err != nil {
@@ -245,6 +354,98 @@ func (p *Planner) setCSIDefaultsIfNotSet() {
 			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ISCSIPath = "/sbin/iscsiadm"
 		}
 	}
+	// form the csi-resizer image
+	if csiResizerVersion, exist := SupportedCSIResizerVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+		CSIResizerImageTag = "csi-resizer:" + csiResizerVersion
+	} else {
+		return errors.Errorf("Failed to get csi-resizer version for the given OpenEBS version: %s",
+			p.ObservedOpenEBS.Spec.Version)
+	}
+
+	// form the csi-snapshotter image
+	if csiSnapshotterVersion, exist := SupportedCSISnapshotterVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+		CSISnapshotterImageTag = "csi-snapshotter:" + csiSnapshotterVersion
+	} else {
+		return errors.Errorf("Failed to get csi-snapshotter version for the given OpenEBS version: %s",
+			p.ObservedOpenEBS.Spec.Version)
+	}
+
+	// form the CSI snapshot-controller image
+	if csiSnapshotControllerVersion, exist := SupportedCSISnapshotControllerVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+		CSISnapshotControllerImageTag = "snapshot-controller:" + csiSnapshotControllerVersion
+	} else {
+		return errors.Errorf("Failed to get snapshot-controller version for the given OpenEBS version: %s",
+			p.ObservedOpenEBS.Spec.Version)
+	}
+
+	// form the CSI provisioner image for the CSI controller
+	if csiProvisionerForCSIController, exist :=
+		SupportedCSIProvisionerVersionForCSIControllerVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+		CSIProvisionerForCSIControllerImageTag = "csi-provisioner:" +
+			csiProvisionerForCSIController
+	} else {
+		return errors.Errorf(
+			"Failed to get csi-provisioner version for csi-controller for the given OpenEBS version: %s",
+			p.ObservedOpenEBS.Spec.Version)
+	}
+
+	// form the CSI attacher for CSI controller
+	if csiAttacherForCSIController, exist :=
+		SupportedCSIAttacherVersionForCSIControllerVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+		CSIAttacherForCSIControllerImageTag = "csi-attacher:" +
+			csiAttacherForCSIController
+	} else {
+		return errors.Errorf(
+			"Failed to get csi-attacher version for csi-controller for the given OpenEBS version: %s",
+			p.ObservedOpenEBS.Spec.Version)
+	}
+
+	// form the csi-cluster-driver-registrar image for the given OpenEBS version
+	if csiClusterDriverRegistrar, exist :=
+		SupportedCSIClusterDriverRegistrarVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+		CSIClusterDriverRegistrarImageTag = "csi-cluster-driver-registrar:" +
+			csiClusterDriverRegistrar
+	} else {
+		return errors.Errorf(
+			"Failed to get csi-cluster-driver-registrar version for the given OpenEBS version: %s",
+			p.ObservedOpenEBS.Spec.Version)
+	}
+
+	// form the csi-node-driver-registrar image for CSI node for the given OpenEBS version
+	if csiNodeDriverRegistrar, exist :=
+		SupportedCSINodeDriverRegistrarVersionForCSINodeVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+		CSINodeDriverRegistrarForCSINodeImageTag = "csi-node-driver-registrar:" +
+			csiNodeDriverRegistrar
+	} else {
+		return errors.Errorf(
+			"Failed to get csi-node-driver-registrar version for csi-node for the given OpenEBS version: %s",
+			p.ObservedOpenEBS.Spec.Version)
+	}
+
+	// check if the image registry is the default ones i.e., quay.io/openebs/, openebs/ or mayadataio/,
+	// if not then form the k8s repositories related images also so that they can also be pulled from
+	// the specified repository only.
+	if !(p.ObservedOpenEBS.Spec.ImagePrefix == types.QUAYIOOPENEBSREGISTRY ||
+		p.ObservedOpenEBS.Spec.ImagePrefix == types.MAYADATAIOREGISTRY ||
+		p.ObservedOpenEBS.Spec.ImagePrefix == types.OPENEBSREGISTRY) {
+		CSIResizerImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSIResizerImageTag
+		CSISnapshotterImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSISnapshotterImageTag
+		CSISnapshotControllerImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSISnapshotControllerImageTag
+		CSIProvisionerForCSIControllerImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSIProvisionerForCSIControllerImageTag
+		CSIAttacherForCSIControllerImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSIAttacherForCSIControllerImageTag
+		CSIClusterDriverRegistrarImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSIClusterDriverRegistrarImageTag
+		CSINodeDriverRegistrarForCSINodeImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSINodeDriverRegistrarForCSINodeImageTag
+	} else {
+		CSIResizerImage = types.QUAYIOK8SCSI + CSIResizerImageTag
+		CSISnapshotterImage = types.QUAYIOK8SCSI + CSISnapshotterImageTag
+		CSISnapshotControllerImage = types.QUAYIOK8SCSI + CSISnapshotControllerImageTag
+		CSIProvisionerForCSIControllerImage = types.QUAYIOK8SCSI + CSIProvisionerForCSIControllerImageTag
+		CSIAttacherForCSIControllerImage = types.QUAYIOK8SCSI + CSIAttacherForCSIControllerImageTag
+		CSIClusterDriverRegistrarImage = types.QUAYIOK8SCSI + CSIClusterDriverRegistrarImageTag
+		CSINodeDriverRegistrarForCSINodeImage = types.QUAYIOK8SCSI + CSINodeDriverRegistrarForCSINodeImageTag
+	}
+
+	return nil
 }
 
 // isCSISupported checks if csi is supported or not in the current kubernetes cluster, if not it will
@@ -393,6 +594,13 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 				return err
 			}
 			err = unstruct.SliceIterator(volumeMounts).ForEachUpdate(updateOpenEBSCSIPluginVolumeMount)
+			if err != nil {
+				return err
+			}
+		} else if containerName == ContainerCSINodeDriverRegistrarName {
+			// Set the image of the container.
+			err = unstructured.SetNestedField(obj.Object, CSINodeDriverRegistrarForCSINodeImage,
+				"spec", "image")
 			if err != nil {
 				return err
 			}
@@ -593,8 +801,24 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 		return err
 	}
 
-	// update the env value of openebs-csi-plugin container
-	updateOpenEBSCSIPluginEnv := func(env *unstructured.Unstructured) error {
+	// update the containers
+	err = unstruct.SliceIterator(containers).ForEachUpdate(p.updateOpenEBSCStorCSIControllerContainers())
+	if err != nil {
+		return err
+	}
+
+	err = unstructured.SetNestedSlice(statefulset.Object,
+		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateOpenEBSCSIControllerCSIPluginEnv updates the env value of openebs-csi-plugin container of openebs-cstor-csi-controller
+func (p *Planner) updateOpenEBSCSIControllerCSIPluginEnv() func(obj *unstructured.Unstructured) error {
+	return func(env *unstructured.Unstructured) error {
 		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
 		if err != nil {
 			return err
@@ -604,32 +828,31 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 		}
 		return nil
 	}
+}
 
-	// update the containers
-	updateContainer := func(obj *unstructured.Unstructured) error {
+// updateOpenEBSCStorCSIControllerContainers updates the containers of openebs-cstor-csi-controller
+func (p *Planner) updateOpenEBSCStorCSIControllerContainers() func(obj *unstructured.Unstructured) error {
+	return func(obj *unstructured.Unstructured) error {
 		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
 		if err != nil {
 			return err
 		}
-		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
-		if err != nil {
-			return err
+		switch containerName {
+		case ContainerOpenEBSCSIPluginName:
+			err = p.updateOpenEBSCSIControllerCSIPluginContainer(obj)
+		case ContainerCSIResizerName:
+			err = p.updateOpenEBSCSIControllerCSIResizerContainer(obj)
+		case ContainerCSISnapshotterName:
+			err = p.updateOpenEBSCSIControllerCSISnapshotterContainer(obj)
+		case ContainerCSISnapshotControllerName:
+			err = p.updateOpenEBSCSIControllerCSISnapshotControllerContainer(obj)
+		case ContainerCSIAttacherName:
+			err = p.updateOpenEBSCSIControllerCSIAttacherContainer(obj)
+		case ContainerCSIProvisionerName:
+			err = p.updateOpenEBSCSIControllerCSIProvisionerContainer(obj)
+		case ContainerCSIClusterDriverRegistrarName:
+			err = p.updateOpenEBSCSIControllerCSIClusterRegistrarDriverContainer(obj)
 		}
-
-		if containerName == ContainerOpenEBSCSIPluginName {
-			// Set the image of the container.
-			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Image,
-				"spec", "image")
-			if err != nil {
-				return err
-			}
-			// Set the environmets of the container.
-			err = unstruct.SliceIterator(envs).ForEachUpdate(updateOpenEBSCSIPluginEnv)
-			if err != nil {
-				return err
-			}
-		}
-		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {
 			return err
 		}
@@ -648,14 +871,105 @@ func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unst
 
 		return nil
 	}
+}
 
-	err = unstruct.SliceIterator(containers).ForEachUpdate(updateContainer)
+// updateOpenEBSCSIControllerCSIResizerContainer updates the csi-resizer container such as the image,
+// env, etc.
+func (p *Planner) updateOpenEBSCSIControllerCSIResizerContainer(obj *unstructured.Unstructured) error {
+	// Set the image of the container.
+	err := unstructured.SetNestedField(obj.Object, CSIResizerImage,
+		"spec", "image")
 	if err != nil {
 		return err
 	}
 
-	err = unstructured.SetNestedSlice(statefulset.Object,
-		containers, "spec", "template", "spec", "containers")
+	return nil
+}
+
+// updateOpenEBSCSIControllerCSISnapshotterContainer updates the csi-snapshotter container such as the image,
+// env, etc.
+func (p *Planner) updateOpenEBSCSIControllerCSISnapshotterContainer(obj *unstructured.Unstructured) error {
+	// Set the image of the container.
+	err := unstructured.SetNestedField(obj.Object, CSISnapshotterImage,
+		"spec", "image")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateOpenEBSCSIControllerCSISnapshotControllerContainer updates the snapshot-controller container such as the image,
+// env, etc.
+func (p *Planner) updateOpenEBSCSIControllerCSISnapshotControllerContainer(obj *unstructured.Unstructured) error {
+	// Set the image of the container.
+	err := unstructured.SetNestedField(obj.Object, CSISnapshotControllerImage,
+		"spec", "image")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateOpenEBSCSIControllerCSIProvisionerContainer updates the csi-provisioner container such as the image,
+// env, etc.
+func (p *Planner) updateOpenEBSCSIControllerCSIProvisionerContainer(obj *unstructured.Unstructured) error {
+	// Set the image of the container.
+	err := unstructured.SetNestedField(obj.Object, CSIProvisionerForCSIControllerImage,
+		"spec", "image")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateOpenEBSCSIControllerCSIAttacherContainer updates the csi-attacher container such as the image,
+// env, etc.
+func (p *Planner) updateOpenEBSCSIControllerCSIAttacherContainer(obj *unstructured.Unstructured) error {
+	// Set the image of the container.
+	err := unstructured.SetNestedField(obj.Object, CSIAttacherForCSIControllerImage,
+		"spec", "image")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateOpenEBSCSIControllerCSIClusterRegistrarDriverContainer updates the csi-cluster-registrar-driver
+// container such as the image, env, etc.
+func (p *Planner) updateOpenEBSCSIControllerCSIClusterRegistrarDriverContainer(obj *unstructured.Unstructured) error {
+	// Set the image of the container.
+	err := unstructured.SetNestedField(obj.Object, CSIClusterDriverRegistrarImage,
+		"spec", "image")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateOpenEBSCSIControllerCSIPluginContainer updates the openebs-csi-plugin container such as the image,
+// env, etc of openebs-cstor-csi-controller.
+func (p *Planner) updateOpenEBSCSIControllerCSIPluginContainer(obj *unstructured.Unstructured) error {
+	envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+	if err != nil {
+		return err
+	}
+	// Set the image of the container.
+	err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Image,
+		"spec", "image")
+	if err != nil {
+		return err
+	}
+	// Set the environmets of the container.
+	err = unstruct.SliceIterator(envs).ForEachUpdate(p.updateOpenEBSCSIControllerCSIPluginEnv())
+	if err != nil {
+		return err
+	}
+	err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 	if err != nil {
 		return err
 	}
