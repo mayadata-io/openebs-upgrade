@@ -74,6 +74,7 @@ var SupportedCSIResizerVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1100:   types.CSIResizerVersion040,
 	types.OpenEBSVersion1100EE: types.CSIResizerVersion040,
 	types.OpenEBSVersion1110EE: types.CSIResizerVersion040,
+	types.OpenEBSVersion1120EE: types.CSIResizerVersion040,
 }
 
 // SupportedCSISnapshotterVersionForOpenEBSVersion stores the mapping for
@@ -84,6 +85,7 @@ var SupportedCSISnapshotterVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1100:   types.CSISnapshotterVersion201,
 	types.OpenEBSVersion1100EE: types.CSISnapshotterVersion201,
 	types.OpenEBSVersion1110EE: types.CSISnapshotterVersion201,
+	types.OpenEBSVersion1120EE: types.CSISnapshotterVersion201,
 }
 
 // SupportedCSISnapshotControllerVersionForOpenEBSVersion stores the mapping for
@@ -94,6 +96,7 @@ var SupportedCSISnapshotControllerVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1100:   types.CSISnapshotControllerVersion201,
 	types.OpenEBSVersion1100EE: types.CSISnapshotControllerVersion201,
 	types.OpenEBSVersion1110EE: types.CSISnapshotControllerVersion201,
+	types.OpenEBSVersion1120EE: types.CSISnapshotControllerVersion201,
 }
 
 // SupportedCSIProvisionerVersionForCSIControllerVersion stores the mapping for
@@ -104,6 +107,7 @@ var SupportedCSIProvisionerVersionForCSIControllerVersion = map[string]string{
 	types.OpenEBSVersion1100:   types.CSIProvisionerVersion150,
 	types.OpenEBSVersion1100EE: types.CSIProvisionerVersion150,
 	types.OpenEBSVersion1110EE: types.CSIProvisionerVersion160,
+	types.OpenEBSVersion1120EE: types.CSIProvisionerVersion160,
 }
 
 // SupportedCSIAttacherVersionForCSIControllerVersion stores the mapping for
@@ -114,6 +118,7 @@ var SupportedCSIAttacherVersionForCSIControllerVersion = map[string]string{
 	types.OpenEBSVersion1100:   types.CSIAttacherVersion200,
 	types.OpenEBSVersion1100EE: types.CSIAttacherVersion200,
 	types.OpenEBSVersion1110EE: types.CSIAttacherVersion200,
+	types.OpenEBSVersion1120EE: types.CSIAttacherVersion200,
 }
 
 // SupportedCSIClusterDriverRegistrarVersionForOpenEBSVersion stores the mapping for
@@ -124,6 +129,7 @@ var SupportedCSIClusterDriverRegistrarVersionForOpenEBSVersion = map[string]stri
 	types.OpenEBSVersion1100:   types.CSIClusterDriverRegistrarVersion101,
 	types.OpenEBSVersion1100EE: types.CSIClusterDriverRegistrarVersion101,
 	types.OpenEBSVersion1110EE: types.CSIClusterDriverRegistrarVersion101,
+	types.OpenEBSVersion1120EE: types.CSIClusterDriverRegistrarVersion101,
 }
 
 // SupportedCSINodeDriverRegistrarVersionForCSINodeVersion stores the mapping for
@@ -134,6 +140,7 @@ var SupportedCSINodeDriverRegistrarVersionForCSINodeVersion = map[string]string{
 	types.OpenEBSVersion1100:   types.CSINodeDriverRegistrarVersion101,
 	types.OpenEBSVersion1100EE: types.CSINodeDriverRegistrarVersion101,
 	types.OpenEBSVersion1110EE: types.CSINodeDriverRegistrarVersion101,
+	types.OpenEBSVersion1120EE: types.CSINodeDriverRegistrarVersion101,
 }
 
 // Set the default values for Cstor if not already given.
