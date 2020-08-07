@@ -11,6 +11,7 @@ import (
 
 const (
 	MayastorVersion010EE    string = "0.1.0-ee"
+	MayastorVersion020      string = "0.2.0"
 	MayastorVersion020EE    string = "0.2.0-ee"
 	DefaultMoacReplicaCount int32  = 1
 )
@@ -20,7 +21,9 @@ const (
 // supported OpenEBS versions.
 var supportedMayastorVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1100EE: MayastorVersion010EE,
+	types.OpenEBSVersion1110:   MayastorVersion020,
 	types.OpenEBSVersion1110EE: MayastorVersion020EE,
+	types.OpenEBSVersion1120:   MayastorVersion020,
 	types.OpenEBSVersion1120EE: MayastorVersion020EE,
 }
 
@@ -36,7 +39,9 @@ var (
 var SupportedCSIProvisionerVersionForMOACVersion = map[string]string{
 	types.OpenEBSVersion1100:   types.CSIProvisionerVersion150,
 	types.OpenEBSVersion1100EE: types.CSIProvisionerVersion111,
+	types.OpenEBSVersion1110:   types.CSIProvisionerVersion160,
 	types.OpenEBSVersion1110EE: types.CSIProvisionerVersion160,
+	types.OpenEBSVersion1120:   types.CSIProvisionerVersion160,
 	types.OpenEBSVersion1120EE: types.CSIProvisionerVersion160,
 }
 
@@ -45,7 +50,9 @@ var SupportedCSIProvisionerVersionForMOACVersion = map[string]string{
 var SupportedCSIAttacherVersionForMOACVersion = map[string]string{
 	types.OpenEBSVersion1100:   types.CSIAttacherVersion111,
 	types.OpenEBSVersion1100EE: types.CSIAttacherVersion111,
+	types.OpenEBSVersion1110:   types.CSIAttacherVersion220,
 	types.OpenEBSVersion1110EE: types.CSIAttacherVersion220,
+	types.OpenEBSVersion1120:   types.CSIAttacherVersion220,
 	types.OpenEBSVersion1120EE: types.CSIAttacherVersion220,
 }
 
@@ -53,7 +60,9 @@ var SupportedCSIAttacherVersionForMOACVersion = map[string]string{
 // CSINodeDriverRegistrar to mayastor version.
 var SupportedCSINodeDriverRegistrarVersionForMayastorVersion = map[string]string{
 	types.OpenEBSVersion1100EE: types.CSINodeDriverRegistrarVersion110,
+	types.OpenEBSVersion1110:   types.CSINodeDriverRegistrarVersion130,
 	types.OpenEBSVersion1110EE: types.CSINodeDriverRegistrarVersion130,
+	types.OpenEBSVersion1120:   types.CSINodeDriverRegistrarVersion130,
 	types.OpenEBSVersion1120EE: types.CSINodeDriverRegistrarVersion130,
 }
 
