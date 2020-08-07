@@ -37,6 +37,7 @@ var SupportedCSIProvisionerVersionForMOACVersion = map[string]string{
 	types.OpenEBSVersion1100:   types.CSIProvisionerVersion150,
 	types.OpenEBSVersion1100EE: types.CSIProvisionerVersion111,
 	types.OpenEBSVersion1110EE: types.CSIProvisionerVersion160,
+	types.OpenEBSVersion1120EE: types.CSIProvisionerVersion160,
 }
 
 // SupportedCSIAttacherVersionForMOACVersion stores the mapping for
@@ -45,6 +46,7 @@ var SupportedCSIAttacherVersionForMOACVersion = map[string]string{
 	types.OpenEBSVersion1100:   types.CSIAttacherVersion111,
 	types.OpenEBSVersion1100EE: types.CSIAttacherVersion111,
 	types.OpenEBSVersion1110EE: types.CSIAttacherVersion220,
+	types.OpenEBSVersion1120EE: types.CSIAttacherVersion220,
 }
 
 // SupportedCSINodeDriverRegistrarVersionForMayastorVersion stores the mapping for
@@ -52,6 +54,7 @@ var SupportedCSIAttacherVersionForMOACVersion = map[string]string{
 var SupportedCSINodeDriverRegistrarVersionForMayastorVersion = map[string]string{
 	types.OpenEBSVersion1100EE: types.CSINodeDriverRegistrarVersion110,
 	types.OpenEBSVersion1110EE: types.CSINodeDriverRegistrarVersion130,
+	types.OpenEBSVersion1120EE: types.CSINodeDriverRegistrarVersion130,
 }
 
 // Set the default values for Mayastor if not already given.
