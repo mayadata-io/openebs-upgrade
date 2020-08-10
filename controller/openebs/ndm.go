@@ -38,7 +38,9 @@ var SupportedNDMVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion190EE:  types.NDMVersion049EE,
 	types.OpenEBSVersion1100:   types.NDMVersion050,
 	types.OpenEBSVersion1100EE: types.NDMVersion050EE,
+	types.OpenEBSVersion1110:   types.NDMVersion060,
 	types.OpenEBSVersion1110EE: types.NDMVersion060EE,
+	types.OpenEBSVersion1120:   types.NDMVersion070,
 	types.OpenEBSVersion1120EE: types.NDMVersion070EE,
 }
 

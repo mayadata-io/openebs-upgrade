@@ -262,6 +262,8 @@ const (
 	OpenEBSVersion1100 string = "1.10.0"
 	// OpenEBSVersion1100EE is the OpenEBS version 1.10.0-ee
 	OpenEBSVersion1100EE string = "1.10.0-ee"
+	// OpenEBSVersion1110 is the OpenEBS version 1.11.0
+	OpenEBSVersion1110 string = "1.11.0"
 	// OpenEBSVersion1110EE is the OpenEBS version 1.11.0-ee
 	OpenEBSVersion1110EE string = "1.11.0-ee"
 	// OpenEBSVersion1120 is the OpenEBS version 1.12.0

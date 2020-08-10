@@ -127,8 +127,12 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-1.10.0.yaml"
 	case types.OpenEBSVersion1100EE:
 		yamlFile = "/templates/openebs-operator-1.10.0-ee.yaml"
+	case types.OpenEBSVersion1110:
+		yamlFile = "/templates/openebs-operator-1.11.0.yaml"
 	case types.OpenEBSVersion1110EE:
 		yamlFile = "/templates/openebs-operator-1.11.0-ee.yaml"
+	case types.OpenEBSVersion1120:
+		yamlFile = "/templates/openebs-operator-1.12.0.yaml"
 	case types.OpenEBSVersion1120EE:
 		yamlFile = "/templates/openebs-operator-1.12.0-ee.yaml"
 	default:
