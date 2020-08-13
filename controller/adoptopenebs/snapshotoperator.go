@@ -20,7 +20,7 @@ func (p *Planner) formSnapshotOperatorConfig(snapshotOperator *unstructured.Unst
 		provisionerImageTag string
 	)
 	// snapshotOperatorDetails will store the details for snapshotOperator
-	snapshotOperatorDetails, err := p.getResourceCommonDetails(snapshotOperator)
+	snapshotOperatorDetails, err := p.getResourceCommonDetails(snapshotOperator, nil)
 	if err != nil {
 		return err
 	}

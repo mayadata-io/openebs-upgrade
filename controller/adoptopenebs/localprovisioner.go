@@ -13,7 +13,7 @@ func (p *Planner) formLocalProvisionerConfig(localProvisioner *unstructured.Unst
 		Object: make(map[string]interface{}, 0),
 	}
 	// localProvisionerDetails will store the details for localProvisioner
-	localProvisionerDetails, err := p.getResourceCommonDetails(localProvisioner)
+	localProvisionerDetails, err := p.getResourceCommonDetails(localProvisioner, nil)
 	if err != nil {
 		return err
 	}

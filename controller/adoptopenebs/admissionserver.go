@@ -12,8 +12,11 @@ func (p *Planner) formAdmissionServerConfig(admissionServer *unstructured.Unstru
 	admissionServerConfig := &unstructured.Unstructured{
 		Object: make(map[string]interface{}, 0),
 	}
+	if p.AdmissionServerConfig != nil {
+		admissionServerConfig = p.AdmissionServerConfig
+	}
 	// admissionServerDetails will store the details for admissionServer
-	admissionServerDetails, err := p.getResourceCommonDetails(admissionServer)
+	admissionServerDetails, err := p.getResourceCommonDetails(admissionServer, admissionServerConfig.Object)
 	if err != nil {
 		return err
 	}

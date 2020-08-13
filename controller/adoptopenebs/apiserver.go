@@ -14,6 +14,9 @@ func (p *Planner) formMayaAPIServerConfig(mayaAPIServer *unstructured.Unstructur
 	mayaAPIServerConfig := &unstructured.Unstructured{
 		Object: make(map[string]interface{}, 0),
 	}
+	if p.APIServerConfig != nil {
+		mayaAPIServerConfig = p.APIServerConfig
+	}
 	var (
 		cstorSparsePoolEnabled     bool
 		createDefaultStorageConfig bool
@@ -21,7 +24,7 @@ func (p *Planner) formMayaAPIServerConfig(mayaAPIServer *unstructured.Unstructur
 		jivaReplicaCount           int64
 	)
 	// mayaAPIServerDetails will store the details for mayaAPIServer
-	mayaAPIServerDetails, err := p.getResourceCommonDetails(mayaAPIServer)
+	mayaAPIServerDetails, err := p.getResourceCommonDetails(mayaAPIServer, mayaAPIServerConfig.Object)
 	if err != nil {
 		return err
 	}
