@@ -13,7 +13,7 @@ func (p *Planner) formOpenEBSProvisionerConfig(provisioner *unstructured.Unstruc
 		Object: make(map[string]interface{}, 0),
 	}
 	// provisionerDetails will store the details for OpenEBS provisioner
-	provisionerDetails, err := p.getResourceCommonDetails(provisioner)
+	provisionerDetails, err := p.getResourceCommonDetails(provisioner, nil)
 	if err != nil {
 		return err
 	}

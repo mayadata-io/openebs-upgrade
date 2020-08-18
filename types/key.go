@@ -134,6 +134,8 @@ const (
 	MayastorDaemonsetNameKey string = "mayastor"
 	// MayastorNamespaceNameKey is the name of the mayastor namespace
 	MayastorNamespaceNameKey string = "mayastor"
+	// MayastorMOACSVCNameKey is the key to identify moac service
+	MayastorMOACSVCNameKey string = "moac-svc"
 
 	// KindClusterRole is the k8s kind of cluster role
 	KindClusterRole string = "ClusterRole"
@@ -387,21 +389,25 @@ const (
 	// if these are not installed via openebs-upgrade.
 	//
 	// NOTE: These keys and values can be used to identify a particular OpenEBS component.
-	ComponentNameLabelKey                     string = "openebs.io/component-name"
-	NDMComponentNameLabelValue                string = "ndm"
-	NDMOperatorComponentNameLabelValue        string = "ndm-operator"
-	NDMConfigComponentNameLabelValue          string = "ndm-config"
-	CSPCOperatorComponentNameLabelValue       string = "cspc-operator"
-	CVCOperatorComponentNameLabelValue        string = "cvc-operator"
-	MayaAPIServerComponentNameLabelValue      string = "maya-apiserver"
-	MayaAPIServerSVCComponentNameLabelValue   string = "maya-apiserver-svc"
-	AdmissionServerComponentNameLabelValue    string = "admission-webhook"
-	AdmissionServerSVCComponentNameLabelValue string = "admission-webhook-svc"
-	LocalPVProvisionerComponentNameLabelValue string = "openebs-localpv-provisioner"
-	OpenEBSProvisionerComponentNameLabelValue string = "openebs-provisioner"
-	SnapshotOperatorComponentNameLabelValue   string = "openebs-snapshot-operator"
-	CStorCSINodeComponentNameLabelValue       string = "openebs-cstor-csi-node"
-	CStorCSIControllerComponentNameLabelValue string = "openebs-cstor-csi-controller"
+	ComponentNameLabelKey                      string = "openebs.io/component-name"
+	NDMComponentNameLabelValue                 string = "ndm"
+	NDMOperatorComponentNameLabelValue         string = "ndm-operator"
+	NDMConfigComponentNameLabelValue           string = "ndm-config"
+	CSPCOperatorComponentNameLabelValue        string = "cspc-operator"
+	CVCOperatorComponentNameLabelValue         string = "cvc-operator"
+	CVCOperatorServiceComponentNameLabelValue  string = "cvc-operator-svc"
+	MayaAPIServerComponentNameLabelValue       string = "maya-apiserver"
+	MayaAPIServerSVCComponentNameLabelValue    string = "maya-apiserver-svc"
+	AdmissionServerComponentNameLabelValue     string = "admission-webhook"
+	AdmissionServerSVCComponentNameLabelValue  string = "admission-webhook-svc"
+	LocalPVProvisionerComponentNameLabelValue  string = "openebs-localpv-provisioner"
+	OpenEBSProvisionerComponentNameLabelValue  string = "openebs-provisioner"
+	SnapshotOperatorComponentNameLabelValue    string = "openebs-snapshot-operator"
+	CStorCSINodeComponentNameLabelValue        string = "openebs-cstor-csi-node"
+	CStorCSIControllerComponentNameLabelValue  string = "openebs-cstor-csi-controller"
+	MayastorMOACComponentNameLabelValue        string = "moac"
+	MayastorMOACServiceComponentNameLabelValue string = "moac-svc"
+	MayastorMayastorComponentNameLabelValue    string = "mayastor"
 
 	KeyName          string = "name"
 	KeyEnabled       string = "enabled"

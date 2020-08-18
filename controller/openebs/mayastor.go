@@ -95,6 +95,16 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 	}
 
 	if isMayastorSupported && *p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Enabled == true {
+		if len(p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Name) == 0 {
+			p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Name = types.MoacDeploymentNameKey
+		}
+		// set the defaults for MOAC service
+		if p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Service == nil {
+			p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Service = &types.MOACService{}
+		}
+		if len(p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Service.Name) == 0 {
+			p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Service.Name = types.MoacServiceNameKey
+		}
 		if p.ObservedOpenEBS.Spec.MayastorConfig.Moac.ImageTag == "" {
 			if moacVersion, exist :=
 				supportedMayastorVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
@@ -134,7 +144,6 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 				"Failed to get csi-attacher version for moac(mayastor) for the given OpenEBS version: %s",
 				p.ObservedOpenEBS.Spec.Version)
 		}
-
 	}
 
 	if p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled == nil {
@@ -143,6 +152,9 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 	}
 
 	if isMayastorSupported && *p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Enabled == true {
+		if len(p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Name) == 0 {
+			p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Name = types.MayastorDaemonsetNameKey
+		}
 		if p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Mayastor.ImageTag == "" {
 			if mayastorVersion, exist :=
 				supportedMayastorVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
@@ -221,6 +233,7 @@ func (p *Planner) isMayastorSupported() (bool, error) {
 
 // updateMoac updates the moac manifest as per the reconcile.ObservedOpenEBS values.
 func (p *Planner) updateMoac(deploy *unstructured.Unstructured) error {
+	deploy.SetName(p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := deploy.GetLabels()
 	if desiredLabels == nil {
@@ -285,6 +298,7 @@ func (p *Planner) updateMoac(deploy *unstructured.Unstructured) error {
 // updateMoacService updates the moac service manifest as per the
 // reconcile.ObservedOpenEBS values.
 func (p *Planner) updateMoacService(svc *unstructured.Unstructured) error {
+	svc.SetName(p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Service.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := svc.GetLabels()
 	if desiredLabels == nil {
@@ -308,7 +322,7 @@ func (p *Planner) updateMoacService(svc *unstructured.Unstructured) error {
 
 // updateMayastor updates the values of mayastor daemonset as per given configuration.
 func (p *Planner) updateMayastor(daemonset *unstructured.Unstructured) error {
-
+	daemonset.SetName(p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := daemonset.GetLabels()
 	if desiredLabels == nil {

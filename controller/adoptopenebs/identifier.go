@@ -111,10 +111,18 @@ func (oi *OpenEBSIdentifier) identifyOpenEBSComponentUsingLabels() (string, erro
 		componentType = types.CSPCOperatorNameKey
 	case types.CVCOperatorComponentNameLabelValue:
 		componentType = types.CVCOperatorNameKey
+	case types.CVCOperatorServiceComponentNameLabelValue:
+		componentType = types.CVCOperatorServiceNameKey
 	case types.CStorCSINodeComponentNameLabelValue:
 		componentType = types.CStorCSINodeNameKey
 	case types.CStorCSIControllerComponentNameLabelValue:
 		componentType = types.CStorCSIControllerNameKey
+	case types.MayastorMOACComponentNameLabelValue:
+		componentType = types.MoacDeploymentNameKey
+	case types.MayastorMOACServiceComponentNameLabelValue:
+		componentType = types.MoacServiceNameKey
+	case types.MayastorMayastorComponentNameLabelValue:
+		componentType = types.MayastorDaemonsetNameKey
 	}
 
 	return componentType, nil

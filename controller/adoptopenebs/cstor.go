@@ -17,8 +17,13 @@ func (p *Planner) formCSPCOperatorConfig(cspcOperator *unstructured.Unstructured
 	if p.CstorConfig != nil {
 		cstorConfig = p.CstorConfig
 	}
+	// check if CSPCOperatorDetails are already filled, if yes then fill in
+	// other details for cspc-operator.
+	// Note: We are not handling error since we are interested in getting the value only
+	// if it exists otherwise nil will be passed to the getResourceCommonDetails fn.
+	cspcOperatorExistingDetails, _, _ := unstructured.NestedMap(cstorConfig.Object, "cspcOperator")
 	// cspcOperatorDetails will store the details for cspcOperator
-	cspcOperatorDetails, err := p.getResourceCommonDetails(cspcOperator)
+	cspcOperatorDetails, err := p.getResourceCommonDetails(cspcOperator, cspcOperatorExistingDetails)
 	if err != nil {
 		return err
 	}
@@ -101,7 +106,8 @@ func (p *Planner) formCVCOperatorConfig(cvcOperator *unstructured.Unstructured) 
 		cstorConfig = p.CstorConfig
 	}
 	// cvcOperatorDetails will store the details for cvcOperator
-	cvcOperatorDetails, err := p.getResourceCommonDetails(cvcOperator)
+	cvcOperatorExistingDetails, _, _ := unstructured.NestedMap(cstorConfig.Object, "cvcOperator")
+	cvcOperatorDetails, err := p.getResourceCommonDetails(cvcOperator, cvcOperatorExistingDetails)
 	if err != nil {
 		return err
 	}
@@ -174,6 +180,28 @@ func (p *Planner) formCVCOperatorConfig(cvcOperator *unstructured.Unstructured) 
 	return nil
 }
 
+func (p *Planner) formCVCOperatorServiceConfig(cvcOperatorSVC *unstructured.Unstructured) error {
+	// CVCOperatorService config is part of CVC operator config which is part of CStor config.
+	cstorConfig := &unstructured.Unstructured{
+		Object: make(map[string]interface{}, 0),
+	}
+	cvcOperatorConfig := make(map[string]interface{}, 0)
+	if p.CstorConfig != nil {
+		cstorConfig = p.CstorConfig
+		cvcOperatorExistingConfig, _, _ := unstructured.NestedMap(cstorConfig.Object, "cvcOperator")
+		if cvcOperatorExistingConfig != nil {
+			cvcOperatorConfig = cvcOperatorExistingConfig
+		}
+	}
+	cvcOperatorConfig["service"] = map[string]interface{}{
+		"name": cvcOperatorSVC.GetName(),
+	}
+	cstorConfig.Object["cvcOperator"] = cvcOperatorConfig
+	p.CstorConfig = cstorConfig
+
+	return nil
+}
+
 // formCstorAdmissionServer forms the desired OpenEBS CR config for CStor admission server.
 func (p *Planner) formCstorAdmissionServer(admissionServer *unstructured.Unstructured) error {
 	// CStor admission server config is part of CStor config.
@@ -184,7 +212,7 @@ func (p *Planner) formCstorAdmissionServer(admissionServer *unstructured.Unstruc
 		cstorConfig = p.CstorConfig
 	}
 	// admissionServerDetails will store the details for admissionServer
-	admissionServerDetails, err := p.getResourceCommonDetails(admissionServer)
+	admissionServerDetails, err := p.getResourceCommonDetails(admissionServer, nil)
 	if err != nil {
 		return err
 	}
@@ -249,7 +277,7 @@ func (p *Planner) formCstorCSIController(cstorCSIController *unstructured.Unstru
 		}
 	}
 	// csiControllerDetails will store the details for CSI controller component
-	csiControllerDetails, err := p.getResourceCommonDetails(cstorCSIController)
+	csiControllerDetails, err := p.getResourceCommonDetails(cstorCSIController, nil)
 	if err != nil {
 		return err
 	}
@@ -318,7 +346,7 @@ func (p *Planner) formCstorCSINode(cstorCSINode *unstructured.Unstructured) erro
 		}
 	}
 	// csiNodeDetails will store the details for CSI node component
-	csiNodeDetails, err := p.getResourceCommonDetails(cstorCSINode)
+	csiNodeDetails, err := p.getResourceCommonDetails(cstorCSINode, nil)
 	if err != nil {
 		return err
 	}

@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"mayadata.io/openebs-upgrade/pkg/utils/metac"
 	"mayadata.io/openebs-upgrade/types"
+	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -122,6 +123,25 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 			continue
 		}
 		if attachment.GetKind() == string(types.KindOpenEBS) {
+			// filter out the OpenEBS entries not created by adopt controller
+			// and hence delete them since only one OpenEBS entry should be present
+			// across the cluster.
+			attachmentLabels := attachment.GetLabels()
+			if !(attachmentLabels == nil || len(attachmentLabels) == 0) {
+				if isOpenEBSAdoptedString, exist := attachmentLabels[types.OpenEBSUpgradeDAOAdoptLabelKey]; exist {
+					isOpenEBSAdopted, err := strconv.ParseBool(isOpenEBSAdoptedString)
+					if err != nil {
+						errHandler.handle(err)
+						return nil
+					}
+					// If it is not an adopted OpenEBS entry, delete it.
+					if !isOpenEBSAdopted {
+						response.ExplicitDeletes = append(response.ExplicitDeletes, attachment)
+					}
+				} else {
+					response.ExplicitDeletes = append(response.ExplicitDeletes, attachment)
+				}
+			}
 			// this is the required OpenEBS
 			observedOpenEBS = attachment
 			continue
@@ -177,7 +197,6 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		request.Watch.GetNamespace(), request.Watch.GetName(),
 		metac.GetDetailsFromResponse(response),
 	)
-
 	// construct the success handler
 	successHandler := &reconcileSuccessHandler{
 		adoptopenebs: request.Watch,
@@ -255,6 +274,7 @@ type Planner struct {
 	HelperConfig           *unstructured.Unstructured
 	PoliciesConfig         *unstructured.Unstructured
 	AnalyticsConfig        *unstructured.Unstructured
+	MayastorConfig         *unstructured.Unstructured
 }
 
 // NewReconciler returns a new instance of Reconciler
@@ -427,6 +447,9 @@ func (p *Planner) addAdoptOpenEBSLabels(component *unstructured.Unstructured) er
 func (p *Planner) getDesiredOpenEBS() error {
 	openebs := &unstructured.Unstructured{}
 	openebsLabels := make(map[string]string)
+	// set the "openebs-upgrade.dao.mayadata.io/adopt=true" label so that we can identify
+	// the OpenEBS entries created by adopt controller or by some external means.
+	openebsLabels[types.OpenEBSUpgradeDAOAdoptLabelKey] = types.OpenEBSUpgradeDAOAdoptLabelValue
 	// get the adoption job ID label which tells the ID of the job which has triggered
 	// the adoption process.
 	if p.ObservedAdoptOpenEBS.GetLabels() != nil {
@@ -460,6 +483,7 @@ func (p *Planner) getDesiredOpenEBS() error {
 			"helper":                     p.HelperConfig,
 			"policies":                   p.PoliciesConfig,
 			"analytics":                  p.AnalyticsConfig,
+			"mayastorConfig":             p.MayastorConfig,
 		},
 	})
 	openebs.SetKind(string(types.KindOpenEBS))

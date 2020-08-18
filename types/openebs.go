@@ -400,6 +400,12 @@ type Mayastor struct {
 type Moac struct {
 	Component `json:",inline"`
 	Container `json:",inline"`
+	Service   *MOACService `json:"service"`
+}
+
+// MOACService stores the moac service details
+type MOACService struct {
+	Name string `json:"name"`
 }
 
 // Container stores the details of a container

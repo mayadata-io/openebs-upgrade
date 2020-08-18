@@ -17,7 +17,7 @@ func (p *Planner) formNDMOperatorConfig(ndmOperator *unstructured.Unstructured) 
 		Object: make(map[string]interface{}, 0),
 	}
 	// ndmOperatorDetails will store the details for ndmOperator
-	ndmOperatorDetails, err := p.getResourceCommonDetails(ndmOperator)
+	ndmOperatorDetails, err := p.getResourceCommonDetails(ndmOperator, nil)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (p *Planner) formNDMDaemonConfig(ndm *unstructured.Unstructured) error {
 		sparseSize  string
 	)
 	// ndmDaemonDetails will store the details for ndmDaemon
-	ndmDaemonDetails, err := p.getResourceCommonDetails(ndm)
+	ndmDaemonDetails, err := p.getResourceCommonDetails(ndm, nil)
 	if err != nil {
 		return err
 	}
@@ -270,7 +270,7 @@ func (p *Planner) formNDMConfigMapConfig(ndmCm *unstructured.Unstructured) error
 	// set the configMap related details to ndmDaemon field
 	p.NDMDaemonConfig = ndmConfigMapConfig
 	// set the ndmConfigMap values wrt ndmConfigMap field also
-	ndmConfigMap.SetName(ndmCm.GetName())
+	ndmConfigMap.Object[types.KeyName] = ndmCm.GetName()
 	p.NDMConfigMapConfig = ndmConfigMap
 
 	return nil
