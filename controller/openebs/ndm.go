@@ -42,6 +42,8 @@ var SupportedNDMVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1110EE: types.NDMVersion060EE,
 	types.OpenEBSVersion1120:   types.NDMVersion070,
 	types.OpenEBSVersion1120EE: types.NDMVersion070EE,
+	types.OpenEBSVersion200:    types.NDMVersion080,
+	types.OpenEBSVersion200EE:  types.NDMVersion080EE,
 }
 
 // add/update NDM defaults if not already provided
@@ -383,6 +385,19 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 	// set the desired labels
 	daemonset.SetLabels(desiredLabels)
 
+	// add hostPID field if provided, this field is used in case if feature-gate "APIService"
+	// is enabled for NDM in order to check ISCSI service status.
+	ndmTemplateSpec, err := unstruct.GetNestedMapOrError(daemonset, "spec", "template", "spec")
+	if err != nil {
+		return err
+	}
+	if p.ObservedOpenEBS.Spec.NDMDaemon.EnableHostPID != nil {
+		ndmTemplateSpec["hostPID"] = p.ObservedOpenEBS.Spec.NDMDaemon.EnableHostPID
+	}
+	err = unstructured.SetNestedMap(daemonset.Object, ndmTemplateSpec, "spec", "template", "spec")
+	if err != nil {
+		return err
+	}
 	volumes, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "volumes")
 	if err != nil {
 		return err
@@ -479,6 +494,10 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 		if err != nil {
 			return err
 		}
+		args, _, err := unstruct.GetSlice(obj, "spec", "args")
+		if err != nil {
+			return err
+		}
 		// update the envs and volume mounts per container i.e., envs and volume mounts
 		// could be different for each container and should be updated as such.
 		if containerName == "node-disk-manager" {
@@ -495,12 +514,18 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 			if err != nil {
 				return err
 			}
+			// add the required args for node-disk-manager
+			args = p.addNodeDiskManagerArgs(args)
 		}
 		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {
 			return err
 		}
 		err = unstructured.SetNestedSlice(obj.Object, volumeMounts, "spec", "volumeMounts")
+		if err != nil {
+			return err
+		}
+		err = unstructured.SetNestedSlice(obj.Object, args, "spec", "args")
 		if err != nil {
 			return err
 		}
@@ -529,6 +554,21 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 	}
 
 	return nil
+}
+
+// addNodeDiskManagerArgs adds args to the node-disk-manager container such as features gates, etc.
+func (p *Planner) addNodeDiskManagerArgs(args []interface{}) []interface{} {
+	if p.ObservedOpenEBS.Spec.NDMDaemon.FeatureGates != nil ||
+		len(p.ObservedOpenEBS.Spec.NDMDaemon.FeatureGates) != 0 {
+		for _, featureGate := range p.ObservedOpenEBS.Spec.NDMDaemon.FeatureGates {
+			// if an empty feature gate is provided then do not do anything
+			if len(featureGate) == 0 {
+				continue
+			}
+			args = append(args, "--feature-gates="+featureGate)
+		}
+	}
+	return args
 }
 
 // updateNDMOperator updates the NDM Operator structure as per the provided values otherwise
