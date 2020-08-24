@@ -4771,7 +4771,6 @@ spec:
       # To resolve services from mayastor namespace
       dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
-        openebs.io/engine: mayastor
         kubernetes.io/arch: amd64
       # NOTE: Each container must have mem/cpu limits defined in order to
       # belong to Guaranteed QoS class, hence can never get evicted in case of
