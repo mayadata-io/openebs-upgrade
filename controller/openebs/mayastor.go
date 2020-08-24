@@ -121,16 +121,18 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 		isMayastorSupported = false
 		glog.Errorf("Failed to set Mayastor defaults, error: %v", err)
 	}
+	// set the default image registry value.
+	defaultImageRegistryForMayastor = p.ObservedOpenEBS.Spec.ImagePrefix
 	// If OpenEBS version is lower than 2.0.0 then use the default imageRegistry if no custom registry
 	// is provided otherwise use mayadata/ as default registry for Mayastor components from OpenEBS version
-	// 2.0.0 onwards.
+	// 2.0.0 onwards for community edition.
 	comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
 	if err != nil {
 		glog.Errorf("Error setting default image registry for Mayastor based on OpenEBS version: %+v", err)
 	}
-	if comp < 0 {
-		defaultImageRegistryForMayastor = p.ObservedOpenEBS.Spec.ImagePrefix
-	} else {
+	if comp >= 0 && defaultImageRegistryForMayastor == types.QUAYIOOPENEBSREGISTRY {
+		// use mayadata/ only in case of community edition, for enterprise mayadataio/ will
+		// be used by default.
 		defaultImageRegistryForMayastor = "mayadata/"
 	}
 	if !isMayastorSupported {
