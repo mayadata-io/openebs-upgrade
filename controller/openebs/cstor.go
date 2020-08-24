@@ -509,7 +509,12 @@ func (p *Planner) deleteCSIComponentsIfRequired() error {
 		return errors.Errorf("Error comparing OpenEBS versions[given: %s, comparingTo: %s]: %+v",
 			p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200, err)
 	}
-	if comp < 0 {
+	// check if CSI is supported or not for this version, if not then do not delete the existing ones.
+	isCSISupported, err := p.isCSISupported()
+	if err != nil {
+		return errors.Errorf("Error checking if CSI is supported or not: %+v", err)
+	}
+	if comp >= 0 && isCSISupported {
 		// check if csi-components are already installed in kube-system namespace.
 		for _, observedOpenEBSComp := range p.observedOpenEBSComponents {
 			if observedOpenEBSComp.GetKind() == types.KindStatefulset ||
@@ -571,6 +576,10 @@ func (p *Planner) isCSISupported() (bool, error) {
 
 // updateOpenEBSCStorCSINode updates the values of openebs-cstor-csi-node daemonset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured) error {
+	var (
+		extraVolumes      []interface{}
+		extraVolumeMounts []interface{}
+	)
 	daemonset.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Name)
 	// overwrite the namespace to kube-system as csi based components will run only
 	// in kube-system namespace for OpenEBS version below 2.0.0.
@@ -599,10 +608,12 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	// this will get the extra volumes and volume mounts required to be added in the csi node daemonset
 	// for the csi to work for different OS distributions/versions.
 	// This volumes and volume mounts will be added in the openebs-csi-plugin container.
-	//extraVolumes, extraVolumeMounts, err := p.getOSSpecificVolumeMounts()
-	//if err != nil {
-	//	return err
-	//}
+	if comp < 0 {
+		extraVolumes, extraVolumeMounts, err = p.getOSSpecificVolumeMounts()
+		if err != nil {
+			return err
+		}
+	}
 
 	volumes, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "volumes")
 	if err != nil {
@@ -629,7 +640,7 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	}
 
 	// Append the new extra volumes with the existing volumes, required for the csi to work.
-	//volumes = append(volumes, extraVolumes...)
+	volumes = append(volumes, extraVolumes...)
 
 	err = unstructured.SetNestedSlice(daemonset.Object, volumes,
 		"spec", "template", "spec", "volumes")
@@ -716,7 +727,7 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		}
 
 		// Append the new extra volume mounts with the existing volume mounts, required for the csi to work.
-		//volumeMounts = append(volumeMounts, extraVolumeMounts...)
+		volumeMounts = append(volumeMounts, extraVolumeMounts...)
 		err = unstructured.SetNestedSlice(obj.Object, volumeMounts, "spec", "volumeMounts")
 		if err != nil {
 			return err
