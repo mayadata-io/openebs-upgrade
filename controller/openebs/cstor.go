@@ -26,6 +26,8 @@ import (
 const (
 	// ContainerOpenEBSCSIPluginName is the name of the container openebs csi plugin
 	ContainerOpenEBSCSIPluginName string = "openebs-csi-plugin"
+	// ContainerCSTORCSIPluginName is the name of the container cstor csi plugin
+	ContainerCSTORCSIPluginName string = "cstor-csi-plugin"
 	// ContainerCSIResizerName is the name of csi-resizer container
 	ContainerCSIResizerName string = "csi-resizer"
 	// ContainerCSISnapshotterName is the name of csi-snapshotter container
@@ -77,6 +79,8 @@ var SupportedCSIResizerVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1110EE: types.CSIResizerVersion040,
 	types.OpenEBSVersion1120:   types.CSIResizerVersion040,
 	types.OpenEBSVersion1120EE: types.CSIResizerVersion040,
+	types.OpenEBSVersion200:    types.CSIResizerVersion040,
+	types.OpenEBSVersion200EE:  types.CSIResizerVersion040,
 }
 
 // SupportedCSISnapshotterVersionForOpenEBSVersion stores the mapping for
@@ -90,6 +94,8 @@ var SupportedCSISnapshotterVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1110EE: types.CSISnapshotterVersion201,
 	types.OpenEBSVersion1120:   types.CSISnapshotterVersion201,
 	types.OpenEBSVersion1120EE: types.CSISnapshotterVersion201,
+	types.OpenEBSVersion200:    types.CSISnapshotterVersion201,
+	types.OpenEBSVersion200EE:  types.CSISnapshotterVersion201,
 }
 
 // SupportedCSISnapshotControllerVersionForOpenEBSVersion stores the mapping for
@@ -103,6 +109,8 @@ var SupportedCSISnapshotControllerVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion1110EE: types.CSISnapshotControllerVersion201,
 	types.OpenEBSVersion1120:   types.CSISnapshotControllerVersion201,
 	types.OpenEBSVersion1120EE: types.CSISnapshotControllerVersion201,
+	types.OpenEBSVersion200:    types.CSISnapshotControllerVersion201,
+	types.OpenEBSVersion200EE:  types.CSISnapshotControllerVersion201,
 }
 
 // SupportedCSIProvisionerVersionForCSIControllerVersion stores the mapping for
@@ -116,6 +124,8 @@ var SupportedCSIProvisionerVersionForCSIControllerVersion = map[string]string{
 	types.OpenEBSVersion1110EE: types.CSIProvisionerVersion160,
 	types.OpenEBSVersion1120:   types.CSIProvisionerVersion160,
 	types.OpenEBSVersion1120EE: types.CSIProvisionerVersion160,
+	types.OpenEBSVersion200:    types.CSIProvisionerVersion160,
+	types.OpenEBSVersion200EE:  types.CSIProvisionerVersion160,
 }
 
 // SupportedCSIAttacherVersionForCSIControllerVersion stores the mapping for
@@ -129,6 +139,8 @@ var SupportedCSIAttacherVersionForCSIControllerVersion = map[string]string{
 	types.OpenEBSVersion1110EE: types.CSIAttacherVersion200,
 	types.OpenEBSVersion1120:   types.CSIAttacherVersion200,
 	types.OpenEBSVersion1120EE: types.CSIAttacherVersion200,
+	types.OpenEBSVersion200:    types.CSIAttacherVersion200,
+	types.OpenEBSVersion200EE:  types.CSIAttacherVersion200,
 }
 
 // SupportedCSIClusterDriverRegistrarVersionForOpenEBSVersion stores the mapping for
@@ -142,6 +154,8 @@ var SupportedCSIClusterDriverRegistrarVersionForOpenEBSVersion = map[string]stri
 	types.OpenEBSVersion1110EE: types.CSIClusterDriverRegistrarVersion101,
 	types.OpenEBSVersion1120:   types.CSIClusterDriverRegistrarVersion101,
 	types.OpenEBSVersion1120EE: types.CSIClusterDriverRegistrarVersion101,
+	types.OpenEBSVersion200:    types.CSIClusterDriverRegistrarVersion101,
+	types.OpenEBSVersion200EE:  types.CSIClusterDriverRegistrarVersion101,
 }
 
 // SupportedCSINodeDriverRegistrarVersionForCSINodeVersion stores the mapping for
@@ -155,6 +169,8 @@ var SupportedCSINodeDriverRegistrarVersionForCSINodeVersion = map[string]string{
 	types.OpenEBSVersion1110EE: types.CSINodeDriverRegistrarVersion101,
 	types.OpenEBSVersion1120:   types.CSINodeDriverRegistrarVersion101,
 	types.OpenEBSVersion1120EE: types.CSINodeDriverRegistrarVersion101,
+	types.OpenEBSVersion200:    types.CSINodeDriverRegistrarVersion101,
+	types.OpenEBSVersion200EE:  types.CSINodeDriverRegistrarVersion101,
 }
 
 // Set the default values for Cstor if not already given.
@@ -375,6 +391,16 @@ func (p *Planner) setCSIDefaultsIfNotSet() error {
 			p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ISCSIPath = "/sbin/iscsiadm"
 		}
 	}
+	// If CStor csi-controller or csi-node is enabled then check and delete the CSI components
+	// if not installed in OpenEBS namespace after OpenEBS version 2.0.0.
+	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == true ||
+		*p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == true {
+		err = p.deleteCSIComponentsIfRequired()
+		if err != nil {
+			// only log the error, do not stop the flow.
+			glog.Error(err)
+		}
+	}
 	// form the csi-resizer image
 	if csiResizerVersion, exist := SupportedCSIResizerVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
 		CSIResizerImageTag = "csi-resizer:" + csiResizerVersion
@@ -443,6 +469,11 @@ func (p *Planner) setCSIDefaultsIfNotSet() error {
 			p.ObservedOpenEBS.Spec.Version)
 	}
 
+	// set the name of cstor-csi-iscsiadm configMap.
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.CSI.ISCSIADMConfigmap.Name) == 0 {
+		p.ObservedOpenEBS.Spec.CstorConfig.CSI.ISCSIADMConfigmap.Name = types.CStorCSIISCSIADMConfigmapNameKey
+	}
+
 	// check if the image registry is the default ones i.e., quay.io/openebs/, openebs/ or mayadataio/,
 	// if not then form the k8s repositories related images also so that they can also be pulled from
 	// the specified repository only.
@@ -469,21 +500,66 @@ func (p *Planner) setCSIDefaultsIfNotSet() error {
 	return nil
 }
 
+// Check the OpenEBS version if it is greater than 2.0.0, if yes then check if CSI components
+// are already installed at kube-system, if yes then install CSI components in openebs namespace
+// and delete from kube-system.
+func (p *Planner) deleteCSIComponentsIfRequired() error {
+	comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
+	if err != nil {
+		return errors.Errorf("Error comparing OpenEBS versions[given: %s, comparingTo: %s]: %+v",
+			p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200, err)
+	}
+	if comp < 0 {
+		// check if csi-components are already installed in kube-system namespace.
+		for _, observedOpenEBSComp := range p.observedOpenEBSComponents {
+			if observedOpenEBSComp.GetKind() == types.KindStatefulset ||
+				observedOpenEBSComp.GetKind() == types.KindDaemonSet ||
+				observedOpenEBSComp.GetKind() == types.KindServiceAccount {
+				if observedOpenEBSComp.GetName() == types.CStorCSIControllerNameKey ||
+					observedOpenEBSComp.GetName() == types.CStorCSINodeNameKey ||
+					observedOpenEBSComp.GetName() == types.CStorCSIControllerSANameKey ||
+					observedOpenEBSComp.GetName() == types.CStorCSINodeSANameKey {
+					if observedOpenEBSComp.GetNamespace() == types.NamespaceKubeSystem {
+						p.ExplicitDeletes = append(p.ExplicitDeletes, observedOpenEBSComp)
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // isCSISupported checks if csi is supported or not in the current kubernetes cluster, if not it will
 // return false else true.
 func (p *Planner) isCSISupported() (bool, error) {
+	// comp stores the result for comparing 2 versions
+	var comp int
 	// get the kubernetes version.
 	k8sVersion, err := k8s.GetK8sVersion()
 	if err != nil {
 		return false, errors.Errorf("Unable to find kubernetes version, error: %v", err)
 	}
-
-	// compare the kubernetes version with the supported version of csi.
-	comp, err := compareVersion(k8sVersion, types.CSISupportedVersion)
+	// Check if the given OpenEBS version is greater than or less than OpenEBS version 2.0.0.
+	// For OpenEBS version 2.0.0 or greater, CSI is supported only for k8s version 1.17.x or greater.
+	res, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
 	if err != nil {
-		return false, errors.Errorf("Error comparing versions, error: %v", err)
+		return false, errors.Errorf(
+			"Error comparing versions for checking if CSI is supported or not[v1: %s, v2: %s], error: %v",
+			p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200, err)
 	}
-
+	if res >= 0 {
+		// compare the kubernetes version with the supported version of csi.
+		comp, err = compareVersion(k8sVersion, types.CSISupportedVersionFromOpenEBS200)
+		if err != nil {
+			return false, errors.Errorf("Error comparing versions, error: %v", err)
+		}
+	} else {
+		// compare the kubernetes version with the supported version of csi.
+		comp, err = compareVersion(k8sVersion, types.CSISupportedVersion)
+		if err != nil {
+			return false, errors.Errorf("Error comparing versions, error: %v", err)
+		}
+	}
 	if comp < 0 {
 		glog.Warningf("CSI is not supported in %s Kubernetes version. "+
 			"CSI is supported from %s Kubernetes version.", k8sVersion, types.CSISupportedVersion)
@@ -496,8 +572,15 @@ func (p *Planner) isCSISupported() (bool, error) {
 // updateOpenEBSCStorCSINode updates the values of openebs-cstor-csi-node daemonset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured) error {
 	daemonset.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Name)
-	// overwrite the namespace to kube-system as csi based components will run only in kube-system namespace.
-	daemonset.SetNamespace(types.NamespaceKubeSystem)
+	// overwrite the namespace to kube-system as csi based components will run only
+	// in kube-system namespace for OpenEBS version below 2.0.0.
+	comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
+	if err != nil {
+		return err
+	}
+	if comp < 0 {
+		daemonset.SetNamespace(types.NamespaceKubeSystem)
+	}
 
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := daemonset.GetLabels()
@@ -516,10 +599,10 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	// this will get the extra volumes and volume mounts required to be added in the csi node daemonset
 	// for the csi to work for different OS distributions/versions.
 	// This volumes and volume mounts will be added in the openebs-csi-plugin container.
-	extraVolumes, extraVolumeMounts, err := p.getOSSpecificVolumeMounts()
-	if err != nil {
-		return err
-	}
+	//extraVolumes, extraVolumeMounts, err := p.getOSSpecificVolumeMounts()
+	//if err != nil {
+	//	return err
+	//}
 
 	volumes, err := unstruct.GetNestedSliceOrError(daemonset, "spec", "template", "spec", "volumes")
 	if err != nil {
@@ -546,7 +629,7 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	}
 
 	// Append the new extra volumes with the existing volumes, required for the csi to work.
-	volumes = append(volumes, extraVolumes...)
+	//volumes = append(volumes, extraVolumes...)
 
 	err = unstructured.SetNestedSlice(daemonset.Object, volumes,
 		"spec", "template", "spec", "volumes")
@@ -602,7 +685,8 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 			return err
 		}
 
-		if containerName == ContainerOpenEBSCSIPluginName {
+		if containerName == ContainerOpenEBSCSIPluginName ||
+			containerName == ContainerCSTORCSIPluginName {
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Image,
 				"spec", "image")
@@ -632,7 +716,7 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		}
 
 		// Append the new extra volume mounts with the existing volume mounts, required for the csi to work.
-		volumeMounts = append(volumeMounts, extraVolumeMounts...)
+		//volumeMounts = append(volumeMounts, extraVolumeMounts...)
 		err = unstructured.SetNestedSlice(obj.Object, volumeMounts, "spec", "volumeMounts")
 		if err != nil {
 			return err
@@ -665,6 +749,27 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// updateCStorCSIISCSIADMConfig updates/sets the default values for cstor-csi-iscsiadm
+// configmap as per the values provided in the OpenEBS CR.
+func (p *Planner) updateCStorCSIISCSIADMConfig(configmap *unstructured.Unstructured) error {
+	configmap.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CSI.ISCSIADMConfigmap.Name)
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := configmap.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Component specific labels for openebs-ndm-config configmap
+	// 1. openebs-upgrade.dao.mayadata.io/component-group: cstor-csi
+	// 2. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-csi-iscsiadm
+	desiredLabels[types.OpenEBSComponentGroupLabelKey] =
+		types.OpenEBSCStorCSIComponentGroupLabelValue
+	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorCSIISCSIADMConfigmapNameKey
+	// set the desired labels
+	configmap.SetLabels(desiredLabels)
 
 	return nil
 }
@@ -800,8 +905,15 @@ func (p *Planner) getUbuntu1804VolumeMounts() ([]interface{}, []interface{}) {
 // updateOpenEBSCStorCSIController updates the values of openebs-cstor-csi-controller statefulset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unstructured) error {
 	statefulset.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Name)
-	// overwrite the namespace to kube-system as csi based components will run only in kube-system namespace.
-	statefulset.SetNamespace(types.NamespaceKubeSystem)
+	// overwrite the namespace to kube-system as csi based components will run only
+	// in kube-system namespace for OpenEBS version below 2.0.0.
+	comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
+	if err != nil {
+		return err
+	}
+	if comp < 0 {
+		statefulset.SetNamespace(types.NamespaceKubeSystem)
+	}
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := statefulset.GetLabels()
 	if desiredLabels == nil {

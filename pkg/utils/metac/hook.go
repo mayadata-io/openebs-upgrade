@@ -67,5 +67,19 @@ func GetDetailsFromResponse(resp *generic.SyncHookResponse) string {
 	for kind, count := range attachmentKinds {
 		attachmentResponse = attachmentResponse + fmt.Sprintf(" [%s %d] ", kind, count)
 	}
+	// add explicit delete kinds also to display from the response
+	var explicitDeleteKinds map[string]int = map[string]int{}
+	for _, explicitDelete := range resp.ExplicitDeletes {
+		count := explicitDeleteKinds[explicitDelete.GetKind()]
+		explicitDeleteKinds[explicitDelete.GetKind()] = count + 1
+	}
+	var explicitDeleteResponse string = " Explicit Delete Kind(s) -"
+	for kind, count := range explicitDeleteKinds {
+		explicitDeleteResponse = explicitDeleteResponse + fmt.Sprintf(" [%s %d] ", kind, count)
+	}
+	// If there was any explicit delete kinds present then append it to the response
+	if len(resp.ExplicitDeletes) > 0 {
+		attachmentResponse = attachmentResponse + explicitDeleteResponse
+	}
 	return attachmentResponse
 }

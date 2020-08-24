@@ -28,6 +28,8 @@ const (
 	NDMOperatorNameKey string = "openebs-ndm-operator"
 	// NDMConfigNameKey is the name of NDM configmap
 	NDMConfigNameKey string = "openebs-ndm-config"
+	// CStorCSIISCSIADMConfigmapNameKey is the name of openebs-cstor-csi-iscsiadm configmap
+	CStorCSIISCSIADMConfigmapNameKey string = "openebs-cstor-csi-iscsiadm"
 	// SnapshotOperatorNameKey is the name of snapshot operator deployment
 	SnapshotOperatorNameKey string = "openebs-snapshot-operator"
 	// AdmissionServerNameKey is the name of admission server deployment
@@ -62,6 +64,10 @@ const (
 	MayastorContainerKey string = "mayastor"
 	// MayastorGRPCContainerKey is one of the container of mayastor daemonset.
 	MayastorGRPCContainerKey string = "mayastor-grpc"
+	// NATSContainerKey is one of the container of nats deployment.
+	NATSContainerKey string = "nats"
+	// MayastorCSIContainerKey is one of the container of mayastor-csi daemonset.
+	MayastorCSIContainerKey string = "mayastor-csi"
 
 	// CSINodeInfoCRDNameKey is the name of the CSINodeInfo CRD.
 	CSINodeInfoCRDNameKey string = "csinodeinfos.csi.storage.k8s.io"
@@ -85,6 +91,8 @@ const (
 	CStorVolumeReplicasCRDV1NameKey string = "cstorvolumereplicas.cstor.openebs.io"
 	// CStorRestoresCRDV1alpha1NameKey is the name of CStorRestores v1alpha1 CRD
 	CStorRestoresCRDV1alpha1NameKey string = "cstorrestores.openebs.io"
+	// MayastorPoolsCRDV1alpha1NameKey is the name of Mayastor pools v1alpha1 CRD
+	MayastorPoolsCRDV1alpha1NameKey string = "mayastorpools.openebs.io"
 	// CStorCompletedBackupsCRDV1alpha1NameKey is the name of cstorcompletedbackups v1alpha1 CRD
 	CStorCompletedBackupsCRDV1alpha1NameKey string = "cstorcompletedbackups.openebs.io"
 	// CStorBackupsCRDV1alpha1NameKey is the name of CStorBackups v1alpha1 CRD
@@ -130,6 +138,12 @@ const (
 	MoacDeploymentNameKey string = "moac"
 	// MoacServiceNameKey is the name of the moac service.
 	MoacServiceNameKey string = "moac"
+	// NATSDeploymentNameKey is the name of the nats deployment.
+	NATSDeploymentNameKey string = "nats"
+	// NATSServiceNameKey is the name of the nats service.
+	NATSServiceNameKey string = "nats"
+	// MayastorCSIDaemonsetNameKey is the name of the mayastor-csi daemonset
+	MayastorCSIDaemonsetNameKey string = "mayastor-csi"
 	// MayastorDaemonsetNameKey is the name of the mayastor daemonset
 	MayastorDaemonsetNameKey string = "mayastor"
 	// MayastorNamespaceNameKey is the name of the mayastor namespace
@@ -200,6 +214,7 @@ const (
 	CStorCSIRegistrarRoleManifestKey           string = CStorCSIRegistrarRoleNameKey + "_" + KindClusterRole
 	CStorCSIRegistrarBindingManifestKey        string = CStorCSIRegistrarBindingNameKey + "_" + KindClusterRoleBinding
 	CStorCSINodeManifestKey                    string = CStorCSINodeNameKey + "_" + KindDaemonSet
+	CStorCSIISCSIADMManifestKey                string = CStorCSIISCSIADMConfigmapNameKey + "_" + KindConfigMap
 	CStorCSIDriverManifestKey                  string = CStorCSIDriverNameKey + "_" + KindCSIDriver
 
 	// CVCOperatorNameKey is the name of cvc-operator deployment.
@@ -244,9 +259,21 @@ const (
 	MayastorDaemonsetManifestKey string = MayastorDaemonsetNameKey + "_" + KindDaemonSet
 	// MayastorNamespaceManifestKey is used to get the manifest of mayastor namespace.
 	MayastorNamespaceManifestKey string = MayastorNamespaceNameKey + "_" + KindNamespace
+	// NATSDeploymentManifestKey is used to get the manifest of nats deployment.
+	NATSDeploymentManifestKey string = NATSDeploymentNameKey + "_" + KindDeployment
+	// NATSServiceManifestKey is used to get the manifest of nats service.
+	NATSServiceManifestKey string = NATSServiceNameKey + "_" + KindService
+	// MayastorCSIDaemonsetManifestKey is used to get the manifest of mayastor-csi daemonset.
+	MayastorCSIDaemonsetManifestKey string = MayastorCSIDaemonsetNameKey + "_" + KindDaemonSet
+	// MayastorPoolsCRDManifestKey is used to get the manifest of mayastorpools CRD.
+	MayastorPoolsCRDManifestKey string = MayastorPoolsCRDV1alpha1NameKey + "_" + KindCustomResourceDefinition
 
 	// MayastorSupportedVersion is the openebs version from where mayastor is supported.
-	MayastorSupportedVersion string = "1.10.0-ee"
+	MayastorSupportedVersion string = "1.10.0-ee" // MayastorSupportedVersion is the openebs version from where mayastor is supported.
+	// NATSSupportedVersion is the openebs version from where NATS is supported.
+	NATSSupportedVersion string = "2.0.0"
+	// MayastorCSISupportedVersion is the openebs version from where mayastor-csi is supported.
+	MayastorCSISupportedVersion string = "2.0.0"
 
 	// OpenEBSVersion150 is the OpenEBS version 1.5.0
 	OpenEBSVersion150 string = "1.5.0"
@@ -272,6 +299,10 @@ const (
 	OpenEBSVersion1120 string = "1.12.0"
 	// OpenEBSVersion1120EE is the OpenEBS version 1.12.0-ee
 	OpenEBSVersion1120EE string = "1.12.0-ee"
+	// OpenEBSVersion200 is the OpenEBS version 2.0.0
+	OpenEBSVersion200 string = "2.0.0"
+	// OpenEBSVersion200EE is the OpenEBS version 2.0.0-ee
+	OpenEBSVersion200EE string = "2.0.0-ee"
 
 	// OSImageUbuntu1804 is the OS Image value of a Node.
 	OSImageUbuntu1804 string = "Ubuntu 18.04"
@@ -285,6 +316,9 @@ const (
 
 	// CSISupportedVersion is the k8s version from where csi is supported.
 	CSISupportedVersion string = "v1.14.0"
+	// CSISupportedVersionFromOpenEBS200 is the k8s version from where csi is supported for
+	// OpenEBS version 2.0.0 or greater.
+	CSISupportedVersionFromOpenEBS200 string = "v1.17.0"
 
 	// OpenEBSMayaOperatorSANameKey is the name of OpenEBS service account.
 	OpenEBSMayaOperatorSANameKey string = "openebs-maya-operator"

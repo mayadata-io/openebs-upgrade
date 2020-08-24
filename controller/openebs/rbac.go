@@ -54,19 +54,28 @@ func (p *Planner) getDesiredServiceAccount(sa *unstructured.Unstructured) (*unst
 			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
 		},
 	)
-
+	// Check if given OpenEBS version is lower than 2.0.0, if yes then
+	// CSI based service accounts will be installed in kube-system namespace.
+	comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
+	if err != nil {
+		return sa, err
+	}
 	switch sa.GetName() {
 	case types.OpenEBSMayaOperatorSANameKey:
 		err = p.updateOpenEBSServiceAccount(sa)
 	case types.CStorCSIControllerSANameKey:
-		// Overwrite the namespace to kube-system for csi based components.
-		// Note: csi based components will be installed only in kube-system namespace only.
-		sa.SetNamespace(types.NamespaceKubeSystem)
+		// overwrite the namespace to kube-system as csi based components will run only
+		// in kube-system namespace for OpenEBS version below 2.0.0.
+		if comp < 0 {
+			sa.SetNamespace(types.NamespaceKubeSystem)
+		}
 		err = p.updateCStorCSIControllerServiceAccount(sa)
 	case types.CStorCSINodeSANameKey:
-		// Overwrite the namespace to kube-system for csi based components.
-		// Note: csi based components will be installed only in kube-system namespace only.
-		sa.SetNamespace(types.NamespaceKubeSystem)
+		// overwrite the namespace to kube-system as csi based components will run only
+		// in kube-system namespace for OpenEBS version below 2.0.0.
+		if comp < 0 {
+			sa.SetNamespace(types.NamespaceKubeSystem)
+		}
 		err = p.updateCStorCSINodeServiceAccount(sa)
 	case types.MoacSANameKey:
 		// Overwrite the namespace to mayastor for mayastor based components.
@@ -432,9 +441,17 @@ func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (
 		// Overwrite the namespace to kube-system for csi based components.
 		// Note: csi based components will be installed only in kube-system namespace only.
 		if objName == types.CStorCSINodeSANameKey || objName == types.CStorCSIControllerSANameKey {
-			err := unstructured.SetNestedField(obj.Object, types.NamespaceKubeSystem, "spec", "namespace")
+			// Check if given OpenEBS version is lower than 2.0.0, if yes then
+			// CSI based service accounts will be installed in kube-system namespace.
+			comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
 			if err != nil {
 				return err
+			}
+			if comp < 0 {
+				err = unstructured.SetNestedField(obj.Object, types.NamespaceKubeSystem, "spec", "namespace")
+				if err != nil {
+					return err
+				}
 			}
 		} else if objName == types.MoacSANameKey {
 			// Overwrite the namespace to mayastor for mayastor based components.

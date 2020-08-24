@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
 	"mayadata.io/openebs-upgrade/unstruct"
+	"strconv"
 )
 
 const (
@@ -78,6 +79,10 @@ func (p *Planner) updateOpenEBSProvisioner(deploy *unstructured.Unstructured) er
 		if err != nil {
 			return err
 		}
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
 		if containerName == types.OpenEBSProvisionerContainerKey {
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.Provisioner.Image,
@@ -85,6 +90,12 @@ func (p *Planner) updateOpenEBSProvisioner(deploy *unstructured.Unstructured) er
 			if err != nil {
 				return err
 			}
+			// add ENVs to this container based on required conditions
+			envs = p.addOpenEBSProvisionerEnvs(envs)
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
 		}
 		return nil
 	}
@@ -101,4 +112,20 @@ func (p *Planner) updateOpenEBSProvisioner(deploy *unstructured.Unstructured) er
 	}
 
 	return nil
+}
+
+// add env based on predefined conditions or values provided to the openebs-provisioner container.
+func (p *Planner) addOpenEBSProvisionerEnvs(envs []interface{}) []interface{} {
+	// if leader election value is provided then insert the env for leader election
+	if p.ObservedOpenEBS.Spec.Provisioner.EnableLeaderElection != nil {
+		leaderElectionEnv := struct {
+			name  string
+			value string
+		}{
+			name:  "LEADER_ELECTION_ENABLED",
+			value: strconv.FormatBool(*p.ObservedOpenEBS.Spec.Provisioner.EnableLeaderElection),
+		}
+		envs = append(envs, leaderElectionEnv)
+	}
+	return envs
 }

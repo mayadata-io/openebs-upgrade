@@ -157,6 +157,12 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 			response.Attachments = append(response.Attachments, desiredOpenEBSComponent)
 		}
 	}
+	// update the components that needs to be deleted
+	if resp.ExplicitDeletes != nil {
+		for _, componentToDelete := range resp.ExplicitDeletes {
+			response.ExplicitDeletes = append(response.ExplicitDeletes, componentToDelete)
+		}
+	}
 
 	glog.V(2).Infof(
 		"OpenEBS %s %s reconciled successfully: %s",
@@ -192,6 +198,7 @@ type ReconcilerConfig struct {
 type ReconcileResponse struct {
 	DesiredOpenEBS          *unstructured.Unstructured
 	DesiredOpenEBSComponets []*unstructured.Unstructured
+	ExplicitDeletes         []*unstructured.Unstructured
 }
 
 // Planner ensures if any of the instances need
@@ -201,6 +208,7 @@ type Planner struct {
 	observedOpenEBSComponents []*unstructured.Unstructured
 
 	ComponentManifests map[string]*unstructured.Unstructured
+	ExplicitDeletes    []*unstructured.Unstructured
 }
 
 // NewReconciler returns a new instance of Reconciler
@@ -252,6 +260,10 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 			continue
 		}
 		response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets, value)
+	}
+	// update the components that needs to be deleted
+	for _, componentToDelete := range p.ExplicitDeletes {
+		response.ExplicitDeletes = append(response.ExplicitDeletes, componentToDelete)
 	}
 	return response
 }

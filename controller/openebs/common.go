@@ -135,6 +135,10 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-1.12.0.yaml"
 	case types.OpenEBSVersion1120EE:
 		yamlFile = "/templates/openebs-operator-1.12.0-ee.yaml"
+	case types.OpenEBSVersion200:
+		yamlFile = "/templates/openebs-operator-2.0.0.yaml"
+	case types.OpenEBSVersion200EE:
+		yamlFile = "/templates/openebs-operator-2.0.0-ee.yaml"
 	default:
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
@@ -229,6 +233,7 @@ func (p *Planner) removeDisabledManifests() error {
 
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Enabled == false {
 		delete(p.ComponentManifests, types.CStorCSINodeManifestKey)
+		delete(p.ComponentManifests, types.CStorCSIISCSIADMManifestKey)
 	}
 
 	if *p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Enabled == false {
@@ -405,6 +410,14 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		tolerations = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Affinity
 		err = p.updateMoac(deploy)
+
+	case types.NATSDeploymentNameKey:
+		replicas = p.ObservedOpenEBS.Spec.MayastorConfig.NATS.Replicas
+		resources = p.ObservedOpenEBS.Spec.MayastorConfig.NATS.Resources
+		nodeSelector = p.ObservedOpenEBS.Spec.MayastorConfig.NATS.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.MayastorConfig.NATS.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.MayastorConfig.NATS.Affinity
+		err = p.updateNATS(deploy)
 	}
 	if err != nil {
 		return deploy, err
@@ -496,6 +509,8 @@ func (p *Planner) getDesiredConfigmap(configmap *unstructured.Unstructured) (*un
 	switch configmap.GetName() {
 	case types.NDMConfigNameKey:
 		err = p.updateNDMConfig(configmap)
+	case types.CStorCSIISCSIADMConfigmapNameKey:
+		err = p.updateCStorCSIISCSIADMConfig(configmap)
 	}
 	if err != nil {
 		return configmap, err
@@ -521,6 +536,8 @@ func (p *Planner) getDesiredService(svc *unstructured.Unstructured) (*unstructur
 		err = p.updateMoacService(svc)
 	case types.CVCOperatorServiceNameKey:
 		err = p.updateCVCOperatorService(svc)
+	case types.NATSServiceNameKey:
+		err = p.updateNATSService(svc)
 	}
 	if err != nil {
 		return svc, err
@@ -555,6 +572,8 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		err = p.updateOpenEBSCStorCSINode(daemon)
 	case types.MayastorDaemonsetNameKey:
 		err = p.updateMayastor(daemon)
+	case types.MayastorCSIDaemonsetNameKey:
+		err = p.updateMayastorCSI(daemon)
 	}
 	if err != nil {
 		return daemon, err

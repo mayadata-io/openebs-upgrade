@@ -74,12 +74,22 @@ spec:
         method: InPlace
       nameSelector:
         - moac
+        - openebs-cstor-csi-attacher-binding
+        - openebs-cstor-csi-provisioner-binding
+        - openebs-cstor-csi-snapshotter-binding
+        - openebs-cstor-csi-cluster-registrar-binding
+        - openebs-cstor-csi-registrar-binding
     - apiVersion: rbac.authorization.k8s.io/v1
       resource: clusterroles
       updateStrategy:
         method: InPlace
       nameSelector:
         - moac
+        - openebs-cstor-csi-snapshotter-role
+        - openebs-cstor-csi-provisioner-role
+        - openebs-cstor-csi-attacher-role
+        - openebs-cstor-csi-cluster-registrar-role
+        - openebs-cstor-csi-registrar-role
     - apiVersion: v1
       resource: serviceaccounts
       updateStrategy:
@@ -110,6 +120,7 @@ spec:
         - cstorbackups.openebs.io
         - cstorcompletedbackups.openebs.io
         - cstorrestores.openebs.io
+        - mayastorpools.openebs.io
     - apiVersion: storage.k8s.io/v1beta1
       resource: csidrivers
       updateStrategy:

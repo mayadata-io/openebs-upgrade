@@ -229,15 +229,22 @@ type SnapshotOperator struct {
 //
 // It is deployed as a daemonset in the k8s cluster.
 type NDMDaemon struct {
-	Component `json:",inline"`
-	Container `json:",inline"`
-	Sparse    *Sparse     `json:"sparse"`
-	Filters   *NDMFilters `json:"filters"`
-	Probes    *NDMProbes  `json:"probes"`
+	Component     `json:",inline"`
+	Container     `json:",inline"`
+	Sparse        *Sparse     `json:"sparse"`
+	Filters       *NDMFilters `json:"filters"`
+	Probes        *NDMProbes  `json:"probes"`
+	EnableHostPID *bool       `json:"enableHostPID"`
+	FeatureGates  []string    `json:"featureGates"`
 }
 
 // NDMConfigMap stores the configuration for ndm configmap.
 type NDMConfigMap struct {
+	Name string `json:"name"`
+}
+
+// CStorCSIISCSIADMConfigmap stores the configuration for cstor-csi-iscsiadm configmap.
+type CStorCSIISCSIADMConfigmap struct {
 	Name string `json:"name"`
 }
 
@@ -365,8 +372,9 @@ type CVCOperator struct {
 
 // CSI stores the configuration for cstor csi operator and driver.
 type CSI struct {
-	CSIController CSIController `json:"csiController"`
-	CSINode       CSINode       `json:"csiNode"`
+	CSIController     CSIController             `json:"csiController"`
+	CSINode           CSINode                   `json:"csiNode"`
+	ISCSIADMConfigmap CStorCSIISCSIADMConfigmap `json:"iscsiadmConfigmap"`
 }
 
 // CSIController is the configuration for openebs-cstor-csi-controller statefulset.
@@ -385,8 +393,22 @@ type CSINode struct {
 
 // MayastorConfig stores the configuration for mayastor components.
 type MayastorConfig struct {
-	Moac     Moac     `json:"moac"`
-	Mayastor Mayastor `json:"mayastor"`
+	Moac        Moac        `json:"moac"`
+	Mayastor    Mayastor    `json:"mayastor"`
+	MayastorCSI MayastorCSI `json:"mayastorCSI"`
+	NATS        NATS        `json:"nats"`
+}
+
+// NATS stores the configuration for NATS component of Mayastor.
+type NATS struct {
+	Component `json:",inline"`
+	Container `json:",inline"`
+	Service   *NATSService `json:"service"`
+}
+
+// NATSService stores the nats service details
+type NATSService struct {
+	Name string `json:"name"`
 }
 
 // Mayastor is the configuration for mayastor daemonset.
@@ -394,6 +416,12 @@ type Mayastor struct {
 	Component    `json:",inline"`
 	Mayastor     Container `json:"mayastor"`
 	MayastorGRPC Container `json:"mayastorGrpc"`
+}
+
+// MayastorCSI is the configuration for mayastor-csi daemonset.
+type MayastorCSI struct {
+	Component `json:",inline"`
+	Container `json:",inline"`
 }
 
 // Moac is the configuration for moac deployment.
@@ -410,8 +438,9 @@ type MOACService struct {
 
 // Container stores the details of a container
 type Container struct {
-	ImageTag string `json:"imageTag"`
-	Image    string `json:"image"`
+	ImageTag             string `json:"imageTag"`
+	Image                string `json:"image"`
+	EnableLeaderElection *bool  `json:"enableLeaderElection"`
 }
 
 // OpenEBSStatus defines the current status of
