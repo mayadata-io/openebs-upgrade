@@ -13,10 +13,10 @@ const (
 	MayastorVersion010EE     string = "0.1.0-ee"
 	MayastorVersion020       string = "0.2.0"
 	MayastorVersion020EE     string = "0.2.0-ee"
-	MayastorVersion030       string = "v0.3.0"
-	MayastorVersion030EE     string = "v0.3.0-ee"
-	MayastorCSIVersion030    string = "v0.3.0"
-	MayastorCSIVersion030EE  string = "v0.3.0-ee"
+	MayastorVersion030       string = "0.3.0"
+	MayastorVersion030EE     string = "0.3.0-ee"
+	MayastorCSIVersion030    string = "0.3.0"
+	MayastorCSIVersion030EE  string = "0.3.0-ee"
 	NATSVersion21Alpine311   string = "2.1-alpine3.11"
 	NATSVersion21Alpine311EE string = "2.1-alpine3.11-ee"
 	DefaultMoacReplicaCount  int32  = 1
@@ -131,9 +131,9 @@ func (p *Planner) setMayastorDefaultsIfNotSet() error {
 		glog.Errorf("Error setting default image registry for Mayastor based on OpenEBS version: %+v", err)
 	}
 	if comp >= 0 && defaultImageRegistryForMayastor == types.QUAYIOOPENEBSREGISTRY {
-		// use mayadata/ only in case of community edition, for enterprise mayadataio/ will
+		// use openebs/ only in case of community edition, for enterprise mayadataio/ will
 		// be used by default.
-		defaultImageRegistryForMayastor = "mayadata/"
+		defaultImageRegistryForMayastor = "openebs/"
 	}
 	if !isMayastorSupported {
 		glog.V(5).Infof("Skipping Mayastor installation.")
