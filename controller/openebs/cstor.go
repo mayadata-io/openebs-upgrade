@@ -984,6 +984,8 @@ func (p *Planner) updateOpenEBSCStorCSIControllerContainers() func(obj *unstruct
 		switch containerName {
 		case ContainerOpenEBSCSIPluginName:
 			err = p.updateOpenEBSCSIControllerCSIPluginContainer(obj)
+		case ContainerCSTORCSIPluginName:
+			err = p.updateOpenEBSCSIControllerCSIPluginContainer(obj)
 		case ContainerCSIResizerName:
 			err = p.updateOpenEBSCSIControllerCSIResizerContainer(obj)
 		case ContainerCSISnapshotterName:
