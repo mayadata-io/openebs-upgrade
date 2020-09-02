@@ -302,6 +302,11 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Enabled = new(bool)
 		*p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Enabled = true
 	}
+
+	// set the name with which openebs-cstor-admission-server will be deployed
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Name) == 0 {
+		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Name = types.CStorAdmissionServerNameKey
+	}
 	// form the CStor admission server image
 	if p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag == "" {
 		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag = p.ObservedOpenEBS.Spec.Version +
@@ -1316,13 +1321,14 @@ func (p *Planner) updateCVCOperator(deploy *unstructured.Unstructured) error {
 
 // updateCStorAdmissionServer updates the CStorAdmissionServer manifest as per the reconcile.ObservedOpenEBS values.
 func (p *Planner) updateCStorAdmissionServer(deploy *unstructured.Unstructured) error {
+	deploy.SetName(p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Name)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := deploy.GetLabels()
 	if desiredLabels == nil {
 		desiredLabels = make(map[string]string, 0)
 	}
 	// Component specific labels for CStor admissionServer deploy
-	// 1. openebs-upgrade.dao.mayadata.io/component-name: cstor-admission-server
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: cstor-admission-webhook
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CStorAdmissionServerComponentNameLabelValue
 	// set the desired labels
 	deploy.SetLabels(desiredLabels)

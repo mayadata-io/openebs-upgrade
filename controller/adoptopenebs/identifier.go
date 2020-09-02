@@ -113,6 +113,12 @@ func (oi *OpenEBSIdentifier) identifyOpenEBSComponentUsingLabels() (string, erro
 		componentType = types.CVCOperatorNameKey
 	case types.CVCOperatorServiceComponentNameLabelValue:
 		componentType = types.CVCOperatorServiceNameKey
+	case types.CStorAdmissionServerComponentNameLabelValue:
+		// same set of labels can be found for deployment and svc both but we
+		// are interested in deployment only.
+		if oi.Object.GetKind() == types.KindDeployment {
+			componentType = types.CStorAdmissionServerNameKey
+		}
 	case types.CStorCSINodeComponentNameLabelValue:
 		componentType = types.CStorCSINodeNameKey
 	case types.CStorCSIControllerComponentNameLabelValue:

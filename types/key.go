@@ -411,7 +411,7 @@ const (
 	CVCComponentGroupLabelValue string = "cvc"
 	// CStorAdmissionServerComponentNameLabelValue is the value of the component-name label
 	// of CStor admission server component.
-	CStorAdmissionServerComponentNameLabelValue string = "cstor-admission-server"
+	CStorAdmissionServerComponentNameLabelValue string = "cstor-admission-webhook"
 	// OpenEBSVersionLabelKey is the label that can be used to get the OpenEBS version.
 	OpenEBSVersionLabelKey string = "openebs.io/version"
 	// OpenEBSMayastorComponentGroupLabelValue is the value of the component-group label
