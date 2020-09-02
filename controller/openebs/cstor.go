@@ -558,17 +558,22 @@ func (p *Planner) isCSISupported() (bool, error) {
 		if err != nil {
 			return false, errors.Errorf("Error comparing versions, error: %v", err)
 		}
+		if comp < 0 {
+			glog.Warningf("CSI is not supported in %s Kubernetes version. "+
+				"CSI is supported from kubernetes version %s for OpenEBS 2.0.0-ee and above.", k8sVersion, types.CSISupportedVersionFromOpenEBS200)
+			return false, nil
+		}
 	} else {
 		// compare the kubernetes version with the supported version of csi.
 		comp, err = compareVersion(k8sVersion, types.CSISupportedVersion)
 		if err != nil {
 			return false, errors.Errorf("Error comparing versions, error: %v", err)
 		}
-	}
-	if comp < 0 {
-		glog.Warningf("CSI is not supported in %s Kubernetes version. "+
-			"CSI is supported from %s Kubernetes version.", k8sVersion, types.CSISupportedVersion)
-		return false, nil
+		if comp < 0 {
+			glog.Warningf("CSI is not supported in %s Kubernetes version. "+
+				"CSI is supported from kubernetes version %s.", k8sVersion, types.CSISupportedVersion)
+			return false, nil
+		}
 	}
 
 	return true, nil
