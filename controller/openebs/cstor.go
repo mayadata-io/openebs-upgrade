@@ -509,17 +509,18 @@ func (p *Planner) setCSIDefaultsIfNotSet() error {
 // are already installed at kube-system, if yes then install CSI components in openebs namespace
 // and delete from kube-system.
 func (p *Planner) deleteCSIComponentsIfRequired() error {
-	comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
-	if err != nil {
-		return errors.Errorf("Error comparing OpenEBS versions[given: %s, comparingTo: %s]: %+v",
-			p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200, err)
-	}
 	// check if CSI is supported or not for this version, if not then do not delete the existing ones.
 	isCSISupported, err := p.isCSISupported()
 	if err != nil {
 		return errors.Errorf("Error checking if CSI is supported or not: %+v", err)
 	}
-	if comp >= 0 && isCSISupported {
+	// get the namespace where CSI components are going to be installed.
+	csiNamespace, err := p.getCSIComponentsNamespace()
+	if err != nil {
+		return errors.Errorf(
+			"Error getting the namespace where CSI components will be installed: %+v", err)
+	}
+	if isCSISupported && csiNamespace != types.NamespaceKubeSystem {
 		// check if csi-components are already installed in kube-system namespace.
 		for _, observedOpenEBSComp := range p.observedOpenEBSComponents {
 			if observedOpenEBSComp.GetKind() == types.KindStatefulset ||
@@ -549,39 +550,69 @@ func (p *Planner) isCSISupported() (bool, error) {
 	if err != nil {
 		return false, errors.Errorf("Unable to find kubernetes version, error: %v", err)
 	}
+
+	// compare the kubernetes version with the supported version of csi.
+	comp, err = compareVersion(k8sVersion, types.CSISupportedVersion)
+	if err != nil {
+		return false, errors.Errorf("Error comparing versions, error: %v", err)
+	}
+	if comp < 0 {
+		glog.Warningf("CSI is not supported in %s Kubernetes version. "+
+			"CSI is supported from kubernetes version %s.", k8sVersion, types.CSISupportedVersion)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// getCSIComponentsNamespace returns the namespace in which CSI components are going to be installed.
+func (p *Planner) getCSIComponentsNamespace() (string, error) {
+	var (
+		// csiNamespace is the namespace where CSI components should be installed
+		csiNamespace string
+		// comp stores the result for comparing 2 versions
+		comp int
+	)
+	// get the kubernetes version.
+	k8sVersion, err := k8s.GetK8sVersion()
+	if err != nil {
+		return csiNamespace, errors.Errorf("Unable to find kubernetes version, error: %v", err)
+	}
 	// Check if the given OpenEBS version is greater than or less than OpenEBS version 2.0.0.
-	// For OpenEBS version 2.0.0 or greater, CSI is supported only for k8s version 1.17.x or greater.
+	// For OpenEBS version 2.0.0 or greater, CSI components can be installed in openebs namespace
+	// if k8s version is greater than or equal to 1.17.0.
 	res, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
 	if err != nil {
-		return false, errors.Errorf(
-			"Error comparing versions for checking if CSI is supported or not[v1: %s, v2: %s], error: %v",
+		return csiNamespace, errors.Errorf(
+			"Error comparing versions while determining namespace for CSI components[v1: %s, v2: %s], error: %v",
 			p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200, err)
 	}
 	if res >= 0 {
 		// compare the kubernetes version with the supported version of csi.
 		comp, err = compareVersion(k8sVersion, types.CSISupportedVersionFromOpenEBS200)
 		if err != nil {
-			return false, errors.Errorf("Error comparing versions, error: %v", err)
+			return csiNamespace, errors.Errorf("Error comparing versions, error: %v", err)
 		}
 		if comp < 0 {
-			glog.Warningf("CSI is not supported in %s Kubernetes version. "+
-				"CSI is supported from kubernetes version %s for OpenEBS 2.0.0-ee and above.", k8sVersion, types.CSISupportedVersionFromOpenEBS200)
-			return false, nil
+			csiNamespace = types.NamespaceKubeSystem
+		} else {
+			// set the namespace in which OpenEBS components are going to be installed.
+			csiNamespace = p.ObservedOpenEBS.Namespace
 		}
 	} else {
 		// compare the kubernetes version with the supported version of csi.
 		comp, err = compareVersion(k8sVersion, types.CSISupportedVersion)
 		if err != nil {
-			return false, errors.Errorf("Error comparing versions, error: %v", err)
+			return csiNamespace, errors.Errorf("Error comparing versions, error: %v", err)
 		}
 		if comp < 0 {
-			glog.Warningf("CSI is not supported in %s Kubernetes version. "+
+			return csiNamespace, errors.Errorf("CSI is not supported in %s Kubernetes version. "+
 				"CSI is supported from kubernetes version %s.", k8sVersion, types.CSISupportedVersion)
-			return false, nil
+		} else {
+			csiNamespace = types.NamespaceKubeSystem
 		}
 	}
-
-	return true, nil
+	return csiNamespace, nil
 }
 
 // updateOpenEBSCStorCSINode updates the values of openebs-cstor-csi-node daemonset as per given configuration.
@@ -591,15 +622,12 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		extraVolumeMounts []interface{}
 	)
 	daemonset.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.Name)
-	// overwrite the namespace to kube-system as csi based components will run only
-	// in kube-system namespace for OpenEBS version below 2.0.0.
-	comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
+	// set the namespace in which CSI components should be installed.
+	csiNamespace, err := p.getCSIComponentsNamespace()
 	if err != nil {
 		return err
 	}
-	if comp < 0 {
-		daemonset.SetNamespace(types.NamespaceKubeSystem)
-	}
+	daemonset.SetNamespace(csiNamespace)
 
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := daemonset.GetLabels()
@@ -618,6 +646,10 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 	// this will get the extra volumes and volume mounts required to be added in the csi node daemonset
 	// for the csi to work for different OS distributions/versions.
 	// This volumes and volume mounts will be added in the openebs-csi-plugin container.
+	comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
+	if err != nil {
+		return err
+	}
 	if comp < 0 {
 		extraVolumes, extraVolumeMounts, err = p.getOSSpecificVolumeMounts()
 		if err != nil {
@@ -778,6 +810,12 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 // configmap as per the values provided in the OpenEBS CR.
 func (p *Planner) updateCStorCSIISCSIADMConfig(configmap *unstructured.Unstructured) error {
 	configmap.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CSI.ISCSIADMConfigmap.Name)
+	// set the namespace in which CSI components should be installed.
+	csiNamespace, err := p.getCSIComponentsNamespace()
+	if err != nil {
+		return err
+	}
+	configmap.SetNamespace(csiNamespace)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := configmap.GetLabels()
 	if desiredLabels == nil {
@@ -926,15 +964,12 @@ func (p *Planner) getUbuntu1804VolumeMounts() ([]interface{}, []interface{}) {
 // updateOpenEBSCStorCSIController updates the values of openebs-cstor-csi-controller statefulset as per given configuration.
 func (p *Planner) updateOpenEBSCStorCSIController(statefulset *unstructured.Unstructured) error {
 	statefulset.SetName(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Name)
-	// overwrite the namespace to kube-system as csi based components will run only
-	// in kube-system namespace for OpenEBS version below 2.0.0.
-	comp, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion200)
+	// set the namespace in which CSI components should be installed.
+	csiNamespace, err := p.getCSIComponentsNamespace()
 	if err != nil {
 		return err
 	}
-	if comp < 0 {
-		statefulset.SetNamespace(types.NamespaceKubeSystem)
-	}
+	statefulset.SetNamespace(csiNamespace)
 	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
 	desiredLabels := statefulset.GetLabels()
 	if desiredLabels == nil {
