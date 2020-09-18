@@ -18,7 +18,7 @@ const (
 	MayastorCSIVersion030    string = "v0.3.0"
 	MayastorCSIVersion030EE  string = "v0.3.0-ee"
 	NATSVersion21Alpine311   string = "2.1-alpine3.11"
-	NATSVersion21Alpine311EE string = "2.1-alpine3.11-ee"
+	NATSVersion21Alpine311EE string = "2.1-alpine3.11"
 	DefaultMoacReplicaCount  int32  = 1
 	DefaultNATSReplicaCount  int32  = 1
 )
