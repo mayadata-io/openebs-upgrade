@@ -18,6 +18,7 @@ import (
 	"mayadata.io/openebs-upgrade/types"
 	"mayadata.io/openebs-upgrade/unstruct"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -91,7 +92,10 @@ func (p *Planner) updateOpenEBSProvisioner(deploy *unstructured.Unstructured) er
 				return err
 			}
 			// add ENVs to this container based on required conditions
-			envs = p.addOpenEBSProvisionerEnvs(envs)
+			envs, err = p.addOpenEBSProvisionerEnvs(envs)
+			if err != nil {
+				return err
+			}
 		}
 		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {
@@ -115,7 +119,7 @@ func (p *Planner) updateOpenEBSProvisioner(deploy *unstructured.Unstructured) er
 }
 
 // add env based on predefined conditions or values provided to the openebs-provisioner container.
-func (p *Planner) addOpenEBSProvisionerEnvs(envs []interface{}) []interface{} {
+func (p *Planner) addOpenEBSProvisionerEnvs(envs []interface{}) ([]interface{}, error) {
 	// if leader election value is provided then insert the env for leader election
 	if p.ObservedOpenEBS.Spec.Provisioner.EnableLeaderElection != nil {
 		leaderElectionEnv := struct {
@@ -127,5 +131,83 @@ func (p *Planner) addOpenEBSProvisionerEnvs(envs []interface{}) []interface{} {
 		}
 		envs = append(envs, leaderElectionEnv)
 	}
-	return envs
+	return p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.Provisioner.ENV, envs)
+}
+
+// ignoreUpdatingImmutableEnvs returns the Envs without the ones which does not need update.
+func (p *Planner) ignoreUpdatingImmutableEnvs(existingEnvs, envs []interface{}) ([]interface{}, error) {
+	// check if we need not update some ENVs which are already present to avoid immutable
+	// errors where update does not take place.
+	var (
+		elemIndexToReplace      string
+		existingOpenEBSEnvValue map[string]interface{}
+	)
+	if !(existingEnvs == nil || len(existingEnvs) == 0) {
+		env := func(obj *unstructured.Unstructured) error {
+			envName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+			if err != nil {
+				return err
+			}
+			if envName == "OPENEBS_NAMESPACE" {
+				existingOpenEBSEnvValue, _, err = unstructured.NestedMap(obj.Object, "spec")
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		err := unstruct.SliceIterator(existingEnvs).ForEach(env)
+		if err != nil {
+			return envs, err
+		}
+	}
+	// get the index at which the env variable is present so that it can be deleted as
+	// it is not required to be updated.
+	if !(existingOpenEBSEnvValue == nil || len(existingOpenEBSEnvValue) == 0) {
+		newENV := func(obj *unstructured.Unstructured) error {
+			envName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+			if err != nil {
+				return err
+			}
+			if envName == "OPENEBS_NAMESPACE" {
+				elemIndexToReplace = strings.Split(obj.GetName(), "-")[1]
+			}
+			return nil
+		}
+		err := unstruct.SliceIterator(envs).ForEach(newENV)
+		if err != nil {
+			return envs, err
+		}
+		// replace the env variable if needs not be updated
+		if len(elemIndexToReplace) > 0 {
+			index, err := strconv.Atoi(elemIndexToReplace)
+			if err != nil {
+				return envs, err
+			}
+			envs[index] = existingOpenEBSEnvValue
+		}
+	}
+
+	return envs, nil
+}
+
+func (p *Planner) fillProvisionerExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.Provisioner.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.Provisioner.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.Provisioner.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.Provisioner.ContainerName
+	} else {
+		containerName = types.OpenEBSProvisionerContainerKey
+	}
+	p.ObservedOpenEBS.Spec.Provisioner.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

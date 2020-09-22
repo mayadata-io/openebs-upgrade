@@ -5,6 +5,7 @@ import (
 	"mayadata.io/openebs-upgrade/types"
 	"mayadata.io/openebs-upgrade/unstruct"
 	"mayadata.io/openebs-upgrade/util"
+	"strings"
 )
 
 // formSnapshotOperatorConfig forms the desired OpenEBS CR config for Snapshot operator.
@@ -16,8 +17,10 @@ func (p *Planner) formSnapshotOperatorConfig(snapshotOperator *unstructured.Unst
 		snapshotOperatorConfig = p.SnapshotOperatorConfig
 	}
 	var (
-		controllerImageTag  string
-		provisionerImageTag string
+		controllerImageTag       string
+		provisionerImageTag      string
+		controllerContainerName  string
+		provisionerContainerName string
 	)
 	// snapshotOperatorDetails will store the details for snapshotOperator
 	snapshotOperatorDetails, err := p.getResourceCommonDetails(snapshotOperator, nil)
@@ -35,7 +38,8 @@ func (p *Planner) formSnapshotOperatorConfig(snapshotOperator *unstructured.Unst
 		if err != nil {
 			return err
 		}
-		if containerName == types.SnapshotControllerContainerKey {
+		if containerName == types.SnapshotControllerContainerKey ||
+			strings.Contains(containerName, "snapshot-controller") {
 			snapshotOperatorDetails[types.KeyResources], _, err = unstructured.NestedMap(obj.Object,
 				"spec", "resources")
 			if err != nil {
@@ -53,8 +57,12 @@ func (p *Planner) formSnapshotOperatorConfig(snapshotOperator *unstructured.Unst
 			if imageTag != p.OpenEBSVersion {
 				controllerImageTag = imageTag
 			}
+			if containerName != types.SnapshotControllerContainerKey {
+				controllerContainerName = containerName
+			}
 		}
-		if containerName == types.SnapshotProvisionerContainerKey {
+		if containerName == types.SnapshotProvisionerContainerKey ||
+			strings.Contains(containerName, "snapshot-provisioner") {
 			image, _, err := unstructured.NestedString(obj.Object, "spec", "image")
 			if err != nil {
 				return err
@@ -67,6 +75,9 @@ func (p *Planner) formSnapshotOperatorConfig(snapshotOperator *unstructured.Unst
 			if imageTag != p.OpenEBSVersion {
 				provisionerImageTag = imageTag
 			}
+			if containerName != types.SnapshotProvisionerContainerKey {
+				provisionerContainerName = containerName
+			}
 		}
 		return nil
 	}
@@ -76,10 +87,12 @@ func (p *Planner) formSnapshotOperatorConfig(snapshotOperator *unstructured.Unst
 	}
 	snapshotOperatorConfig.Object = snapshotOperatorDetails
 	snapshotOperatorConfig.Object["controller"] = map[string]interface{}{
-		"imageTag": controllerImageTag,
+		types.KeyImageTag:      controllerImageTag,
+		types.KeyContainerName: controllerContainerName,
 	}
 	snapshotOperatorConfig.Object["provisioner"] = map[string]interface{}{
-		"imageTag": provisionerImageTag,
+		types.KeyImageTag:      provisionerImageTag,
+		types.KeyContainerName: provisionerContainerName,
 	}
 	p.SnapshotOperatorConfig = snapshotOperatorConfig
 

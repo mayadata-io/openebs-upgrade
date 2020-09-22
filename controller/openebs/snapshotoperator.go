@@ -94,13 +94,33 @@ func (p *Planner) updateSnapshotOperator(deploy *unstructured.Unstructured) erro
 			return err
 		}
 		if containerName == types.SnapshotControllerContainerKey {
+			// update the container name if not same.
+			if len(p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ContainerName) != 0 {
+				err = unstructured.SetNestedField(obj.Object,
+					p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ContainerName, "spec", "name")
+				if err != nil {
+					return err
+				}
+			}
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.Image,
 				"spec", "image")
 			if err != nil {
 				return err
 			}
+			envs, err = p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ENV, envs)
+			if err != nil {
+				return err
+			}
 		} else if containerName == types.SnapshotProvisionerContainerKey {
+			// update the container name if not same.
+			if len(p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ContainerName) != 0 {
+				err = unstructured.SetNestedField(obj.Object,
+					p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ContainerName, "spec", "name")
+				if err != nil {
+					return err
+				}
+			}
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.Image,
 				"spec", "image")
@@ -108,7 +128,10 @@ func (p *Planner) updateSnapshotOperator(deploy *unstructured.Unstructured) erro
 				return err
 			}
 			// add ENVs to this container based on required conditions
-			envs = p.addSnapshotProvisionerEnvs(envs)
+			envs, err = p.addSnapshotProvisionerEnvs(envs)
+			if err != nil {
+				return err
+			}
 		}
 		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {
@@ -131,7 +154,7 @@ func (p *Planner) updateSnapshotOperator(deploy *unstructured.Unstructured) erro
 }
 
 // add env based on predefined conditions or values provided to the snapshot-provisioner container.
-func (p *Planner) addSnapshotProvisionerEnvs(envs []interface{}) []interface{} {
+func (p *Planner) addSnapshotProvisionerEnvs(envs []interface{}) ([]interface{}, error) {
 	// if leader election value is provided then insert the env for leader election
 	if p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.EnableLeaderElection != nil {
 		leaderElectionEnv := struct {
@@ -143,5 +166,39 @@ func (p *Planner) addSnapshotProvisionerEnvs(envs []interface{}) []interface{} {
 		}
 		envs = append(envs, leaderElectionEnv)
 	}
-	return envs
+	return p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ENV, envs)
+}
+
+func (p *Planner) fillSnapshotOperatorExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		ctrlContainerName        string
+		provisionerContainerName string
+		err                      error
+	)
+	p.ObservedOpenEBS.Spec.SnapshotOperator.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.SnapshotOperator.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ContainerName) > 0 {
+		ctrlContainerName = p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ContainerName
+	} else {
+		ctrlContainerName = types.SnapshotControllerContainerKey
+	}
+	// get the envs of snapshot-controller container
+	p.ObservedOpenEBS.Spec.SnapshotOperator.Controller.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, ctrlContainerName)
+	if err != nil {
+		return err
+	}
+	if len(p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ContainerName) > 0 {
+		provisionerContainerName = p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ContainerName
+	} else {
+		provisionerContainerName = types.SnapshotProvisionerContainerKey
+	}
+	// get the envs of snapshot-provisioner container
+	p.ObservedOpenEBS.Spec.SnapshotOperator.Provisioner.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, provisionerContainerName)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

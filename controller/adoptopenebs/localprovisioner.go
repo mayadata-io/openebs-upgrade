@@ -5,6 +5,7 @@ import (
 	"mayadata.io/openebs-upgrade/types"
 	"mayadata.io/openebs-upgrade/unstruct"
 	"mayadata.io/openebs-upgrade/util"
+	"strings"
 )
 
 // formLocalProvisionerConfig forms the desired OpenEBS CR config for localpv-provisioner.
@@ -28,7 +29,10 @@ func (p *Planner) formLocalProvisionerConfig(localProvisioner *unstructured.Unst
 		if err != nil {
 			return err
 		}
-		if containerName == types.LocalPVProvisionerContainerKey {
+		// contains is mainly being used to cover helm, since for helm, some of the container
+		// names are also different.
+		if containerName == types.LocalPVProvisionerContainerKey ||
+			strings.Contains(containerName, "localpv") {
 			localProvisionerDetails[types.KeyResources], _, err = unstructured.NestedMap(obj.Object,
 				"spec", "resources")
 			if err != nil {
@@ -45,6 +49,11 @@ func (p *Planner) formLocalProvisionerConfig(localProvisioner *unstructured.Unst
 			}
 			if imageTag != p.OpenEBSVersion {
 				localProvisionerDetails[types.KeyImageTag] = imageTag
+			}
+			// update the container name if different from what this controller wants i.e.,
+			// openebs-provisioner-hostpath
+			if containerName != types.LocalPVProvisionerContainerKey {
+				localProvisionerDetails[types.KeyContainerName] = containerName
 			}
 		}
 		return nil

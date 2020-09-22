@@ -14,11 +14,10 @@ limitations under the License.
 package openebs
 
 import (
-	"strconv"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mayadata.io/openebs-upgrade/types"
 	"mayadata.io/openebs-upgrade/unstruct"
+	"strconv"
 )
 
 const (
@@ -129,6 +128,13 @@ func (p *Planner) updateMayaAPIServer(deploy *unstructured.Unstructured) error {
 		// In order to update envs of other containers, just write an updateEnv
 		// function for specific containers.
 		if containerName == "maya-apiserver" {
+			// update the container name if not same.
+			if len(p.ObservedOpenEBS.Spec.APIServer.ContainerName) != 0 {
+				err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.APIServer.ContainerName, "spec", "name")
+				if err != nil {
+					return err
+				}
+			}
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.APIServer.Image,
 				"spec", "image")
@@ -136,6 +142,11 @@ func (p *Planner) updateMayaAPIServer(deploy *unstructured.Unstructured) error {
 				return err
 			}
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateMayaAPIServerEnv)
+			if err != nil {
+				return err
+			}
+			// ignore updating the Envs which could cause immutability error
+			envs, err = p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.APIServer.ENV, envs)
 			if err != nil {
 				return err
 			}
@@ -219,6 +230,27 @@ func (p *Planner) updateMayaAPIServerService(svc *unstructured.Unstructured) err
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.MayaAPIServerServiceNameKey
 	// set the desired labels
 	svc.SetLabels(desiredLabels)
+
+	return nil
+}
+
+func (p *Planner) fillMayaAPIServerExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.APIServer.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.APIServer.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.APIServer.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.APIServer.ContainerName
+	} else {
+		containerName = types.APIServerContainerKey
+	}
+	p.ObservedOpenEBS.Spec.APIServer.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

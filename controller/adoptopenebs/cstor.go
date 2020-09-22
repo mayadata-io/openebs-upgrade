@@ -457,3 +457,32 @@ func (p *Planner) formCStorConfig() error {
 
 	return nil
 }
+
+// formCStorCSIISCSIADMConfigmapConfig forms the desired OpenEBS CR config for openebs-cstor-csi-iscsiadm
+// configmap.
+func (p *Planner) formCStorCSIISCSIADMConfigmapConfig(iscsiadmConfigmap *unstructured.Unstructured) error {
+	ISCSIADMConfigmapConfig := make(map[string]interface{}, 0)
+	// CstorCSIISCSIADM config is part of CStor config.
+	cstorConfig := &unstructured.Unstructured{
+		Object: make(map[string]interface{}, 0),
+	}
+	csiConfig := make(map[string]interface{}, 0)
+	if p.CstorConfig != nil {
+		cstorConfig = p.CstorConfig
+		csi, exist, err := unstructured.NestedMap(cstorConfig.Object, "csi")
+		if err != nil {
+			return errors.Errorf(
+				"Error forming CStorCSIISCSIADMConfig: error fetching CSI config from cstorConfig: %+v", err)
+		}
+		if exist {
+			csiConfig = csi
+		}
+	}
+	// set the ISCSIADMConfigmapConfig values wrt ISCSIADMConfigmap field
+	ISCSIADMConfigmapConfig[types.KeyName] = iscsiadmConfigmap.GetName()
+	csiConfig["iscsiadmConfigmap"] = ISCSIADMConfigmapConfig
+	cstorConfig.Object["csi"] = csiConfig
+	p.CstorConfig = cstorConfig
+
+	return nil
+}

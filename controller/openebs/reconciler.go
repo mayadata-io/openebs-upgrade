@@ -290,6 +290,7 @@ func (p *Planner) init() error {
 		p.setHelperDefaultsIfNotSet,
 		p.setPoliciesDefaultsIfNotSet,
 		p.setAnalyticsDefaultsIfNotSet,
+		p.getDesiredValuesFromObservedResources,
 		p.removeDisabledManifests,
 		p.getDesiredManifests,
 	}

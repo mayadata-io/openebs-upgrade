@@ -200,7 +200,7 @@ spec:
             - name: OPENEBS_IO_ENABLE_ANALYTICS
               value: "true"
             - name: OPENEBS_IO_INSTALLER_TYPE
-              value: "openebs-operator"
+              value: "openebs-enterprise-operator"
           # OPENEBS_IO_ANALYTICS_PING_INTERVAL can be used to specify the duration (in hours)
           # for periodic ping events sent to Google Analytics.
           # Default is 24h.
@@ -283,6 +283,7 @@ spec:
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
+                  apiVersion: v1
                   fieldPath: spec.nodeName
             - name: OPENEBS_NAMESPACE
               valueFrom:
@@ -751,7 +752,7 @@ spec:
             - name: OPENEBS_IO_ENABLE_ANALYTICS
               value: "true"
             - name: OPENEBS_IO_INSTALLER_TYPE
-              value: "openebs-operator"
+              value: "openebs-enterprise-operator"
             - name: OPENEBS_IO_HELPER_IMAGE
               value: "mayadataio/linux-utils:2.0.0-ee"
           # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
@@ -4542,11 +4543,6 @@ kind: CSIDriver
 metadata:
   name: cstor.csi.openebs.io
 spec:
-  # Supports persistent inline volumes.
-  volumeLifecycleModes:
-    - Persistent
-    # Not yet supported but added just to support upgrade control plane seamlessly
-    - Ephemeral
   # To determine at runtime which mode a volume uses, pod info and its
   # "csi.storage.k8s.io/ephemeral" entry are needed.
   podInfoOnMount: true
