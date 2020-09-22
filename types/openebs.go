@@ -139,13 +139,15 @@ type Analytics struct {
 // component such as it it is enabled or not, no of
 // replicas, nodeselector, etc.
 type Component struct {
-	Enabled      *bool                  `json:"enabled"`
-	Name         string                 `json:"name"`
-	Replicas     *int32                 `json:"replicas"`
-	Resources    map[string]interface{} `json:"resources"`
-	NodeSelector map[string]string      `json:"nodeSelector"`
-	Tolerations  []interface{}          `json:"tolerations"`
-	Affinity     map[string]interface{} `json:"affinity"`
+	Enabled           *bool                  `json:"enabled"`
+	Name              string                 `json:"name"`
+	Replicas          *int32                 `json:"replicas"`
+	Resources         map[string]interface{} `json:"resources"`
+	NodeSelector      map[string]string      `json:"nodeSelector"`
+	Tolerations       []interface{}          `json:"tolerations"`
+	Affinity          map[string]interface{} `json:"affinity"`
+	MatchLabels       map[string]string      `json:"matchLabels"`
+	PodTemplateLabels map[string]string      `json:"podTemplateLabels"`
 }
 
 // APIServer store the configuration for maya-apiserver
@@ -438,9 +440,11 @@ type MOACService struct {
 
 // Container stores the details of a container
 type Container struct {
-	ImageTag             string `json:"imageTag"`
-	Image                string `json:"image"`
-	EnableLeaderElection *bool  `json:"enableLeaderElection"`
+	ContainerName        string        `json:"containerName"`
+	ImageTag             string        `json:"imageTag"`
+	Image                string        `json:"image"`
+	EnableLeaderElection *bool         `json:"enableLeaderElection"`
+	ENV                  []interface{} `json:"env"`
 }
 
 // OpenEBSStatus defines the current status of

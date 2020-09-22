@@ -9,6 +9,7 @@ import (
 	"mayadata.io/openebs-upgrade/unstruct"
 	"mayadata.io/openebs-upgrade/util"
 	"strconv"
+	"strings"
 )
 
 // formNDMOperatorConfig forms the desired OpenEBS CR config for NDM operator.
@@ -32,7 +33,7 @@ func (p *Planner) formNDMOperatorConfig(ndmOperator *unstructured.Unstructured) 
 		if err != nil {
 			return err
 		}
-		if containerName == "node-disk-operator" {
+		if containerName == "node-disk-operator" || strings.Contains(containerName, "ndm-operator") {
 			ndmOperatorDetails[types.KeyResources], _, err = unstructured.NestedMap(obj.Object,
 				"spec", "resources")
 			if err != nil {
@@ -49,6 +50,9 @@ func (p *Planner) formNDMOperatorConfig(ndmOperator *unstructured.Unstructured) 
 			}
 			if imageTag != openebs.SupportedNDMVersionForOpenEBSVersion[p.OpenEBSVersion] {
 				ndmOperatorDetails[types.KeyImageTag] = imageTag
+			}
+			if containerName != "node-disk-operator" {
+				ndmOperatorDetails[types.KeyContainerName] = containerName
 			}
 		}
 		return nil
@@ -115,7 +119,7 @@ func (p *Planner) formNDMDaemonConfig(ndm *unstructured.Unstructured) error {
 		if err != nil {
 			return err
 		}
-		if containerName == types.NDMDaemonContainerKey {
+		if containerName == types.NDMDaemonContainerKey || strings.Contains(containerName, "ndm") {
 			ndmDaemonDetails[types.KeyResources], _, err = unstructured.NestedMap(obj.Object,
 				"spec", "resources")
 			if err != nil {
@@ -132,6 +136,10 @@ func (p *Planner) formNDMDaemonConfig(ndm *unstructured.Unstructured) error {
 			}
 			if imageTag != openebs.SupportedNDMVersionForOpenEBSVersion[p.OpenEBSVersion] {
 				ndmDaemonDetails[types.KeyImageTag] = imageTag
+			}
+			// update the container name if not the desired one i.e., node-disk-manager.
+			if containerName != types.NDMDaemonContainerKey {
+				ndmDaemonDetails[types.KeyContainerName] = containerName
 			}
 			// get the environments of the container.
 			err = unstruct.SliceIterator(envs).ForEach(getNDMDaemonENVs)

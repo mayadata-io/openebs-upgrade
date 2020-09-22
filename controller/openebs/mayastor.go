@@ -792,3 +792,58 @@ func (p *Planner) updateMayastorCSI(daemonset *unstructured.Unstructured) error 
 
 	return nil
 }
+
+func (p *Planner) fillMayastorMOACExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.MayastorConfig.Moac.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.MayastorConfig.Moac.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.MayastorConfig.Moac.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.ContainerName
+	} else {
+		containerName = types.MoacContainerKey
+	}
+	p.ObservedOpenEBS.Spec.MayastorConfig.Moac.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Planner) fillMayastorMayastorExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	// update for mayastor container
+	if len(p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Mayastor.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Mayastor.ContainerName
+	} else {
+		containerName = types.MayastorContainerKey
+	}
+	p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.Mayastor.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+
+	// update for mayastor-grpc
+	if len(p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.MayastorGRPC.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.MayastorGRPC.ContainerName
+	} else {
+		containerName = types.MayastorGRPCContainerKey
+	}
+	p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.MayastorGRPC.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

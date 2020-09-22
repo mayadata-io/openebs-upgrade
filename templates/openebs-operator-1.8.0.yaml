@@ -159,7 +159,7 @@ spec:
         - name: OPENEBS_IO_ENABLE_ANALYTICS
           value: "true"
         - name: OPENEBS_IO_INSTALLER_TYPE
-          value: "openebs-operator"
+          value: "openebs-enterprise-operator"
         livenessProbe:
           exec:
             command:
@@ -559,7 +559,7 @@ spec:
         - name: OPENEBS_IO_ENABLE_ANALYTICS
           value: "true"
         - name: OPENEBS_IO_INSTALLER_TYPE
-          value: "openebs-operator"
+          value: "openebs-enterprise-operator"
         - name: OPENEBS_IO_HELPER_IMAGE
           value: "quay.io/openebs/linux-utils:1.8.0"
         livenessProbe:

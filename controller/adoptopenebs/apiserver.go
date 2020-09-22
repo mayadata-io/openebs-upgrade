@@ -7,6 +7,7 @@ import (
 	"mayadata.io/openebs-upgrade/unstruct"
 	"mayadata.io/openebs-upgrade/util"
 	"strconv"
+	"strings"
 )
 
 // formMayaAPIServerConfig forms the desired OpenEBS CR config for MayaAPIServer.
@@ -100,7 +101,7 @@ func (p *Planner) formMayaAPIServerConfig(mayaAPIServer *unstructured.Unstructur
 		if err != nil {
 			return err
 		}
-		if containerName == "maya-apiserver" {
+		if containerName == "maya-apiserver" || strings.Contains(containerName, "apiserver") {
 			mayaAPIServerDetails[types.KeyResources], _, err = unstructured.NestedMap(obj.Object,
 				"spec", "resources")
 			if err != nil {
@@ -117,6 +118,9 @@ func (p *Planner) formMayaAPIServerConfig(mayaAPIServer *unstructured.Unstructur
 			}
 			if imageTag != p.OpenEBSVersion {
 				mayaAPIServerDetails[types.KeyImageTag] = imageTag
+			}
+			if containerName != "maya-apiserver" {
+				mayaAPIServerDetails[types.KeyContainerName] = containerName
 			}
 			// get the environmets of the container.
 			err = unstruct.SliceIterator(envs).ForEach(getMayaAPIServerENVs)

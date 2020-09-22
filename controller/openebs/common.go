@@ -15,6 +15,7 @@ package openebs
 
 import (
 	"io/ioutil"
+	"mayadata.io/openebs-upgrade/k8s"
 	"regexp"
 	"strconv"
 	"strings"
@@ -327,6 +328,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 	tolerations := make([]interface{}, 0)
 	affinity := make(map[string]interface{})
 	resources := make(map[string]interface{})
+	matchLabels := make(map[string]string, 0)
+	podTemplateLabels := make(map[string]string, 0)
 	// update the namespace
 	deploy.SetNamespace(p.ObservedOpenEBS.Namespace)
 
@@ -337,6 +340,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.APIServer.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.APIServer.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.APIServer.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.APIServer.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.APIServer.PodTemplateLabels
 		err = p.updateMayaAPIServer(deploy)
 
 	case types.ProvisionerNameKey:
@@ -345,6 +350,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.Provisioner.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.Provisioner.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.Provisioner.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.Provisioner.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.Provisioner.PodTemplateLabels
 		err = p.updateOpenEBSProvisioner(deploy)
 
 	case types.SnapshotOperatorNameKey:
@@ -353,6 +360,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.SnapshotOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.SnapshotOperator.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.SnapshotOperator.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.SnapshotOperator.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.SnapshotOperator.PodTemplateLabels
 		err = p.updateSnapshotOperator(deploy)
 
 	case types.NDMOperatorNameKey:
@@ -361,6 +370,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.NDMOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.NDMOperator.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.NDMOperator.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.NDMOperator.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.NDMOperator.PodTemplateLabels
 		err = p.updateNDMOperator(deploy)
 
 	case types.LocalProvisionerNameKey:
@@ -369,6 +380,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.LocalProvisioner.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.LocalProvisioner.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.LocalProvisioner.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.LocalProvisioner.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.LocalProvisioner.PodTemplateLabels
 		err = p.updateLocalProvisioner(deploy)
 
 	case types.AdmissionServerNameKey:
@@ -377,6 +390,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.AdmissionServer.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.AdmissionServer.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.AdmissionServer.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.AdmissionServer.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.AdmissionServer.PodTemplateLabels
 		err = p.updateAdmissionServer(deploy)
 
 	case types.CSPCOperatorNameKey:
@@ -385,6 +400,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.PodTemplateLabels
 		err = p.updateCSPCOperator(deploy)
 
 	case types.CVCOperatorNameKey:
@@ -393,6 +410,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.PodTemplateLabels
 		err = p.updateCVCOperator(deploy)
 
 	case types.CStorAdmissionServerNameKey:
@@ -401,6 +420,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.PodTemplateLabels
 		err = p.updateCStorAdmissionServer(deploy)
 
 	case types.MoacDeploymentNameKey:
@@ -409,6 +430,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.MayastorConfig.Moac.PodTemplateLabels
 		err = p.updateMoac(deploy)
 
 	case types.NATSDeploymentNameKey:
@@ -417,6 +440,8 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 		nodeSelector = p.ObservedOpenEBS.Spec.MayastorConfig.NATS.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.MayastorConfig.NATS.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.MayastorConfig.NATS.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.MayastorConfig.NATS.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.MayastorConfig.NATS.PodTemplateLabels
 		err = p.updateNATS(deploy)
 	}
 	if err != nil {
@@ -428,6 +453,19 @@ func (p *Planner) getDesiredDeployment(deploy *unstructured.Unstructured) (*unst
 	// some action based on that.
 	if *replicas > 1 {
 		err = unstructured.SetNestedField(deploy.Object, int64(*replicas), "spec", "replicas")
+		if err != nil {
+			return deploy, err
+		}
+	}
+	// check if matchLabels and podTemplateLabels are present for this component or not,
+	// if yes use the matchLabels defined in the OpenEBS CR.
+	if !(matchLabels == nil || len(matchLabels) == 0) &&
+		!(podTemplateLabels == nil || len(podTemplateLabels) == 0) {
+		err = unstructured.SetNestedStringMap(deploy.Object, matchLabels, "spec", "selector", "matchLabels")
+		if err != nil {
+			return deploy, err
+		}
+		err = unstructured.SetNestedStringMap(deploy.Object, podTemplateLabels, "spec", "template", "metadata", "labels")
 		if err != nil {
 			return deploy, err
 		}
@@ -560,6 +598,8 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 	nodeSelector := make(map[string]string)
 	tolerations := make([]interface{}, 0)
 	affinity := make(map[string]interface{})
+	matchLabels := make(map[string]string, 0)
+	podTemplateLabels := make(map[string]string, 0)
 
 	daemon.SetNamespace(p.ObservedOpenEBS.Namespace)
 	switch daemon.GetName() {
@@ -567,12 +607,20 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		nodeSelector = p.ObservedOpenEBS.Spec.NDMDaemon.NodeSelector
 		tolerations = p.ObservedOpenEBS.Spec.NDMDaemon.Tolerations
 		affinity = p.ObservedOpenEBS.Spec.NDMDaemon.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.NDMDaemon.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.NDMDaemon.PodTemplateLabels
 		err = p.updateNDM(daemon)
 	case types.CStorCSINodeNameKey:
+		matchLabels = p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.PodTemplateLabels
 		err = p.updateOpenEBSCStorCSINode(daemon)
 	case types.MayastorDaemonsetNameKey:
+		matchLabels = p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.MayastorConfig.Mayastor.PodTemplateLabels
 		err = p.updateMayastor(daemon)
 	case types.MayastorCSIDaemonsetNameKey:
+		matchLabels = p.ObservedOpenEBS.Spec.MayastorConfig.MayastorCSI.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.MayastorConfig.MayastorCSI.PodTemplateLabels
 		err = p.updateMayastorCSI(daemon)
 	}
 	if err != nil {
@@ -624,6 +672,19 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 			return daemon, err
 		}
 	}
+	// check if matchLabels is present for this component or not, if yes use the matchLabels defined
+	// in the OpenEBS CR.
+	if !(matchLabels == nil || len(matchLabels) == 0) &&
+		!(podTemplateLabels == nil || len(podTemplateLabels) == 0) {
+		err = unstructured.SetNestedStringMap(daemon.Object, matchLabels, "spec", "selector", "matchLabels")
+		if err != nil {
+			return daemon, err
+		}
+		err = unstructured.SetNestedStringMap(daemon.Object, podTemplateLabels, "spec", "template", "metadata", "labels")
+		if err != nil {
+			return daemon, err
+		}
+	}
 	// update pod version label
 	err = p.updatePodTemplateVersionLabel(daemon)
 	if err != nil {
@@ -636,15 +697,33 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
 		},
 	)
+
 	return daemon, nil
 }
 
 // getDesiredStatefulSet updates the statefulset manifest as per the given configuration.
 func (p *Planner) getDesiredStatefulSet(statefulset *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	var err error
+	matchLabels := make(map[string]string, 0)
+	podTemplateLabels := make(map[string]string, 0)
 	switch statefulset.GetName() {
 	case types.CStorCSIControllerNameKey:
+		matchLabels = p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.PodTemplateLabels
 		err = p.updateOpenEBSCStorCSIController(statefulset)
+		if err != nil {
+			return statefulset, err
+		}
+	}
+	// check if matchLabels is present for this component or not, if yes use the matchLabels defined
+	// in the OpenEBS CR.
+	if !(matchLabels == nil || len(matchLabels) == 0) &&
+		!(podTemplateLabels == nil || len(podTemplateLabels) == 0) {
+		err = unstructured.SetNestedStringMap(statefulset.Object, matchLabels, "spec", "selector", "matchLabels")
+		if err != nil {
+			return statefulset, err
+		}
+		err = unstructured.SetNestedStringMap(statefulset.Object, podTemplateLabels, "spec", "template", "metadata", "labels")
 		if err != nil {
 			return statefulset, err
 		}
@@ -688,7 +767,30 @@ func (p *Planner) getDesiredCSIDriver(driver *unstructured.Unstructured) (*unstr
 			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
 		},
 	)
+	// add volumeLifeCycleModes field based on k8s version.
+	// get the kubernetes version.
+	k8sVersion, err := k8s.GetK8sVersion()
+	if err != nil {
+		return driver, errors.Errorf("Unable to find kubernetes version, error: %v", err)
+	}
+	// compare the kubernetes version with the supported version of K8S for adding volumeLifeCycleModes.
+	comp, err := compareVersion(k8sVersion, types.K8sVersion1170)
+	if err != nil {
+		return driver, errors.Errorf("Error comparing versions, error: %v", err)
+	}
+	if comp >= 0 {
+		// add the volumeLifeCycleModes field in the CSIDriver
+		driverSpec, _, err := unstructured.NestedMap(driver.Object, "spec")
+		if err != nil {
+			return driver, err
+		}
+		driverSpec["volumeLifecycleModes"] = []interface{}{"Persistent", "Ephemeral"}
 
+		err = unstructured.SetNestedField(driver.Object, driverSpec, "spec")
+		if err != nil {
+			return driver, err
+		}
+	}
 	return driver, nil
 }
 
@@ -762,4 +864,175 @@ func (p *Planner) updatePodTemplateVersionLabel(resource *unstructured.Unstructu
 		}
 	}
 	return nil
+}
+
+// getDesiredValuesFromObservedResources gets the desired values from the observed resources
+// in order to update them such as .spec.selector, existing ENVs, spec.strategy, etc.
+func (p *Planner) getDesiredValuesFromObservedResources() error {
+	var err error
+	for _, observedOpenEBSComponent := range p.observedOpenEBSComponents {
+		switch observedOpenEBSComponent.GetKind() {
+		case types.KindDeployment:
+			err = p.fillDesiredValuesFromObservedDeployments(observedOpenEBSComponent)
+		case types.KindDaemonSet:
+			err = p.fillDesiredValuesFromObservedDaemonsets(observedOpenEBSComponent)
+		case types.KindStatefulset:
+			err = p.fillDesiredValuesFromObservedStatefulsets(observedOpenEBSComponent)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Planner) fillDesiredValuesFromObservedDeployments(deploy *unstructured.Unstructured) error {
+	var componentIdentifier string
+	// Make use of a number of predefined OpenEBS labels in order to identify
+	// the component type such as `openebs.io/component-name`.
+	componentLabels := deploy.GetLabels()
+	if componentNameLabelValue, exist := componentLabels[types.ComponentNameLabelKey]; exist {
+		componentIdentifier = componentNameLabelValue
+	}
+	// get the existing details which are required to update these components.
+	observedComponentDetails, err := getObservedComponentDesiredDetails(deploy)
+	if err != nil {
+		return err
+	}
+	switch componentIdentifier {
+	case types.MayaAPIServerComponentNameLabelValue:
+		err = p.fillMayaAPIServerExistingValues(observedComponentDetails)
+	case types.OpenEBSProvisionerComponentNameLabelValue:
+		err = p.fillProvisionerExistingValues(observedComponentDetails)
+	case types.SnapshotOperatorComponentNameLabelValue:
+		err = p.fillSnapshotOperatorExistingValues(observedComponentDetails)
+	case types.NDMOperatorComponentNameLabelValue:
+		err = p.fillNDMOperatorExistingValues(observedComponentDetails)
+	case types.LocalPVProvisionerComponentNameLabelValue:
+		err = p.fillLocalPVProvisionerExistingValues(observedComponentDetails)
+	case types.AdmissionServerComponentNameLabelValue:
+		err = p.fillAdmissionServerExistingValues(observedComponentDetails)
+	case types.CSPCOperatorComponentNameLabelValue:
+		err = p.fillCSPCOperatorExistingValues(observedComponentDetails)
+	case types.CVCOperatorComponentNameLabelValue:
+		err = p.fillCVCOperatorExistingValues(observedComponentDetails)
+	case types.CStorAdmissionServerComponentNameLabelValue:
+		err = p.fillCStorAdmissionServerExistingValues(observedComponentDetails)
+	case types.MayastorMOACComponentNameLabelValue:
+		err = p.fillMayastorMOACExistingValues(observedComponentDetails)
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// fetchExistingContainerEnvs returns the envs of a given container.
+func fetchExistingContainerEnvs(containers []interface{}, desiredContainerName string) ([]interface{}, error) {
+	desiredEnvs := make([]interface{}, 0)
+	// get desired details from container
+	container := func(obj *unstructured.Unstructured) error {
+		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
+		if containerName == desiredContainerName {
+			desiredEnvs = envs
+		}
+		return nil
+	}
+	// get the desired details from containers.
+	err := unstruct.SliceIterator(containers).ForEach(container)
+	if err != nil {
+		return desiredEnvs, err
+	}
+	return desiredEnvs, nil
+}
+
+func (p *Planner) fillDesiredValuesFromObservedDaemonsets(daemon *unstructured.Unstructured) error {
+	var componentIdentifier string
+	// Make use of a number of predefined OpenEBS labels in order to identify
+	// the component type such as `openebs.io/component-name`.
+	componentLabels := daemon.GetLabels()
+	if componentNameLabelValue, exist := componentLabels[types.ComponentNameLabelKey]; exist {
+		componentIdentifier = componentNameLabelValue
+	}
+	// get the existing details which are required to update these components.
+	observedComponentDetails, err := getObservedComponentDesiredDetails(daemon)
+	if err != nil {
+		return err
+	}
+	switch componentIdentifier {
+	case types.NDMComponentNameLabelValue:
+		err = p.fillNDMDaemonExistingValues(observedComponentDetails)
+	case types.CStorCSINodeComponentNameLabelValue:
+		err = p.fillCStorCSINodeExistingValues(observedComponentDetails)
+	case types.MayastorMayastorComponentNameLabelValue:
+		err = p.fillMayastorMayastorExistingValues(observedComponentDetails)
+	}
+	return nil
+}
+
+func (p *Planner) fillDesiredValuesFromObservedStatefulsets(sts *unstructured.Unstructured) error {
+	var componentIdentifier string
+	// Make use of a number of predefined OpenEBS labels in order to identify
+	// the component type such as `openebs.io/component-name`.
+	componentLabels := sts.GetLabels()
+	if componentNameLabelValue, exist := componentLabels[types.ComponentNameLabelKey]; exist {
+		componentIdentifier = componentNameLabelValue
+	}
+	// get the existing details which are required to update these components.
+	observedComponentDetails, err := getObservedComponentDesiredDetails(sts)
+	if err != nil {
+		return err
+	}
+	switch componentIdentifier {
+	case types.CStorCSIControllerComponentNameLabelValue:
+		err = p.fillCStorCSIControllerExistingValues(observedComponentDetails)
+	}
+	return nil
+}
+
+// getObservedComponentDesiredDetails gets the desired details from observed OpenEBS components.
+func getObservedComponentDesiredDetails(component *unstructured.Unstructured) (
+	ObservedComponentDesiredDetails, error) {
+	observedComponentDesiredDetails := ObservedComponentDesiredDetails{
+		MatchLabels:       make(map[string]string, 0),
+		PodTemplateLabels: make(map[string]string, 0),
+		Containers:        make([]interface{}, 0),
+	}
+	// get the .spec.selectors.matchLabels value of this resource
+	matchLabels, _, err := unstructured.NestedStringMap(component.Object,
+		"spec", "selector", "matchLabels")
+	if err != nil {
+		return observedComponentDesiredDetails, err
+	}
+	observedComponentDesiredDetails.MatchLabels = matchLabels
+	// get the .spec.template.metadata.labels value of this resource
+	podTemplateLabels, _, err := unstructured.NestedStringMap(component.Object,
+		"spec", "template", "metadata", "labels")
+	if err != nil {
+		return observedComponentDesiredDetails, err
+	}
+	observedComponentDesiredDetails.PodTemplateLabels = podTemplateLabels
+	containers, _, err := unstructured.NestedSlice(component.Object,
+		"spec", "template", "spec", "containers")
+	if err != nil {
+		return observedComponentDesiredDetails, err
+	}
+	observedComponentDesiredDetails.Containers = containers
+
+	return observedComponentDesiredDetails, nil
+}
+
+// ObservedComponentDesiredDetails gets the desired details from the observed OpenEBS component.
+// These details are used for updating the components.
+type ObservedComponentDesiredDetails struct {
+	MatchLabels       map[string]string
+	PodTemplateLabels map[string]string
+	Containers        []interface{}
 }

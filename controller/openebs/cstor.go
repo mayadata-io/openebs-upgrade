@@ -746,8 +746,12 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 			if err != nil {
 				return err
 			}
-			// Set the environmets of the container.
+			// Set the environments of the container.
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateOpenEBSCSIPluginEnv)
+			if err != nil {
+				return err
+			}
+			envs, err = p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ENV, envs)
 			if err != nil {
 				return err
 			}
@@ -1155,8 +1159,12 @@ func (p *Planner) updateOpenEBSCSIControllerCSIPluginContainer(obj *unstructured
 	if err != nil {
 		return err
 	}
-	// Set the environmets of the container.
+	// Set the environments of the container.
 	err = unstruct.SliceIterator(envs).ForEachUpdate(p.updateOpenEBSCSIControllerCSIPluginEnv())
+	if err != nil {
+		return err
+	}
+	envs, err = p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ENV, envs)
 	if err != nil {
 		return err
 	}
@@ -1238,6 +1246,10 @@ func (p *Planner) updateCSPCOperator(deploy *unstructured.Unstructured) error {
 				return err
 			}
 			err = unstruct.SliceIterator(envs).ForEachUpdate(updateCSPCOperatorEnv)
+			if err != nil {
+				return err
+			}
+			envs, err = p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ENV, envs)
 			if err != nil {
 				return err
 			}
@@ -1334,6 +1346,10 @@ func (p *Planner) updateCVCOperator(deploy *unstructured.Unstructured) error {
 			if err != nil {
 				return err
 			}
+			envs, err = p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ENV, envs)
+			if err != nil {
+				return err
+			}
 		}
 		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {
@@ -1378,6 +1394,10 @@ func (p *Planner) updateCStorAdmissionServer(deploy *unstructured.Unstructured) 
 		if err != nil {
 			return err
 		}
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
 		if containerName == "admission-webhook" {
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object,
@@ -1386,6 +1406,14 @@ func (p *Planner) updateCStorAdmissionServer(deploy *unstructured.Unstructured) 
 			if err != nil {
 				return err
 			}
+			envs, err = p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ENV, envs)
+			if err != nil {
+				return err
+			}
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
 		}
 		return nil
 	}
@@ -1421,6 +1449,135 @@ func (p *Planner) updateCVCOperatorService(svc *unstructured.Unstructured) error
 	desiredLabels[types.OpenEBSComponentNameLabelKey] = types.CVCOperatorServiceNameKey
 	// set the desired labels
 	svc.SetLabels(desiredLabels)
+
+	return nil
+}
+
+func (p *Planner) fillCSPCOperatorExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ContainerName
+	} else {
+		containerName = types.CSPCOperatorContainerKey
+	}
+	p.ObservedOpenEBS.Spec.CstorConfig.CSPCOperator.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Planner) fillCVCOperatorExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ContainerName
+	} else {
+		containerName = types.CVCOperatorContainerKey
+	}
+	p.ObservedOpenEBS.Spec.CstorConfig.CVCOperator.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Planner) fillCStorAdmissionServerExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ContainerName
+	} else {
+		containerName = types.AdmissionServerContainerKey
+	}
+	p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Planner) fillCStorCSINodeExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+		envs          []interface{}
+	)
+	p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ContainerName
+	} else {
+		containerName = ContainerCSTORCSIPluginName
+	}
+	envs, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+	// If we are unable to fetch env for container cstor-csi-plugin then try to fetch for
+	// openebs-csi-plugin.
+	if envs == nil || len(envs) == 0 {
+		envs, err = fetchExistingContainerEnvs(
+			observedComponentDetails.Containers, ContainerOpenEBSCSIPluginName)
+		if err != nil {
+			return err
+		}
+	}
+	// set the existing envs
+	p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ENV = envs
+
+	return nil
+}
+
+func (p *Planner) fillCStorCSIControllerExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+		envs          []interface{}
+	)
+	p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ContainerName
+	} else {
+		containerName = ContainerCSTORCSIPluginName
+	}
+	envs, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+	// If we are unable to fetch env for container cstor-csi-plugin then try to fetch for
+	// openebs-csi-plugin.
+	if envs == nil || len(envs) == 0 {
+		envs, err = fetchExistingContainerEnvs(
+			observedComponentDetails.Containers, ContainerOpenEBSCSIPluginName)
+		if err != nil {
+			return err
+		}
+	}
+	// set the existing envs
+	p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.ENV = envs
 
 	return nil
 }

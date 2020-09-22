@@ -41,6 +41,8 @@ func (p *Planner) formComponentOpenEBSConfig(component *unstructured.Unstructure
 		err = p.formCstorCSIController(component)
 	case types.CStorAdmissionServerNameKey:
 		err = p.formCstorAdmissionServer(component)
+	case types.CStorCSIISCSIADMConfigmapNameKey:
+		err = p.formCStorCSIISCSIADMConfigmapConfig(component)
 	case types.MoacDeploymentNameKey:
 		err = p.formMayastorMOACConfig(component)
 	case types.MayastorMOACSVCNameKey:
@@ -120,5 +122,6 @@ func (p *Planner) getResourceCommonDetails(resource *unstructured.Unstructured,
 	if err != nil {
 		return resourceDetails, err
 	}
+
 	return resourceDetails, nil
 }

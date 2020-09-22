@@ -77,6 +77,10 @@ func (p *Planner) updateAdmissionServer(deploy *unstructured.Unstructured) error
 	}
 	// update the containers
 	updateContainer := func(obj *unstructured.Unstructured) error {
+		envs, _, err := unstruct.GetSlice(obj, "spec", "env")
+		if err != nil {
+			return err
+		}
 		containerName, _, err := unstructured.NestedString(obj.Object, "spec", "name")
 		if err != nil {
 			return err
@@ -88,6 +92,15 @@ func (p *Planner) updateAdmissionServer(deploy *unstructured.Unstructured) error
 			if err != nil {
 				return err
 			}
+			// ignore updating the Envs which could cause immutability error
+			envs, err = p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.AdmissionServer.ENV, envs)
+			if err != nil {
+				return err
+			}
+		}
+		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
+		if err != nil {
+			return err
 		}
 		return nil
 	}
@@ -99,6 +112,27 @@ func (p *Planner) updateAdmissionServer(deploy *unstructured.Unstructured) error
 	// Set back the value of the containers.
 	err = unstructured.SetNestedSlice(deploy.Object,
 		containers, "spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Planner) fillAdmissionServerExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.AdmissionServer.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.AdmissionServer.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.AdmissionServer.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.AdmissionServer.ContainerName
+	} else {
+		containerName = types.AdmissionServerContainerKey
+	}
+	p.ObservedOpenEBS.Spec.AdmissionServer.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
 	if err != nil {
 		return err
 	}

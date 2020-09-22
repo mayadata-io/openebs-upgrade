@@ -97,6 +97,13 @@ func (p *Planner) updateLocalProvisioner(deploy *unstructured.Unstructured) erro
 			return err
 		}
 		if containerName == "openebs-provisioner-hostpath" {
+			// update the container name if not same.
+			if len(p.ObservedOpenEBS.Spec.LocalProvisioner.ContainerName) != 0 {
+				err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.LocalProvisioner.ContainerName, "spec", "name")
+				if err != nil {
+					return err
+				}
+			}
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.LocalProvisioner.Image,
 				"spec", "image")
@@ -108,7 +115,10 @@ func (p *Planner) updateLocalProvisioner(deploy *unstructured.Unstructured) erro
 				return err
 			}
 			// add ENVs to this container based on required conditions
-			envs = p.addLocalPVProvisionerEnvs(envs)
+			envs, err = p.addLocalPVProvisionerEnvs(envs)
+			if err != nil {
+				return err
+			}
 		}
 		err = unstructured.SetNestedSlice(obj.Object, envs, "spec", "env")
 		if err != nil {
@@ -130,7 +140,7 @@ func (p *Planner) updateLocalProvisioner(deploy *unstructured.Unstructured) erro
 }
 
 // add env based on predefined conditions or values provided to the localpv-provisioner container.
-func (p *Planner) addLocalPVProvisionerEnvs(envs []interface{}) []interface{} {
+func (p *Planner) addLocalPVProvisionerEnvs(envs []interface{}) ([]interface{}, error) {
 	// if leader election value is provided then insert the env for leader election
 	if p.ObservedOpenEBS.Spec.LocalProvisioner.EnableLeaderElection != nil {
 		leaderElectionEnv := struct {
@@ -142,5 +152,26 @@ func (p *Planner) addLocalPVProvisionerEnvs(envs []interface{}) []interface{} {
 		}
 		envs = append(envs, leaderElectionEnv)
 	}
-	return envs
+	return p.ignoreUpdatingImmutableEnvs(p.ObservedOpenEBS.Spec.LocalProvisioner.ENV, envs)
+}
+
+func (p *Planner) fillLocalPVProvisionerExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.LocalProvisioner.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.LocalProvisioner.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.LocalProvisioner.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.LocalProvisioner.ContainerName
+	} else {
+		containerName = types.LocalPVProvisionerContainerKey
+	}
+	p.ObservedOpenEBS.Spec.LocalProvisioner.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

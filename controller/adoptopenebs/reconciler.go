@@ -260,21 +260,22 @@ type Planner struct {
 	HelperImageTag             string
 	EnableAnalytics            bool
 
-	Resources              *unstructured.Unstructured
-	APIServerConfig        *unstructured.Unstructured
-	ProvisionerConfig      *unstructured.Unstructured
-	LocalProvisionerConfig *unstructured.Unstructured
-	AdmissionServerConfig  *unstructured.Unstructured
-	SnapshotOperatorConfig *unstructured.Unstructured
-	NDMDaemonConfig        *unstructured.Unstructured
-	NDMOperatorConfig      *unstructured.Unstructured
-	NDMConfigMapConfig     *unstructured.Unstructured
-	JivaConfig             *unstructured.Unstructured
-	CstorConfig            *unstructured.Unstructured
-	HelperConfig           *unstructured.Unstructured
-	PoliciesConfig         *unstructured.Unstructured
-	AnalyticsConfig        *unstructured.Unstructured
-	MayastorConfig         *unstructured.Unstructured
+	Resources               *unstructured.Unstructured
+	APIServerConfig         *unstructured.Unstructured
+	ProvisionerConfig       *unstructured.Unstructured
+	LocalProvisionerConfig  *unstructured.Unstructured
+	AdmissionServerConfig   *unstructured.Unstructured
+	SnapshotOperatorConfig  *unstructured.Unstructured
+	NDMDaemonConfig         *unstructured.Unstructured
+	NDMOperatorConfig       *unstructured.Unstructured
+	NDMConfigMapConfig      *unstructured.Unstructured
+	JivaConfig              *unstructured.Unstructured
+	CstorConfig             *unstructured.Unstructured
+	ISCSIADMConfigMapConfig *unstructured.Unstructured
+	HelperConfig            *unstructured.Unstructured
+	PoliciesConfig          *unstructured.Unstructured
+	AnalyticsConfig         *unstructured.Unstructured
+	MayastorConfig          *unstructured.Unstructured
 }
 
 // NewReconciler returns a new instance of Reconciler

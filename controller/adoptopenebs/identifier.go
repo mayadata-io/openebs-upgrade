@@ -59,6 +59,7 @@ func (oi *OpenEBSIdentifier) IdentifyOpenEBSComponentType() (string, error) {
 		// All the functions will be run one by one until one of the functions
 		// succeed in identifying the type of OpenEBS component here or all fails.
 		oi.identifyOpenEBSComponentUsingLabels,
+		oi.identifyOpenEBSComponentUsingName,
 	}
 	for _, fn := range initFuncs {
 		componentType, err := fn()
@@ -70,6 +71,19 @@ func (oi *OpenEBSIdentifier) IdentifyOpenEBSComponentType() (string, error) {
 		}
 	}
 	return "", nil
+}
+
+// identifyOpenEBSComponentUsingName tries to identify the type of OpenEBS component
+// using its name defined in the .metadata.name.
+func (oi *OpenEBSIdentifier) identifyOpenEBSComponentUsingName() (string, error) {
+	var (
+		componentType string
+	)
+	switch oi.Object.GetName() {
+	case types.CStorCSIISCSIADMConfigmapNameKey:
+		componentType = types.CStorCSIISCSIADMConfigmapNameKey
+	}
+	return componentType, nil
 }
 
 // identifyOpenEBSComponentUsingLabels tries to identify the type of OpenEBS component
@@ -123,6 +137,8 @@ func (oi *OpenEBSIdentifier) identifyOpenEBSComponentUsingLabels() (string, erro
 		componentType = types.CStorCSINodeNameKey
 	case types.CStorCSIControllerComponentNameLabelValue:
 		componentType = types.CStorCSIControllerNameKey
+	case types.CStorCSIISCSIADMConfigmapComponentNameLabelValue:
+		componentType = types.CStorCSIISCSIADMConfigmapNameKey
 	case types.MayastorMOACComponentNameLabelValue:
 		componentType = types.MoacDeploymentNameKey
 	case types.MayastorMOACServiceComponentNameLabelValue:

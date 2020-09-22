@@ -501,6 +501,13 @@ func (p *Planner) updateNDM(daemonset *unstructured.Unstructured) error {
 		// update the envs and volume mounts per container i.e., envs and volume mounts
 		// could be different for each container and should be updated as such.
 		if containerName == "node-disk-manager" {
+			// update the container name if not same.
+			if len(p.ObservedOpenEBS.Spec.NDMDaemon.ContainerName) != 0 {
+				err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.NDMDaemon.ContainerName, "spec", "name")
+				if err != nil {
+					return err
+				}
+			}
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.NDMDaemon.Image, "spec", "image")
 			if err != nil {
@@ -621,6 +628,13 @@ func (p *Planner) updateNDMOperator(deploy *unstructured.Unstructured) error {
 			return err
 		}
 		if containerName == "node-disk-operator" {
+			// update the container name if not same.
+			if len(p.ObservedOpenEBS.Spec.NDMOperator.ContainerName) != 0 {
+				err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.NDMOperator.ContainerName, "spec", "name")
+				if err != nil {
+					return err
+				}
+			}
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.NDMOperator.Image,
 				"spec", "image")
@@ -647,6 +661,48 @@ func (p *Planner) updateNDMOperator(deploy *unstructured.Unstructured) error {
 
 	err = unstructured.SetNestedSlice(deploy.Object, containers,
 		"spec", "template", "spec", "containers")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Planner) fillNDMOperatorExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.NDMOperator.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.NDMOperator.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.NDMOperator.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.NDMOperator.ContainerName
+	} else {
+		containerName = types.NodeDiskOperatorContainerKey
+	}
+	p.ObservedOpenEBS.Spec.NDMOperator.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Planner) fillNDMDaemonExistingValues(observedComponentDetails ObservedComponentDesiredDetails) error {
+	var (
+		containerName string
+		err           error
+	)
+	p.ObservedOpenEBS.Spec.NDMDaemon.MatchLabels = observedComponentDetails.MatchLabels
+	p.ObservedOpenEBS.Spec.NDMDaemon.PodTemplateLabels = observedComponentDetails.PodTemplateLabels
+	if len(p.ObservedOpenEBS.Spec.NDMDaemon.ContainerName) > 0 {
+		containerName = p.ObservedOpenEBS.Spec.NDMDaemon.ContainerName
+	} else {
+		containerName = types.NDMDaemonContainerKey
+	}
+	p.ObservedOpenEBS.Spec.NDMDaemon.ENV, err = fetchExistingContainerEnvs(
+		observedComponentDetails.Containers, containerName)
 	if err != nil {
 		return err
 	}
