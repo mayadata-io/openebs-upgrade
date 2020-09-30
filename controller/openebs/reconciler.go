@@ -164,6 +164,13 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		}
 	}
 
+	// update the components that needs to be explicitly updated
+	if resp.ExplicitUpdates != nil {
+		for _, componentToUpdate := range resp.ExplicitUpdates {
+			response.ExplicitUpdates = append(response.ExplicitUpdates, componentToUpdate)
+		}
+	}
+
 	glog.V(2).Infof(
 		"OpenEBS %s %s reconciled successfully: %s",
 		request.Watch.GetNamespace(), request.Watch.GetName(),
@@ -199,6 +206,7 @@ type ReconcileResponse struct {
 	DesiredOpenEBS          *unstructured.Unstructured
 	DesiredOpenEBSComponets []*unstructured.Unstructured
 	ExplicitDeletes         []*unstructured.Unstructured
+	ExplicitUpdates         []*unstructured.Unstructured
 }
 
 // Planner ensures if any of the instances need
@@ -209,6 +217,7 @@ type Planner struct {
 
 	ComponentManifests map[string]*unstructured.Unstructured
 	ExplicitDeletes    []*unstructured.Unstructured
+	ExplicitUpdates    []*unstructured.Unstructured
 }
 
 // NewReconciler returns a new instance of Reconciler
@@ -244,7 +253,18 @@ func (r *Reconciler) Reconcile() (ReconcileResponse, error) {
 
 // Plan builds the desired instances/components of OpenEBS
 func (p *Planner) Plan() (ReconcileResponse, error) {
-	err := p.init()
+	// check if some dependencies/tools/components needs to be installed before OpenEBS
+	// installation.
+	err := p.getPreInstallationManifests()
+	if err != nil {
+		return ReconcileResponse{}, err
+	}
+	// check if some components needs to installed prior to OpenEBS installation, if yes, then
+	// other OpenEBS components should not be installed.
+	if !(p.ComponentManifests == nil || len(p.ComponentManifests) == 0) {
+		return p.getDesiredOpenEBSComponents(), nil
+	}
+	err = p.init()
 	if err != nil {
 		return ReconcileResponse{}, err
 	}
@@ -264,6 +284,10 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 	// update the components that needs to be deleted
 	for _, componentToDelete := range p.ExplicitDeletes {
 		response.ExplicitDeletes = append(response.ExplicitDeletes, componentToDelete)
+	}
+	// update the components that needs to be explicitly updated
+	for _, componentToUpdate := range p.ExplicitUpdates {
+		response.ExplicitUpdates = append(response.ExplicitUpdates, componentToUpdate)
 	}
 	return response
 }

@@ -11,6 +11,8 @@ spec:
   attachments:
     - apiVersion: dao.mayadata.io/v1alpha1
       resource: openebses
+      updateStrategy:
+        method: InPlace
     - apiVersion: apps/v1
       resource: daemonsets
       updateStrategy:

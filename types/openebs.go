@@ -78,10 +78,26 @@ type OpenEBSSpec struct {
 	//
 	// This can be overrided by providing it for a particular component in the
 	// component's specified section, for example, inside apiServer.
-	Resources map[string]interface{} `json:"resources"`
+	Resources map[string]interface{} `json:"resources,omitempty"`
 
 	// All the OpenEBS components that will get installed/updated.
 	Components `json:",inline"`
+
+	// PreInstallation specifies the components or the tools or the dependencies that needs
+	// to be installed prior to OpenEBS installation.
+	PreInstallation PreInstallation `json:"preInstallation,omitempty"`
+}
+
+// PreInstallation stores the components or the tools or the dependencies that needs
+// to be installed prior to OpenEBS installation.
+type PreInstallation struct {
+	ISCSIClient ISCSIClient `json:"iscsiClient"`
+}
+
+// ISCSIClient stores the configuration for ISCSI client installation.
+type ISCSIClient struct {
+	Component   `json:",inline"`
+	IsSetupDone bool `json:"isSetupDone"`
 }
 
 // Components stores all the OpenEBS components.
@@ -140,14 +156,14 @@ type Analytics struct {
 // replicas, nodeselector, etc.
 type Component struct {
 	Enabled           *bool                  `json:"enabled"`
-	Name              string                 `json:"name"`
-	Replicas          *int32                 `json:"replicas"`
-	Resources         map[string]interface{} `json:"resources"`
-	NodeSelector      map[string]string      `json:"nodeSelector"`
-	Tolerations       []interface{}          `json:"tolerations"`
-	Affinity          map[string]interface{} `json:"affinity"`
-	MatchLabels       map[string]string      `json:"matchLabels"`
-	PodTemplateLabels map[string]string      `json:"podTemplateLabels"`
+	Name              string                 `json:"name,omitempty"`
+	Replicas          *int32                 `json:"replicas,omitempty"`
+	Resources         map[string]interface{} `json:"resources,omitempty"`
+	NodeSelector      map[string]string      `json:"nodeSelector,omitempty"`
+	Tolerations       []interface{}          `json:"tolerations,omitempty"`
+	Affinity          map[string]interface{} `json:"affinity,omitempty"`
+	MatchLabels       map[string]string      `json:"matchLabels,omitempty"`
+	PodTemplateLabels map[string]string      `json:"podTemplateLabels,omitempty"`
 }
 
 // APIServer store the configuration for maya-apiserver
@@ -236,8 +252,8 @@ type NDMDaemon struct {
 	Sparse        *Sparse     `json:"sparse"`
 	Filters       *NDMFilters `json:"filters"`
 	Probes        *NDMProbes  `json:"probes"`
-	EnableHostPID *bool       `json:"enableHostPID"`
-	FeatureGates  []string    `json:"featureGates"`
+	EnableHostPID *bool       `json:"enableHostPID,omitempty"`
+	FeatureGates  []string    `json:"featureGates,omitempty"`
 }
 
 // NDMConfigMap stores the configuration for ndm configmap.
@@ -390,7 +406,7 @@ type CSINode struct {
 	Component `json:",inline"`
 	Container `json:",inline"`
 	// ISCSIPath is the path of the iscsiadm binary.
-	ISCSIPath string `json:"iscsiPath"`
+	ISCSIPath string `json:"iscsiPath,omitempty"`
 }
 
 // MayastorConfig stores the configuration for mayastor components.
@@ -440,11 +456,11 @@ type MOACService struct {
 
 // Container stores the details of a container
 type Container struct {
-	ContainerName        string        `json:"containerName"`
-	ImageTag             string        `json:"imageTag"`
-	Image                string        `json:"image"`
-	EnableLeaderElection *bool         `json:"enableLeaderElection"`
-	ENV                  []interface{} `json:"env"`
+	ContainerName        string        `json:"containerName,omitempty"`
+	ImageTag             string        `json:"imageTag,omitempty"`
+	Image                string        `json:"image,omitempty"`
+	EnableLeaderElection *bool         `json:"enableLeaderElection,omitempty"`
+	ENV                  []interface{} `json:"env,omitempty"`
 }
 
 // OpenEBSStatus defines the current status of

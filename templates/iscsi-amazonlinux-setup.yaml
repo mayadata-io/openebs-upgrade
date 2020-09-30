@@ -1,0 +1,118 @@
+apiVersion: v1
+data:
+  nodesetup.sh: |
+    #!/usr/bin/env bash
+
+    set -Euo pipefail functrace
+
+    ROOT_MOUNT_DIR="${ROOT_MOUNT_DIR:-/root}"
+
+    failure() {
+      local lineno=$1
+      local msg=$2
+      echo "Failed at $lineno: $msg"
+    }
+    trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
+
+    echo "Checking if ISCSI client is installed or not..."
+    if [ -e /etc/iscsi/initiatorname.iscsi ]
+    then
+       echo "initiatorname.iscsi file is present."
+    else
+       echo "initiatorname.iscsi file is not present."
+    fi
+
+    if echo "$(chroot "${ROOT_MOUNT_DIR}" systemctl status iscsid)" | grep -q "running"
+    then
+       echo "ISCSI client is already running."
+       exit 0
+    else
+       echo "ISCSI client is not running."
+    fi
+
+    echo "Installing ISCSI client..."
+    chroot "${ROOT_MOUNT_DIR}" yum install iscsi-initiator-utils -y
+
+    echo "Enabling iscsid..."
+    chroot "${ROOT_MOUNT_DIR}" systemctl enable iscsid
+
+    echo "Starting iscsid..."
+    chroot "${ROOT_MOUNT_DIR}" systemctl start iscsid
+
+    echo "Verifying if ISCSI client is installed or not..."
+    if [ -e /etc/iscsi/initiatorname.iscsi ]
+    then
+       echo "initiatorname.iscsi file is present."
+    else
+       echo "initiatorname.iscsi file is not present."
+    fi
+
+    for i in {1..10}
+    do
+     if echo "$(chroot "${ROOT_MOUNT_DIR}" systemctl status iscsid)" | grep -q "running"
+     then
+       echo "ISCSI client has been installed successfully."
+       exit 0
+     else
+       echo "ISCSI client is not running."
+       if [ $i == 10 ]
+       then
+         exit 1
+       fi
+     fi
+    done
+kind: ConfigMap
+metadata:
+  name: node-setup
+  namespace: openebs
+
+---
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: openebs-node-setup
+  namespace: openebs
+  labels:
+    openebs.io/component-name: openebs-node-setup
+spec:
+  selector:
+    matchLabels:
+      openebs.io/component-name: openebs-node-setup
+  template:
+    metadata:
+      labels:
+        openebs.io/component-name: openebs-node-setup
+    spec:
+      hostNetwork: true
+      hostPID: true
+      volumes:
+        - name: root-mount
+          hostPath:
+            path: /
+        - name: node-setup
+          configMap:
+            name: node-setup
+            defaultMode: 0744
+      initContainers:
+        - image: bash:5.0
+          name: init-node
+          command: ["/scripts/nodesetup.sh"]
+          env:
+            - name: ROOT_MOUNT_DIR
+              value: /root
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: root-mount
+              mountPath: /root
+            - name: node-setup
+              mountPath: /scripts
+      containers:
+        - name: wait
+          image: k8s.gcr.io/pause:3.1
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+  updateStrategy:
+    type: RollingUpdate

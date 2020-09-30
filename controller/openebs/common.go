@@ -622,6 +622,12 @@ func (p *Planner) getDesiredDaemonSet(daemon *unstructured.Unstructured) (*unstr
 		matchLabels = p.ObservedOpenEBS.Spec.MayastorConfig.MayastorCSI.MatchLabels
 		podTemplateLabels = p.ObservedOpenEBS.Spec.MayastorConfig.MayastorCSI.PodTemplateLabels
 		err = p.updateMayastorCSI(daemon)
+	case types.OpenEBSNodeSetupDaemonsetNameKey:
+		nodeSelector = p.ObservedOpenEBS.Spec.PreInstallation.ISCSIClient.NodeSelector
+		tolerations = p.ObservedOpenEBS.Spec.PreInstallation.ISCSIClient.Tolerations
+		affinity = p.ObservedOpenEBS.Spec.PreInstallation.ISCSIClient.Affinity
+		matchLabels = p.ObservedOpenEBS.Spec.PreInstallation.ISCSIClient.MatchLabels
+		podTemplateLabels = p.ObservedOpenEBS.Spec.PreInstallation.ISCSIClient.PodTemplateLabels
 	}
 	if err != nil {
 		return daemon, err
