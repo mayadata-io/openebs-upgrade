@@ -14,8 +14,8 @@ func (p *Planner) formPreInstallationConfig() error {
 	// form the config for ISCSI client installation, for adoption cases,
 	// it will be false by default since OpenEBS is already up and running.
 	iscsiClientConfig := make(map[string]interface{})
-	iscsiClientConfig["enabled"] = false
-	iscsiClientConfig["isSetupDone"] = true
+	iscsiClientConfig["enabled"] = true
+	iscsiClientConfig["isSetupDone"] = false
 	preInstallationConfig.Object["iscsiClient"] = iscsiClientConfig
 	p.PreInstallationConfig = preInstallationConfig
 
