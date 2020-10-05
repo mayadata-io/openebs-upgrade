@@ -157,6 +157,13 @@ const (
 	// MayastorMOACSVCNameKey is the key to identify moac service
 	MayastorMOACSVCNameKey string = "moac-svc"
 
+	// OpenEBSNodeSetupDaemonsetNameKey is the name of daemonset which is launched to
+	// setup ISCSI client on nodes prior to OpenEBS installation.
+	OpenEBSNodeSetupDaemonsetNameKey string = "openebs-node-setup"
+	// OpenEBSNodeSetupConfigmapNameKey is the name of configmap which contains the
+	// configuration that is run to install ISCSI client on the nodes.
+	OpenEBSNodeSetupConfigmapNameKey string = "node-setup"
+
 	// KindClusterRole is the k8s kind of cluster role
 	KindClusterRole string = "ClusterRole"
 	// KindClusterRoleBinding is the k8s kind of cluster role binding

@@ -69,6 +69,7 @@ func (p *Planner) formDefaultStoragePath() error {
 func (p *Planner) formCommonOpenEBSConfig() error {
 	var initFuncs = []func() error{
 		p.formDefaultStoragePath,
+		p.formPreInstallationConfig,
 		p.formJivaConfig,
 		p.formCStorConfig,
 		p.formAnalyticsConfig,

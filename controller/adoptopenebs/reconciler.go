@@ -276,6 +276,7 @@ type Planner struct {
 	PoliciesConfig          *unstructured.Unstructured
 	AnalyticsConfig         *unstructured.Unstructured
 	MayastorConfig          *unstructured.Unstructured
+	PreInstallationConfig   *unstructured.Unstructured
 }
 
 // NewReconciler returns a new instance of Reconciler
@@ -466,6 +467,7 @@ func (p *Planner) getDesiredOpenEBS() error {
 		},
 		"spec": map[string]interface{}{
 			"version":                    p.OpenEBSVersion,
+			"preInstallation":            p.PreInstallationConfig,
 			"defaultStoragePath":         p.DefaultStoragePath,
 			"createDefaultStorageConfig": p.CreateDefaultStorageConfig,
 			"imagePrefix":                p.ImagePrefix,
