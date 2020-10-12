@@ -371,6 +371,17 @@ func GetNestedSliceOrError(obj *unstructured.Unstructured, fields ...string) ([]
 	return slice, nil
 }
 
+// GetNestedSliceOrEmpty returns the slice found at given field path
+// of the given object. It returns empty slice in case of error or
+// if this slice was not found.
+func GetNestedSliceOrEmpty(obj *unstructured.Unstructured, fields ...string) ([]interface{}, error) {
+	nestedSlice, err := GetNestedSliceOrError(obj, fields...)
+	if nestedSlice == nil {
+		nestedSlice = make([]interface{}, 0)
+	}
+	return nestedSlice, err
+}
+
 // MergeToAnnotations merges the given key value pair against the
 // provided annotations
 func MergeToAnnotations(key, value string, given map[string]string) map[string]string {
