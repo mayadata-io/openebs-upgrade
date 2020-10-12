@@ -807,6 +807,77 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		return err
 	}
 
+	// add init-container to check for presence of ISCSI client on the node on which
+	// the pod of this resource is running.
+	err = addISCSIClientInitContainer(daemonset)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// addISCSIClientInitContainer adds ISCSI client init-container to a given
+// resource so that the resource first checks for presence of ISCSI client before
+// initialization of the pod i.e., a resource adding this init-container will run
+// if and only if ISCSI client is running on the node on which the pod of this
+// resource is running.
+func addISCSIClientInitContainer(resource *unstructured.Unstructured) error {
+	var (
+		isOSSupported bool
+		err           error
+	)
+	// check if the underlying OS is supported or not for ISCSI client setup.
+	// get the OS image running on the underlying node
+	osImage, err := k8s.GetOSImage()
+	if err != nil {
+		return errors.Errorf("[ISCSI client initContainer]Error getting OS image of a node, error: %+v", err)
+	}
+	// make an array of supported OSes
+	supportedOSes := []string{"ubuntu", "Red Hat Enterprise Linux", "centos", "amazon linux"}
+	for _, supportedOS := range supportedOSes {
+		if strings.Contains(strings.ToLower(osImage), supportedOS) {
+			isOSSupported = true
+			break
+		}
+	}
+	// ISCSI client init-container will not be added to the CSI node components if the underlying
+	// OS is not supported for setting up ISCSI client.
+	if !isOSSupported {
+		return nil
+	}
+	// get the existing init-container if any
+	initContainers, _ := unstruct.GetNestedSliceOrEmpty(resource, "spec", "template", "spec", "initContainers")
+
+	// define and add the ISCSI client init-container.
+	ISCSIInitContainer := map[string]interface{}{
+		"name":  "init-node",
+		"image": "alpine:3.7",
+		"securityContext": map[string]interface{}{
+			"privileged": true,
+		},
+		"command": []interface{}{
+			"nsenter",
+			"--mount=/proc/1/ns/mnt",
+			"--",
+			"sh",
+			"-c",
+			"until sudo systemctl status iscsid; do echo waiting for ISCSI client; sleep 2; done;",
+		},
+	}
+	initContainers = append(initContainers, ISCSIInitContainer)
+	// Set back the value of the containers.
+	err = unstructured.SetNestedSlice(resource.Object,
+		initContainers, "spec", "template", "spec", "initContainers")
+	if err != nil {
+		return err
+	}
+	// set hostPID: true as it is required to run the above init container.
+	err = unstructured.SetNestedField(resource.Object,
+		true, "spec", "template", "spec", "hostPID")
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

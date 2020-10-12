@@ -171,7 +171,17 @@ func (p *Planner) getManifests() error {
 		// is componentName_kind
 		componentsYAMLMap[keyForStoringYaml] = &unstructuredYAML
 	}
+	if !(p.ComponentManifests == nil || len(p.ComponentManifests) == 0) {
+		// add the already added manifests to this manifest
+		for manifestKey, manifestValue := range p.ComponentManifests {
+			if manifestKey == "_" {
+				continue
+			}
+			componentsYAMLMap[manifestKey] = manifestValue
+		}
+	}
 	p.ComponentManifests = componentsYAMLMap
+
 	return nil
 }
 

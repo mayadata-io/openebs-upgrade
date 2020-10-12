@@ -34,6 +34,12 @@ func (p *Planner) getISCSISetupComponentsStatus() (bool, error) {
 					desiredReplicas := componentStatus["desiredNumberScheduled"]
 					scheduledReplicas := componentStatus["currentNumberScheduled"]
 					readyReplicas := componentStatus["numberReady"]
+					// Check if the daemonset is still coming up, in this case, the values
+					// of the above fields will still be 0. If it is 0, we will return not running
+					// so that it does not gets deleted before completing the ISCSI setup.
+					if desiredReplicas.(int64) == int64(0) {
+						return isRunning, nil
+					}
 					// if desired replicas is equal to current replicas is equal to no of ready replicas
 					// then we can determine that ISCSI setup has completed or it was already installed
 					// and we will go ahead and clean up the daemonset.
@@ -56,6 +62,8 @@ func (p *Planner) getISCSISetupComponentsStatus() (bool, error) {
 		// update the isSetupDone field in OpenEBS CR since it is a one time process
 		// and should not be done again once completed.
 		p.ObservedOpenEBS.Spec.PreInstallation.ISCSIClient.IsSetupDone = true
+		p.ObservedOpenEBS.Status.Phase = "Online"
+		p.ObservedOpenEBS.Status.Reason = ""
 		var openebs *unstructured.Unstructured
 		openebsRaw, err := json.Marshal(p.ObservedOpenEBS)
 		if err != nil {

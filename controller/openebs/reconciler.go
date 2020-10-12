@@ -163,10 +163,16 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 			response.ExplicitDeletes = append(response.ExplicitDeletes, componentToDelete)
 		}
 	}
-
+	// isOpenEBSExplicitlyUpdated states if OpenEBS CR is going to be updated explicitly
+	// or not, this happens only in case of ISCSI installation where OpenEBS is updated
+	// explicitly if ISCSI client installation is successful.
+	var isOpenEBSExplicitlyUpdated bool
 	// update the components that needs to be explicitly updated
 	if resp.ExplicitUpdates != nil {
 		for _, componentToUpdate := range resp.ExplicitUpdates {
+			if componentToUpdate.GetKind() == string(types.KindOpenEBS) {
+				isOpenEBSExplicitlyUpdated = true
+			}
 			response.ExplicitUpdates = append(response.ExplicitUpdates, componentToUpdate)
 		}
 	}
@@ -177,12 +183,15 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		metac.GetDetailsFromResponse(response),
 	)
 
-	// construct the success handler
-	successHandler := &reconcileSuccessHandler{
-		openebs:      request.Watch,
-		hookResponse: response,
+	// If OpenEBS is not being updated explicitly then use this to update OpenEBS status.
+	if !isOpenEBSExplicitlyUpdated {
+		// construct the success handler
+		successHandler := &reconcileSuccessHandler{
+			openebs:      request.Watch,
+			hookResponse: response,
+		}
+		successHandler.handle()
 	}
-	successHandler.handle()
 
 	return nil
 }
@@ -258,11 +267,6 @@ func (p *Planner) Plan() (ReconcileResponse, error) {
 	err := p.getPreInstallationManifests()
 	if err != nil {
 		return ReconcileResponse{}, err
-	}
-	// check if some components needs to installed prior to OpenEBS installation, if yes, then
-	// other OpenEBS components should not be installed.
-	if !(p.ComponentManifests == nil || len(p.ComponentManifests) == 0) {
-		return p.getDesiredOpenEBSComponents(), nil
 	}
 	err = p.init()
 	if err != nil {

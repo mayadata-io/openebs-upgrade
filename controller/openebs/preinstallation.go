@@ -2,7 +2,6 @@ package openebs
 
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"mayadata.io/openebs-upgrade/types"
 )
 
 // setPreInstallationDefaultsIfNotSet sets the default values for the dependencies
@@ -50,22 +49,6 @@ func (p *Planner) getPreInstallationManifests() error {
 				continue
 			}
 			p.ComponentManifests[key] = value
-		}
-		// do not delete the existing components i.e., components which are already running in case of
-		// setting up ISCSI client.
-		// This will be the case where user wants to run ISCSI client setup when OpenEBS components
-		// are already running.
-		for _, component := range p.observedOpenEBSComponents {
-			if component.GetKind() == types.KindDaemonSet {
-				if component.GetName() == types.OpenEBSNodeSetupDaemonsetNameKey {
-					continue
-				}
-			} else if component.GetKind() == types.KindConfigMap {
-				if component.GetName() == types.OpenEBSNodeSetupConfigmapNameKey {
-					continue
-				}
-			}
-			p.ComponentManifests[component.GetName()+"_"+component.GetKind()] = component
 		}
 	}
 
