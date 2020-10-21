@@ -85,6 +85,13 @@ func (p *Planner) updateOpenEBSProvisioner(deploy *unstructured.Unstructured) er
 			return err
 		}
 		if containerName == types.OpenEBSProvisionerContainerKey {
+			// update the container name if not same.
+			if len(p.ObservedOpenEBS.Spec.Provisioner.ContainerName) != 0 {
+				err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.Provisioner.ContainerName, "spec", "name")
+				if err != nil {
+					return err
+				}
+			}
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.Provisioner.Image,
 				"spec", "image")

@@ -86,6 +86,13 @@ func (p *Planner) updateAdmissionServer(deploy *unstructured.Unstructured) error
 			return err
 		}
 		if containerName == "admission-webhook" {
+			// update the container name if not same.
+			if len(p.ObservedOpenEBS.Spec.AdmissionServer.ContainerName) != 0 {
+				err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.AdmissionServer.ContainerName, "spec", "name")
+				if err != nil {
+					return err
+				}
+			}
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, p.ObservedOpenEBS.Spec.AdmissionServer.Image,
 				"spec", "image")

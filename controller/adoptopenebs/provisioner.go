@@ -5,6 +5,7 @@ import (
 	"mayadata.io/openebs-upgrade/types"
 	"mayadata.io/openebs-upgrade/unstruct"
 	"mayadata.io/openebs-upgrade/util"
+	"strings"
 )
 
 // formOpenEBSProvisionerConfig forms the desired OpenEBS CR config for openebs-provisioner.
@@ -28,7 +29,8 @@ func (p *Planner) formOpenEBSProvisionerConfig(provisioner *unstructured.Unstruc
 		if err != nil {
 			return err
 		}
-		if containerName == types.OpenEBSProvisionerContainerKey {
+		if containerName == types.OpenEBSProvisionerContainerKey ||
+			strings.Contains(containerName, "provisioner") {
 			provisionerDetails[types.KeyResources], _, err = unstructured.NestedMap(obj.Object,
 				"spec", "resources")
 			if err != nil {
@@ -53,6 +55,10 @@ func (p *Planner) formOpenEBSProvisionerConfig(provisioner *unstructured.Unstruc
 			p.ImagePrefix, err = util.GetImagePrefixFromContainerImage(image)
 			if err != nil {
 				return err
+			}
+
+			if containerName != types.OpenEBSProvisionerContainerKey {
+				provisionerDetails[types.KeyContainerName] = containerName
 			}
 		}
 		return nil
