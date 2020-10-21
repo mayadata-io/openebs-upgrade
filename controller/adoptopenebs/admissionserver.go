@@ -5,6 +5,7 @@ import (
 	"mayadata.io/openebs-upgrade/types"
 	"mayadata.io/openebs-upgrade/unstruct"
 	"mayadata.io/openebs-upgrade/util"
+	"strings"
 )
 
 // formAdmissionServerConfig forms the desired OpenEBS CR config for admission-server.
@@ -31,7 +32,8 @@ func (p *Planner) formAdmissionServerConfig(admissionServer *unstructured.Unstru
 		if err != nil {
 			return err
 		}
-		if containerName == types.AdmissionServerContainerKey {
+		if containerName == types.AdmissionServerContainerKey ||
+			strings.Contains(containerName, types.AdmissionServerContainerKey) {
 			admissionServerDetails[types.KeyResources], _, err = unstructured.NestedMap(obj.Object,
 				"spec", "resources")
 			if err != nil {
@@ -48,6 +50,9 @@ func (p *Planner) formAdmissionServerConfig(admissionServer *unstructured.Unstru
 			}
 			if imageTag != p.OpenEBSVersion {
 				admissionServerDetails[types.KeyImageTag] = imageTag
+			}
+			if containerName != types.AdmissionServerContainerKey {
+				admissionServerDetails[types.KeyContainerName] = containerName
 			}
 		}
 		return nil
