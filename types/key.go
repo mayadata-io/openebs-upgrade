@@ -186,7 +186,8 @@ const (
 	KindStatefulset string = "StatefulSet"
 	// KindCSIDriver is the k8s kind of csidriver.
 	KindCSIDriver string = "CSIDriver"
-
+	// KindPriorityClass is the k8s kind of PriorityClass.
+	KindPriorityClass string = "PriorityClass"
 	// MayaAPIServerManifestKey is used to get the manifest of maya-apiserver
 	MayaAPIServerManifestKey string = MayaAPIServerNameKey + "_" + KindDeployment
 	// MayaAPIServerServiceManifestKey is used to get the manifest of maya-apiserver-service
@@ -244,6 +245,10 @@ const (
 	CSPICRDV1NameKey = "cstorpoolinstances.cstor.openebs.io"
 	// CStorAdmissionServerNameKey is the name of CStor admission server
 	CStorAdmissionServerNameKey = "openebs-cstor-admission-server"
+	// OpenEBSCSINodePriorityClassNameKey is the name of OpenEBS CSI node priority class.
+	OpenEBSCSINodePriorityClassNameKey = "openebs-csi-node-critical"
+	// OpenEBSCSIControllerPriorityClassNameKey is the name of OpenEBS CSI controller priority class.
+	OpenEBSCSIControllerPriorityClassNameKey = "openebs-csi-controller-critical"
 
 	// CStorAdmissionServerManifestKey is used to get the manifest of CStor admission server
 	CStorAdmissionServerManifestKey string = CStorAdmissionServerNameKey + "_" + KindDeployment

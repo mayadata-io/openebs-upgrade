@@ -110,8 +110,11 @@ spec:
         - cstorvolumepolicies.cstor.openebs.io
         - cstorvolumereplicas.cstor.openebs.io
         - cstorbackups.openebs.io
+        - cstorbackups.cstor.openebs.io
         - cstorcompletedbackups.openebs.io
+        - cstorcompletedbackups.cstor.openebs.io
         - cstorrestores.openebs.io
+        - cstorrestores.cstor.openebs.io
         - mayastorpools.openebs.io
     - apiVersion: storage.k8s.io/v1beta1
       resource: csidrivers
@@ -125,6 +128,13 @@ spec:
         method: InPlace
       nameSelector:
         - mayastor
+    - apiVersion: scheduling.k8s.io/v1
+      resource: priorityclasses
+      updateStrategy:
+        method: InPlace
+      nameSelector:
+        - openebs-csi-controller-critical
+        - openebs-csi-node-critical
   hooks:
     sync:
       inline:

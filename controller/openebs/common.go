@@ -323,6 +323,8 @@ func (p *Planner) getDesiredManifests() error {
 			value, err = p.getDesiredCustomResourceDefinition(value)
 		case types.KindCSIDriver:
 			value, err = p.getDesiredCSIDriver(value)
+		case types.KindPriorityClass:
+			value, err = p.getDesiredPriorityClass(value)
 		default:
 			// Doing nothing if an unknown kind
 			continue
