@@ -46,6 +46,8 @@ const (
 	ContainerCSIDriverRegistrarName string = "csi-driver-registrar"
 	// EnvOpenEBSNamespaceKey is the env key for openebs namespace
 	EnvOpenEBSNamespaceKey string = "OPENEBS_NAMESPACE"
+	// EnvDriverRegSocketPathKey is the env key for driver registration socket path.
+	EnvDriverRegSocketPathKey string = "DRIVER_REG_SOCK_PATH"
 	// DefaultCSPCOperatorReplicaCount is the default replica count for
 	// cspc-operator.
 	DefaultCSPCOperatorReplicaCount int32 = 1
@@ -66,6 +68,7 @@ var (
 	CSIAttacherForCSIControllerImage      string
 	CSIClusterDriverRegistrarImage        string
 	CSINodeDriverRegistrarForCSINodeImage string
+	KubeletPath                           string
 )
 
 // SupportedCSIResizerVersionForOpenEBSVersion stores the mapping for
@@ -376,6 +379,16 @@ func (p *Planner) setCSIDefaultsIfNotSet() error {
 
 	if !isCSISupported {
 		glog.V(5).Infof("Skipping CSI installation.")
+	}
+	// update the kubeletPath default value
+	if len(p.ObservedOpenEBS.Spec.KubeletRootDirectory) == 0 {
+		if p.ObservedOpenEBS.Spec.K8sDistribution == types.KeyMicroK8s {
+			KubeletPath = "/var/snap/microk8s/common/var/lib/kubelet"
+		} else {
+			KubeletPath = "/var/lib/kubelet"
+		}
+	} else {
+		KubeletPath = strings.TrimRight(p.ObservedOpenEBS.Spec.KubeletRootDirectory, "/")
 	}
 	// Set the default values for cstor csi controller statefulset in configuration.
 	if p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSIController.Enabled == nil {
@@ -701,7 +714,26 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 			if err != nil {
 				return err
 			}
+		} else if volumeName == "registration-dir" {
+			err = unstructured.SetNestedField(obj.Object,
+				KubeletPath+"/plugins_registry/", "spec", "hostPath", "path")
+			if err != nil {
+				return err
+			}
+		} else if volumeName == "plugin-dir" {
+			err = unstructured.SetNestedField(obj.Object,
+				KubeletPath+"/plugins/cstor.csi.openebs.io/", "spec", "hostPath", "path")
+			if err != nil {
+				return err
+			}
+		} else if volumeName == "pods-mount-dir" {
+			err = unstructured.SetNestedField(obj.Object,
+				KubeletPath+"/", "spec", "hostPath", "path")
+			if err != nil {
+				return err
+			}
 		}
+
 		return nil
 	}
 	err = unstruct.SliceIterator(volumes).ForEachUpdate(updateVolume)
@@ -735,6 +767,19 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		return nil
 	}
 
+	// update the env value of csi-node-driver-registrar container
+	updateCSINodeDriverRegistrarEnv := func(env *unstructured.Unstructured) error {
+		envName, _, err := unstructured.NestedString(env.Object, "spec", "name")
+		if err != nil {
+			return err
+		}
+		if envName == EnvDriverRegSocketPathKey {
+			unstructured.SetNestedField(env.Object, KubeletPath+"/plugins/cstor.csi.openebs.io/csi.sock",
+				"spec", "value")
+		}
+		return nil
+	}
+
 	// updateOpenEBSCSIPluginVolumeMount updates the volumeMounts path of openebs-csi-plugin container.
 	updateOpenEBSCSIPluginVolumeMount := func(vm *unstructured.Unstructured) error {
 		vmName, _, err := unstructured.NestedString(vm.Object, "spec", "name")
@@ -744,6 +789,12 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 		if vmName == "iscsiadm-bin" {
 			err = unstructured.SetNestedField(vm.Object,
 				p.ObservedOpenEBS.Spec.CstorConfig.CSI.CSINode.ISCSIPath, "spec", "mountPath")
+			if err != nil {
+				return err
+			}
+		} else if vmName == "pods-mount-dir" {
+			err = unstructured.SetNestedField(vm.Object,
+				KubeletPath+"/", "spec", "mountPath")
 			if err != nil {
 				return err
 			}
@@ -791,6 +842,11 @@ func (p *Planner) updateOpenEBSCStorCSINode(daemonset *unstructured.Unstructured
 			// Set the image of the container.
 			err = unstructured.SetNestedField(obj.Object, CSINodeDriverRegistrarForCSINodeImage,
 				"spec", "image")
+			if err != nil {
+				return err
+			}
+			// Set the environments of the container.
+			err = unstruct.SliceIterator(envs).ForEachUpdate(updateCSINodeDriverRegistrarEnv)
 			if err != nil {
 				return err
 			}

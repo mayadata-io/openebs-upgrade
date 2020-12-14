@@ -35,6 +35,17 @@ type OpenEBSSpec struct {
 	// OpenEBS Version to be installed or updated to.
 	Version string `json:"version"`
 
+	// K8sDistribution is the kubernetes distribution that is being used by the user
+	// such as microk8s, rancher, etc.
+	// This is an optional field and can be empty.
+	K8sDistribution string `json:"k8sDistribution"`
+
+	// KubeletRootDirectory is the root directory for kubelet on each node.
+	// This variable should be used to override default kubelet root directory.
+	//
+	// This is an optional field and can be empty.
+	KubeletRootDirectory string `json:"kubeletRootDirectory"`
+
 	// DefaultStoragePath is the directory which will be used by
 	// default for various OpenEBS operations i.e.,it can be used to
 	// specify the hostpath to be used for default Jiva StoragePool
