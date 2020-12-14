@@ -486,6 +486,7 @@ const (
 	KeyContainerName     string = "containerName"
 	KeyISCSIPath         string = "iscsiPath"
 	KeyAdoptionJobID     string = "mayadata.io/openebsAdoptionJobId"
+	KeyMicroK8s          string = "microk8s"
 
 	QUAYIOOPENEBSREGISTRY string = "quay.io/openebs/"
 	MAYADATAIOREGISTRY    string = "mayadataio/"

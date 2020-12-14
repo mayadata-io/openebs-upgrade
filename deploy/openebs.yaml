@@ -13,6 +13,18 @@ spec:
   # OpenEBS Version to be installed.
   version: "1.9.0"
 
+  # k8sDistribution is the name of the kubernetes distribution being used.
+  #
+  # +optional
+  k8sDistribution: "microk8s"
+
+  # KubeletRootDirectory is the root directory for kubelet on each node.
+  # This variable should be used to override default kubelet root directory,
+  # it should contain only the kubelet root directory path.
+  #
+  # +optional
+  kubeletRootDirectory: "/var/lib/kubelet"
+
   # defaultStoragePath is the directory which will be used by
   # default for various OpenEBS operations i.e.,it can be used to
   # specify the hostpath to be used for default Jiva StoragePool
