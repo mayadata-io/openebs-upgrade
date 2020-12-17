@@ -102,20 +102,26 @@ spec:
         - volumesnapshotclasses.snapshot.storage.k8s.io
         - volumesnapshotcontents.snapshot.storage.k8s.io
         - volumesnapshots.snapshot.storage.k8s.io
+        - cstorvolumeattachments.cstor.openebs.io
+        - cstorbackups.openebs.io
+        - cstorcompletedbackups.openebs.io
+        - cstorrestores.openebs.io
+        - mayastorpools.openebs.io
+    - apiVersion: apiextensions.k8s.io/v1
+      resource: customresourcedefinitions
+      updateStrategy:
+        method: InPlace
+      nameSelector:
         - cstorpoolclusters.cstor.openebs.io
         - cstorpoolinstances.cstor.openebs.io
-        - cstorvolumeattachments.cstor.openebs.io
         - cstorvolumes.cstor.openebs.io
         - cstorvolumeconfigs.cstor.openebs.io
         - cstorvolumepolicies.cstor.openebs.io
         - cstorvolumereplicas.cstor.openebs.io
-        - cstorbackups.openebs.io
         - cstorbackups.cstor.openebs.io
-        - cstorcompletedbackups.openebs.io
         - cstorcompletedbackups.cstor.openebs.io
-        - cstorrestores.openebs.io
         - cstorrestores.cstor.openebs.io
-        - mayastorpools.openebs.io
+        - migrationtasks.openebs.io
     - apiVersion: storage.k8s.io/v1beta1
       resource: csidrivers
       updateStrategy:
@@ -218,13 +224,22 @@ spec:
         - volumesnapshotclasses.snapshot.storage.k8s.io
         - volumesnapshotcontents.snapshot.storage.k8s.io
         - volumesnapshots.snapshot.storage.k8s.io
+        - cstorvolumeattachments.cstor.openebs.io
+    - apiVersion: apiextensions.k8s.io/v1
+      resource: customresourcedefinitions
+      updateStrategy:
+        method: InPlace
+      nameSelector:
         - cstorpoolclusters.cstor.openebs.io
         - cstorpoolinstances.cstor.openebs.io
-        - cstorvolumeattachments.cstor.openebs.io
         - cstorvolumes.cstor.openebs.io
         - cstorvolumeconfigs.cstor.openebs.io
         - cstorvolumepolicies.cstor.openebs.io
         - cstorvolumereplicas.cstor.openebs.io
+        - cstorbackups.cstor.openebs.io
+        - cstorcompletedbackups.cstor.openebs.io
+        - cstorrestores.cstor.openebs.io
+        - migrationtasks.openebs.io
   hooks:
     sync:
       inline:
