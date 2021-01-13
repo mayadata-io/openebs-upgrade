@@ -279,7 +279,6 @@ func (p *Planner) removeDisabledManifests() error {
 // or the default values.
 func (p *Planner) getDesiredManifests() error {
 	var err error
-
 	for key, value := range p.ComponentManifests {
 		// set the common label i.e., openebs-upgrade.dao.mayadata.io/managed: true
 		// here since this label should be present in all the components irrespective
@@ -323,6 +322,9 @@ func (p *Planner) getDesiredManifests() error {
 			value, err = p.getDesiredStatefulSet(value)
 		case types.KindCustomResourceDefinition:
 			value, err = p.getDesiredCustomResourceDefinition(value)
+			p.DesiredOpenEBSCRDs = append(p.DesiredOpenEBSCRDs, value)
+			// mark all CRDs for explicit updates.
+			p.ExplicitUpdates = append(p.ExplicitUpdates, value)
 		case types.KindCSIDriver:
 			value, err = p.getDesiredCSIDriver(value)
 		case types.KindPriorityClass:
@@ -337,6 +339,7 @@ func (p *Planner) getDesiredManifests() error {
 		// update manifest with the updated values
 		p.ComponentManifests[key] = value
 	}
+
 	return nil
 }
 
@@ -898,7 +901,7 @@ func (p *Planner) updatePodTemplateVersionLabel(resource *unstructured.Unstructu
 // in order to update them such as .spec.selector, existing ENVs, spec.strategy, etc.
 func (p *Planner) getDesiredValuesFromObservedResources() error {
 	var err error
-	for _, observedOpenEBSComponent := range p.observedOpenEBSComponents {
+	for _, observedOpenEBSComponent := range p.ObservedOpenEBSComponents {
 		switch observedOpenEBSComponent.GetKind() {
 		case types.KindDeployment:
 			err = p.fillDesiredValuesFromObservedDeployments(observedOpenEBSComponent)

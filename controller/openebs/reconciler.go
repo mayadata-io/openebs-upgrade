@@ -15,13 +15,12 @@ package openebs
 
 import (
 	"encoding/json"
-	"mayadata.io/openebs-upgrade/pkg/utils/metac"
-	"mayadata.io/openebs-upgrade/types"
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
+	"mayadata.io/openebs-upgrade/pkg/utils/metac"
+	"mayadata.io/openebs-upgrade/types"
 	"openebs.io/metac/controller/generic"
 )
 
@@ -110,6 +109,9 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 
 	var observedOpenEBS *unstructured.Unstructured
 	var observedOpenEBSComponents []*unstructured.Unstructured
+	// observedOpenEBSCRDs will store the details of all the OpenEBS
+	// related CRDs present in the cluster.
+	var observedOpenEBSCRDs []*unstructured.Unstructured
 	for _, attachment := range request.Attachments.List() {
 		// this watch resource must be present in the list of attachments
 		if request.Watch.GetUID() == attachment.GetUID() &&
@@ -124,6 +126,9 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		// considered as an OpenEBS component.
 		if attachment.GetKind() != string(types.KindOpenEBS) {
 			observedOpenEBSComponents = append(observedOpenEBSComponents, attachment)
+		}
+		if attachment.GetKind() == types.KindCustomResourceDefinition {
+			observedOpenEBSCRDs = append(observedOpenEBSCRDs, attachment)
 		}
 	}
 
@@ -140,7 +145,8 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		NewReconciler(
 			ReconcilerConfig{
 				ObservedOpenEBS:           observedOpenEBS,
-				observedOpenEBSComponents: observedOpenEBSComponents,
+				ObservedOpenEBSComponents: observedOpenEBSComponents,
+				ObservedOpenEBSCRDs:       observedOpenEBSCRDs,
 			})
 	if err != nil {
 		errHandler.handle(err)
@@ -199,14 +205,16 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 // Reconciler enables reconciliation of OpenEBS instance
 type Reconciler struct {
 	ObservedOpenEBS           *types.OpenEBS
-	observedOpenEBSComponents []*unstructured.Unstructured
+	ObservedOpenEBSComponents []*unstructured.Unstructured
+	ObservedOpenEBSCRDs       []*unstructured.Unstructured
 }
 
 // ReconcilerConfig is a helper structure used to create a
 // new instance of Reconciler
 type ReconcilerConfig struct {
 	ObservedOpenEBS           *unstructured.Unstructured
-	observedOpenEBSComponents []*unstructured.Unstructured
+	ObservedOpenEBSComponents []*unstructured.Unstructured
+	ObservedOpenEBSCRDs       []*unstructured.Unstructured
 }
 
 // ReconcileResponse is a helper struct used to form the response
@@ -222,7 +230,10 @@ type ReconcileResponse struct {
 // to be created, or updated.
 type Planner struct {
 	ObservedOpenEBS           *types.OpenEBS
-	observedOpenEBSComponents []*unstructured.Unstructured
+	ObservedOpenEBSComponents []*unstructured.Unstructured
+	ObservedOpenEBSCRDs       []*unstructured.Unstructured
+
+	DesiredOpenEBSCRDs []*unstructured.Unstructured
 
 	ComponentManifests map[string]*unstructured.Unstructured
 	ExplicitDeletes    []*unstructured.Unstructured
@@ -244,7 +255,8 @@ func NewReconciler(config ReconcilerConfig) (*Reconciler, error) {
 	// use above constructed object to build Reconciler instance
 	return &Reconciler{
 		ObservedOpenEBS:           &openebsTyped,
-		observedOpenEBSComponents: config.observedOpenEBSComponents,
+		ObservedOpenEBSComponents: config.ObservedOpenEBSComponents,
+		ObservedOpenEBSCRDs:       config.ObservedOpenEBSCRDs,
 	}, nil
 }
 
@@ -255,7 +267,8 @@ func NewReconciler(config ReconcilerConfig) (*Reconciler, error) {
 func (r *Reconciler) Reconcile() (ReconcileResponse, error) {
 	planner := Planner{
 		ObservedOpenEBS:           r.ObservedOpenEBS,
-		observedOpenEBSComponents: r.observedOpenEBSComponents,
+		ObservedOpenEBSComponents: r.ObservedOpenEBSComponents,
+		ObservedOpenEBSCRDs:       r.ObservedOpenEBSCRDs,
 	}
 	return planner.Plan()
 }
@@ -293,6 +306,25 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 	for _, componentToUpdate := range p.ExplicitUpdates {
 		response.ExplicitUpdates = append(response.ExplicitUpdates, componentToUpdate)
 	}
+	// add the observed OpenEBS CRDs to desired OpenEBS CRDs that are not already present
+	// in the desiredOpenEBS components list.
+	if len(p.ObservedOpenEBSCRDs) > 0 {
+		for _, observedCRD := range p.ObservedOpenEBSCRDs {
+			key := observedCRD.GetName() + "_" + observedCRD.GetKind()
+			if desiredCRD, exist := p.ComponentManifests[key]; exist {
+				// If already exists then check if the APIVersion is same or not, if
+				// not then add it to the desired OpenEBS components list.
+				if desiredCRD.GetAPIVersion() != observedCRD.GetAPIVersion() {
+					response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets,
+						observedCRD)
+				}
+			} else {
+				response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets,
+					observedCRD)
+			}
+		}
+	}
+
 	return response
 }
 

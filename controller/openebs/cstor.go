@@ -570,7 +570,7 @@ func (p *Planner) deleteCSIComponentsIfRequired() error {
 	}
 	if isCSISupported && csiNamespace != types.NamespaceKubeSystem {
 		// check if csi-components are already installed in kube-system namespace.
-		for _, observedOpenEBSComp := range p.observedOpenEBSComponents {
+		for _, observedOpenEBSComp := range p.ObservedOpenEBSComponents {
 			if observedOpenEBSComp.GetKind() == types.KindStatefulset ||
 				observedOpenEBSComp.GetKind() == types.KindDaemonSet ||
 				observedOpenEBSComp.GetKind() == types.KindServiceAccount {
