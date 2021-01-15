@@ -323,8 +323,6 @@ func (p *Planner) getDesiredManifests() error {
 		case types.KindCustomResourceDefinition:
 			value, err = p.getDesiredCustomResourceDefinition(value)
 			p.DesiredOpenEBSCRDs = append(p.DesiredOpenEBSCRDs, value)
-			// mark all CRDs for explicit updates.
-			p.ExplicitUpdates = append(p.ExplicitUpdates, value)
 		case types.KindCSIDriver:
 			value, err = p.getDesiredCSIDriver(value)
 		case types.KindPriorityClass:
