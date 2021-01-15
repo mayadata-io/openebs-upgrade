@@ -21,7 +21,7 @@ func (p *Planner) getISCSISetupComponentsStatus() (bool, error) {
 		desiredDaemonset *unstructured.Unstructured
 		desiredConfigmap *unstructured.Unstructured
 	)
-	for _, component := range p.observedOpenEBSComponents {
+	for _, component := range p.ObservedOpenEBSComponents {
 		if component.GetKind() == types.KindDaemonSet {
 			if component.GetName() == types.OpenEBSNodeSetupDaemonsetNameKey {
 				// get the .spec.status field and compare the currentNumberScheduled
