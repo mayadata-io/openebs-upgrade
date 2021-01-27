@@ -112,6 +112,7 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 	// observedOpenEBSCRDs will store the details of all the OpenEBS
 	// related CRDs present in the cluster.
 	var observedOpenEBSCRDs []*unstructured.Unstructured
+	var observedCStorCSIDriver *unstructured.Unstructured
 	for _, attachment := range request.Attachments.List() {
 		// this watch resource must be present in the list of attachments
 		if request.Watch.GetUID() == attachment.GetUID() &&
@@ -130,6 +131,10 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		if attachment.GetKind() == types.KindCustomResourceDefinition {
 			observedOpenEBSCRDs = append(observedOpenEBSCRDs, attachment)
 		}
+		if attachment.GetKind() == types.KindCSIDriver &&
+			attachment.GetName() == types.CStorCSIDriverNameKey {
+			observedCStorCSIDriver = attachment
+		}
 	}
 
 	if observedOpenEBS == nil {
@@ -147,6 +152,7 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 				ObservedOpenEBS:           observedOpenEBS,
 				ObservedOpenEBSComponents: observedOpenEBSComponents,
 				ObservedOpenEBSCRDs:       observedOpenEBSCRDs,
+				ObservedCStorCSIDriver:    observedCStorCSIDriver,
 			})
 	if err != nil {
 		errHandler.handle(err)
@@ -207,6 +213,7 @@ type Reconciler struct {
 	ObservedOpenEBS           *types.OpenEBS
 	ObservedOpenEBSComponents []*unstructured.Unstructured
 	ObservedOpenEBSCRDs       []*unstructured.Unstructured
+	ObservedCStorCSIDriver    *unstructured.Unstructured
 }
 
 // ReconcilerConfig is a helper structure used to create a
@@ -215,6 +222,7 @@ type ReconcilerConfig struct {
 	ObservedOpenEBS           *unstructured.Unstructured
 	ObservedOpenEBSComponents []*unstructured.Unstructured
 	ObservedOpenEBSCRDs       []*unstructured.Unstructured
+	ObservedCStorCSIDriver    *unstructured.Unstructured
 }
 
 // ReconcileResponse is a helper struct used to form the response
@@ -232,6 +240,7 @@ type Planner struct {
 	ObservedOpenEBS           *types.OpenEBS
 	ObservedOpenEBSComponents []*unstructured.Unstructured
 	ObservedOpenEBSCRDs       []*unstructured.Unstructured
+	ObservedCStorCSIDriver    *unstructured.Unstructured
 
 	DesiredOpenEBSCRDs []*unstructured.Unstructured
 
@@ -257,6 +266,7 @@ func NewReconciler(config ReconcilerConfig) (*Reconciler, error) {
 		ObservedOpenEBS:           &openebsTyped,
 		ObservedOpenEBSComponents: config.ObservedOpenEBSComponents,
 		ObservedOpenEBSCRDs:       config.ObservedOpenEBSCRDs,
+		ObservedCStorCSIDriver:    config.ObservedCStorCSIDriver,
 	}, nil
 }
 
@@ -269,6 +279,7 @@ func (r *Reconciler) Reconcile() (ReconcileResponse, error) {
 		ObservedOpenEBS:           r.ObservedOpenEBS,
 		ObservedOpenEBSComponents: r.ObservedOpenEBSComponents,
 		ObservedOpenEBSCRDs:       r.ObservedOpenEBSCRDs,
+		ObservedCStorCSIDriver:    r.ObservedCStorCSIDriver,
 	}
 	return planner.Plan()
 }

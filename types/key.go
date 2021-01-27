@@ -331,6 +331,8 @@ const (
 	OpenEBSVersion220EE string = "2.2.0-ee"
 	// OpenEBSVersion240 is the OpenEBS version 2.4.0
 	OpenEBSVersion240 string = "2.4.0"
+	// OpenEBSVersion250 is the OpenEBS version 2.5.0
+	OpenEBSVersion250 string = "2.5.0"
 
 	// OSImageUbuntu1804 is the OS Image value of a Node.
 	OSImageUbuntu1804 string = "Ubuntu 18.04"
@@ -494,19 +496,26 @@ const (
 	MAYADATAIOREGISTRY    string = "mayadataio/"
 	OPENEBSREGISTRY       string = "openebs/"
 	QUAYIOK8SCSI          string = "quay.io/k8scsi/"
+	K8SGCRSIGSTORAGE      string = "k8s.gcr.io/sig-storage/"
 
 	CSIResizerVersion010                string = "v0.1.0"
 	CSIResizerVersion040                string = "v0.4.0"
+	CSIResizerVersion110                string = "v1.1.0"
 	CSISnapshotterVersion201            string = "v2.0.1"
+	CSISnapshotterVersion303            string = "v3.0.3"
 	CSISnapshotControllerVersion201     string = "v2.0.1"
+	CSISnapshotControllerVersion303     string = "v3.0.3"
 	CSIProvisionerVersion111            string = "v1.1.1"
 	CSIProvisionerVersion150            string = "v1.5.0"
 	CSIProvisionerVersion160            string = "v1.6.0"
+	CSIProvisionerVersion210            string = "v2.1.0"
 	CSIAttacherVersion200               string = "v2.0.0"
 	CSIAttacherVersion220               string = "v2.2.0"
 	CSIAttacherVersion111               string = "v1.1.1"
+	CSIAttacherVersion310               string = "v3.1.0"
 	CSIClusterDriverRegistrarVersion101 string = "v1.0.1"
 	CSINodeDriverRegistrarVersion101    string = "v1.0.1"
 	CSINodeDriverRegistrarVersion110    string = "v1.1.0"
 	CSINodeDriverRegistrarVersion130    string = "v1.3.0"
+	CSINodeDriverRegistrarVersion210    string = "v2.1.0"
 )
