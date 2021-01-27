@@ -28,6 +28,10 @@ import (
 	"mayadata.io/openebs-upgrade/unstruct"
 )
 
+// This is used for setting some defaults based on the fact if OpenEBS version
+// is above 2.4.0 or not such as csi related image registry, etc.
+var OpenEBSVersionAbove240 bool
+
 // setDefaultImagePullPolicyIfNotSet sets the default imagePullPolicy
 // to "IfNotPresent" for all the components.
 // TODO: See if this is required component wise and not at the global
@@ -85,6 +89,16 @@ func (p *Planner) setImageTagSuffixIfPresent() error {
 		// For example if version is 1.10.0 and imageTagSuffix is RC1 then the resultant
 		// image will be 1.10.0-RC1.
 		p.ObservedOpenEBS.Spec.ImageTagSuffix = "-" + p.ObservedOpenEBS.Spec.ImageTagSuffix
+	}
+	// Check if the given OpenEBS version is greater than or less than OpenEBS version 2.5.0.
+	res, err := compareVersion(p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion250)
+	if err != nil {
+		return errors.Errorf(
+			"Error comparing versions while determining image registry for CSI components[v1: %s, v2: %s], error: %v",
+			p.ObservedOpenEBS.Spec.Version, types.OpenEBSVersion250, err)
+	}
+	if res >= 0 {
+		OpenEBSVersionAbove240 = true
 	}
 	return nil
 }
@@ -150,6 +164,8 @@ func (p *Planner) getManifests() error {
 		yamlFile = "/templates/openebs-operator-2.2.0-ee.yaml"
 	case types.OpenEBSVersion240:
 		yamlFile = "/templates/openebs-operator-2.4.0.yaml"
+	case types.OpenEBSVersion250:
+		yamlFile = "/templates/openebs-operator-2.5.0.yaml"
 	default:
 		return errors.Errorf(
 			"Unsupported OpenEBS version provided, version: %+v", p.ObservedOpenEBS.Spec.Version)
@@ -324,6 +340,23 @@ func (p *Planner) getDesiredManifests() error {
 			value, err = p.getDesiredCustomResourceDefinition(value)
 			p.DesiredOpenEBSCRDs = append(p.DesiredOpenEBSCRDs, value)
 		case types.KindCSIDriver:
+			if OpenEBSVersionAbove240 {
+				if p.ObservedCStorCSIDriver != nil {
+					var isAttachRequired bool
+					// check the value of attachRequired, it will be true for OpenEBS
+					// versions below 2.5.0 which means it needs an upgrade which will
+					// be carried out by deletion and recreation of CSIDriver.
+					isAttachRequired, _, err = unstructured.NestedBool(p.ObservedCStorCSIDriver.Object,
+						"spec", "attachRequired")
+					if isAttachRequired {
+						// we will not add the latest CSI driver to the desired components list in
+						// this iteration so that the older CSI driver gets deleted.
+						p.ExplicitDeletes = append(p.ExplicitDeletes, p.ObservedCStorCSIDriver)
+						delete(p.ComponentManifests, key)
+						continue
+					}
+				}
+			}
 			value, err = p.getDesiredCSIDriver(value)
 		case types.KindPriorityClass:
 			value, err = p.getDesiredPriorityClass(value)

@@ -49,6 +49,7 @@ var SupportedNDMVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion220:    types.NDMVersion091,
 	types.OpenEBSVersion220EE:  types.NDMVersion091EE,
 	types.OpenEBSVersion240:    types.NDMVersion101,
+	types.OpenEBSVersion250:    types.NDMVersion110,
 }
 
 // add/update NDM defaults if not already provided
@@ -83,10 +84,14 @@ func (p *Planner) setNDMDefaultsIfNotSet() error {
 				p.ObservedOpenEBS.Spec.Version)
 		}
 	}
+	nodeDiskManagerImage := "node-disk-manager-amd64:"
+	if OpenEBSVersionAbove240 {
+		nodeDiskManagerImage = "node-disk-manager:"
+	}
 	// Form the container image for NDM components based on the image prefix
 	// and image tag.
 	p.ObservedOpenEBS.Spec.NDMDaemon.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-		"node-disk-manager-amd64:" + p.ObservedOpenEBS.Spec.NDMDaemon.ImageTag
+		nodeDiskManagerImage + p.ObservedOpenEBS.Spec.NDMDaemon.ImageTag
 	// set the default values for NDM probes if not already set.
 	err := p.setNDMProbeDefaultsIfNotSet()
 	if err != nil {
@@ -265,9 +270,13 @@ func (p *Planner) setNDMOperatorDefaultsIfNotSet() error {
 				p.ObservedOpenEBS.Spec.Version)
 		}
 	}
+	ndmOperatorImage := "node-disk-operator-amd64:"
+	if OpenEBSVersionAbove240 {
+		ndmOperatorImage = "node-disk-operator:"
+	}
 	// Form the NDM operator image as per the image prefix and image tag.
 	p.ObservedOpenEBS.Spec.NDMOperator.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-		"node-disk-operator-amd64:" + p.ObservedOpenEBS.Spec.NDMOperator.ImageTag
+		ndmOperatorImage + p.ObservedOpenEBS.Spec.NDMOperator.ImageTag
 	// set the replicas value for NDM operator to 1
 	if p.ObservedOpenEBS.Spec.NDMOperator.Replicas == nil {
 		p.ObservedOpenEBS.Spec.NDMOperator.Replicas = new(int32)

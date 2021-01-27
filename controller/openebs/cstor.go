@@ -89,6 +89,7 @@ var SupportedCSIResizerVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion220:    types.CSIResizerVersion040,
 	types.OpenEBSVersion220EE:  types.CSIResizerVersion040,
 	types.OpenEBSVersion240:    types.CSIResizerVersion040,
+	types.OpenEBSVersion250:    types.CSIResizerVersion110,
 }
 
 // SupportedCSISnapshotterVersionForOpenEBSVersion stores the mapping for
@@ -109,6 +110,7 @@ var SupportedCSISnapshotterVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion220:    types.CSISnapshotterVersion201,
 	types.OpenEBSVersion220EE:  types.CSISnapshotterVersion201,
 	types.OpenEBSVersion240:    types.CSISnapshotterVersion201,
+	types.OpenEBSVersion250:    types.CSISnapshotterVersion303,
 }
 
 // SupportedCSISnapshotControllerVersionForOpenEBSVersion stores the mapping for
@@ -129,6 +131,7 @@ var SupportedCSISnapshotControllerVersionForOpenEBSVersion = map[string]string{
 	types.OpenEBSVersion220:    types.CSISnapshotControllerVersion201,
 	types.OpenEBSVersion220EE:  types.CSISnapshotControllerVersion201,
 	types.OpenEBSVersion240:    types.CSISnapshotControllerVersion201,
+	types.OpenEBSVersion250:    types.CSISnapshotControllerVersion303,
 }
 
 // SupportedCSIProvisionerVersionForCSIControllerVersion stores the mapping for
@@ -149,6 +152,7 @@ var SupportedCSIProvisionerVersionForCSIControllerVersion = map[string]string{
 	types.OpenEBSVersion220:    types.CSIProvisionerVersion160,
 	types.OpenEBSVersion220EE:  types.CSIProvisionerVersion160,
 	types.OpenEBSVersion240:    types.CSIProvisionerVersion160,
+	types.OpenEBSVersion250:    types.CSIProvisionerVersion210,
 }
 
 // SupportedCSIAttacherVersionForCSIControllerVersion stores the mapping for
@@ -169,6 +173,7 @@ var SupportedCSIAttacherVersionForCSIControllerVersion = map[string]string{
 	types.OpenEBSVersion220:    types.CSIAttacherVersion200,
 	types.OpenEBSVersion220EE:  types.CSIAttacherVersion200,
 	types.OpenEBSVersion240:    types.CSIAttacherVersion200,
+	types.OpenEBSVersion250:    types.CSIAttacherVersion310,
 }
 
 // SupportedCSIClusterDriverRegistrarVersionForOpenEBSVersion stores the mapping for
@@ -209,6 +214,7 @@ var SupportedCSINodeDriverRegistrarVersionForCSINodeVersion = map[string]string{
 	types.OpenEBSVersion220:    types.CSINodeDriverRegistrarVersion101,
 	types.OpenEBSVersion220EE:  types.CSINodeDriverRegistrarVersion101,
 	types.OpenEBSVersion240:    types.CSINodeDriverRegistrarVersion101,
+	types.OpenEBSVersion250:    types.CSINodeDriverRegistrarVersion210,
 }
 
 // Set the default values for Cstor if not already given.
@@ -255,6 +261,8 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	}
 	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
 		volumeManagerImageName = "cstor-volume-mgmt:"
+	} else if OpenEBSVersionAbove240 {
+		volumeManagerImageName = "cstor-volume-manager:"
 	}
 	p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		volumeManagerImageName + p.ObservedOpenEBS.Spec.CstorConfig.VolumeManager.ImageTag
@@ -266,6 +274,8 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 	}
 	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
 		cspiImageName = "cspi-mgmt:"
+	} else if OpenEBSVersionAbove240 {
+		cspiImageName = "cstor-pool-manager:"
 	}
 	p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
 		cspiImageName + p.ObservedOpenEBS.Spec.CstorConfig.CSPIMgmt.ImageTag
@@ -289,6 +299,8 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
+		cspcImage = "cspc-operator:"
+	} else if OpenEBSVersionAbove240 {
 		cspcImage = "cspc-operator:"
 	}
 	// form the container image as per the image prefix and image tag.
@@ -317,6 +329,8 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
 	if p.ObservedOpenEBS.Spec.Version == types.OpenEBSVersion190 {
+		cvcImage = "cvc-operator:"
+	} else if OpenEBSVersionAbove240 {
 		cvcImage = "cvc-operator:"
 	}
 	// form the container image as per the image prefix and image tag.
@@ -350,9 +364,14 @@ func (p *Planner) setCStorDefaultsIfNotSet() error {
 		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag = p.ObservedOpenEBS.Spec.Version +
 			p.ObservedOpenEBS.Spec.ImageTagSuffix
 	}
+	// form the cstor-webhook image
+	cstorWebhookImage := "cstor-webhook-amd64:"
+	if OpenEBSVersionAbove240 {
+		cstorWebhookImage = "cstor-webhook:"
+	}
 	// form the container image as per the image prefix and image tag.
 	p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Image = p.ObservedOpenEBS.Spec.ImagePrefix +
-		"cstor-webhook-amd64:" + p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag
+		cstorWebhookImage + p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.ImageTag
 	if p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Replicas == nil {
 		p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Replicas = new(int32)
 		*p.ObservedOpenEBS.Spec.CstorConfig.AdmissionServer.Replicas = DefaultCStorAdmissionServerReplicaCount
@@ -500,17 +519,20 @@ func (p *Planner) setCSIDefaultsIfNotSet() error {
 			p.ObservedOpenEBS.Spec.Version)
 	}
 
-	// form the csi-cluster-driver-registrar image for the given OpenEBS version
-	if csiClusterDriverRegistrar, exist :=
-		SupportedCSIClusterDriverRegistrarVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
-		CSIClusterDriverRegistrarImageTag = "csi-cluster-driver-registrar:" +
-			csiClusterDriverRegistrar
-	} else {
-		return errors.Errorf(
-			"Failed to get csi-cluster-driver-registrar version for the given OpenEBS version: %s",
-			p.ObservedOpenEBS.Spec.Version)
+	// csi-cluster-driver-registrar container is present in cstor-csi-controller till
+	// OpenEBS version 2.4.0 only.
+	if !OpenEBSVersionAbove240 {
+		// form the csi-cluster-driver-registrar image for the given OpenEBS version
+		if csiClusterDriverRegistrar, exist :=
+			SupportedCSIClusterDriverRegistrarVersionForOpenEBSVersion[p.ObservedOpenEBS.Spec.Version]; exist {
+			CSIClusterDriverRegistrarImageTag = "csi-cluster-driver-registrar:" +
+				csiClusterDriverRegistrar
+		} else {
+			return errors.Errorf(
+				"Failed to get csi-cluster-driver-registrar version for the given OpenEBS version: %s",
+				p.ObservedOpenEBS.Spec.Version)
+		}
 	}
-
 	// form the csi-node-driver-registrar image for CSI node for the given OpenEBS version
 	if csiNodeDriverRegistrar, exist :=
 		SupportedCSINodeDriverRegistrarVersionForCSINodeVersion[p.ObservedOpenEBS.Spec.Version]; exist {
@@ -541,13 +563,25 @@ func (p *Planner) setCSIDefaultsIfNotSet() error {
 		CSIClusterDriverRegistrarImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSIClusterDriverRegistrarImageTag
 		CSINodeDriverRegistrarForCSINodeImage = p.ObservedOpenEBS.Spec.ImagePrefix + CSINodeDriverRegistrarForCSINodeImageTag
 	} else {
+		CSISnapshotterImageRegistry := types.QUAYIOK8SCSI
+		CSISnapshotControllerImageRegistry := types.QUAYIOK8SCSI
+		CSINodeDriverRegistrarForCSINodeImageRegistry := types.QUAYIOK8SCSI
+		// For OpenEBS version 2.5.0 or greater, csi-snapshotter and snapshot-controller images
+		// are pulled from k8s.gcr.io/sig-storage registry instead of quay.io/k8scsi registry.
+		if OpenEBSVersionAbove240 {
+			CSISnapshotterImageRegistry = types.K8SGCRSIGSTORAGE
+			CSISnapshotControllerImageRegistry = types.K8SGCRSIGSTORAGE
+			CSINodeDriverRegistrarForCSINodeImageRegistry = types.K8SGCRSIGSTORAGE
+		}
 		CSIResizerImage = types.QUAYIOK8SCSI + CSIResizerImageTag
-		CSISnapshotterImage = types.QUAYIOK8SCSI + CSISnapshotterImageTag
-		CSISnapshotControllerImage = types.QUAYIOK8SCSI + CSISnapshotControllerImageTag
+		CSIResizerImage = types.QUAYIOK8SCSI + CSIResizerImageTag
+		CSISnapshotterImage = CSISnapshotterImageRegistry + CSISnapshotterImageTag
+		CSISnapshotControllerImage = CSISnapshotControllerImageRegistry + CSISnapshotControllerImageTag
 		CSIProvisionerForCSIControllerImage = types.QUAYIOK8SCSI + CSIProvisionerForCSIControllerImageTag
 		CSIAttacherForCSIControllerImage = types.QUAYIOK8SCSI + CSIAttacherForCSIControllerImageTag
 		CSIClusterDriverRegistrarImage = types.QUAYIOK8SCSI + CSIClusterDriverRegistrarImageTag
-		CSINodeDriverRegistrarForCSINodeImage = types.QUAYIOK8SCSI + CSINodeDriverRegistrarForCSINodeImageTag
+		CSINodeDriverRegistrarForCSINodeImage = CSINodeDriverRegistrarForCSINodeImageRegistry +
+			CSINodeDriverRegistrarForCSINodeImageTag
 	}
 
 	return nil

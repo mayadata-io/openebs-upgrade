@@ -132,6 +132,9 @@ spec:
         - cstorcompletedbackups.cstor.openebs.io
         - cstorrestores.cstor.openebs.io
         - migrationtasks.openebs.io
+        - volumesnapshotclasses.snapshot.storage.k8s.io
+        - volumesnapshotcontents.snapshot.storage.k8s.io
+        - volumesnapshots.snapshot.storage.k8s.io
     - apiVersion: storage.k8s.io/v1beta1
       resource: csidrivers
       updateStrategy:
@@ -270,6 +273,9 @@ spec:
         - cstorcompletedbackups.cstor.openebs.io
         - cstorrestores.cstor.openebs.io
         - migrationtasks.openebs.io
+        - volumesnapshotclasses.snapshot.storage.k8s.io
+        - volumesnapshotcontents.snapshot.storage.k8s.io
+        - volumesnapshots.snapshot.storage.k8s.io
   hooks:
     sync:
       inline:
