@@ -5855,3 +5855,19 @@ spec:
                 - "ndo"
             initialDelaySeconds: 30
             periodSeconds: 60
+---
+apiVersion: scheduling.k8s.io/v1
+description: Used for system critical pods that must run in the cluster, but can be
+  moved to another node if necessary.
+kind: PriorityClass
+metadata:
+  name: system-cluster-critical
+value: 900000000
+---
+apiVersion: scheduling.k8s.io/v1
+description: Used for system critical pods that must not be moved from their current
+  node.
+kind: PriorityClass
+metadata:
+  name: system-node-critical
+value: 900001000
