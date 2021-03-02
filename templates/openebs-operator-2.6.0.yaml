@@ -1848,7 +1848,7 @@ spec:
         openebs.io/component-name: openebs-cstor-csi-controller
         openebs.io/version: 2.6.0
     spec:
-      priorityClassName: system-cluster-critical
+      priorityClassName: openebs-csi-controller-critical
       serviceAccount: openebs-cstor-csi-controller-sa
       containers:
         - name: csi-resizer
@@ -2102,7 +2102,7 @@ spec:
         openebs.io/component-name: openebs-cstor-csi-node
         openebs.io/version: 2.6.0
     spec:
-      priorityClassName: system-node-critical
+      priorityClassName: openebs-csi-node-critical
       serviceAccount: openebs-cstor-csi-node-sa
       hostNetwork: true
       containers:
@@ -5861,7 +5861,7 @@ description: Used for system critical pods that must run in the cluster, but can
   moved to another node if necessary.
 kind: PriorityClass
 metadata:
-  name: system-cluster-critical
+  name: openebs-csi-controller-critical
 value: 900000000
 ---
 apiVersion: scheduling.k8s.io/v1
@@ -5869,5 +5869,5 @@ description: Used for system critical pods that must not be moved from their cur
   node.
 kind: PriorityClass
 metadata:
-  name: system-node-critical
+  name: openebs-csi-node-critical
 value: 900001000
