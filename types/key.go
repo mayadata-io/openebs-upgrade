@@ -335,6 +335,8 @@ const (
 	OpenEBSVersion250 string = "2.5.0"
 	// OpenEBSVersion260 is the OpenEBS version 2.6.0
 	OpenEBSVersion260 string = "2.6.0"
+	// OpenEBSVersion270 is the OpenEBS version 2.7.0
+	OpenEBSVersion270 string = "2.7.0"
 
 	// OSImageUbuntu1804 is the OS Image value of a Node.
 	OSImageUbuntu1804 string = "Ubuntu 18.04"
