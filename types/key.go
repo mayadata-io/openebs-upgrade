@@ -362,10 +362,14 @@ const (
 	OpenEBSMayaOperatorRoleNameKey string = "openebs-maya-operator"
 	// OpenEBSCstorOperatorRoleNameKey is the name of OpenEBS cluster role.
 	OpenEBSCstorOperatorRoleNameKey string = "openebs-cstor-operator"
+	// OpenEBSCstorMigrationRoleNameKey is the name of OpenEBS role for snapshot migration.
+	OpenEBSCstorMigrationRoleNameKey string = "openebs-cstor-migration"
 	// OpenEBSMayaOperatorBindingNameKey is the name of OpenEBS cluster role binding.
 	OpenEBSMayaOperatorBindingNameKey string = "openebs-maya-operator"
 	// OpenEBSCStorOperatorBindingNameKey is the name of OpenEBS cluster role binding.
 	OpenEBSCstorOperatorBindingNameKey string = "openebs-cstor-operator"
+	// OpenEBSCstorMigrationBindingNameKey is the name of OpenEBS role binding for snapshot migration.
+	OpenEBSCstorMigrationBindingNameKey string = "openebs-cstor-migration"
 
 	// openebs-upgrade dao specific label, this label will be present across all the
 	// OpenEBS components whether created or adopted by openebs-upgrade.
@@ -420,6 +424,9 @@ const (
 	// OpenEBSCstorRoleComponentNameLabelValue is the value of the component-name label
 	// of OpenEBS cstor cluster role.
 	OpenEBSCstorRoleComponentNameLabelValue string = "openebs-cstor-operator"
+	// OpenEBSCstorMigrationRoleComponentNameLabelValue is the value of the component-name label
+	// of OpenEBS cstor migration cluster role.
+	OpenEBSCstorMigrationRoleComponentNameLabelValue string = "openebs-cstor-migration"
 
 	// OpenEBSRoleBindingComponentNameLabelValue is the value of the component-name label
 	// of OpenEBS cluster role.
@@ -427,6 +434,9 @@ const (
 	// OpenEBSCstorRoleBindingComponentNameLabelValue is the value of the component-name label
 	// of OpenEBS cstor cluster role.
 	OpenEBSCstorRoleBindingComponentNameLabelValue string = "openebs-cstor-operator"
+	// OpenEBSCstorMigrationRoleBindingComponentNameLabelValue is the value of the component-name label
+	// of OpenEBS cstor migration role.
+	OpenEBSCstorMigrationRoleBindingComponentNameLabelValue string = "openebs-cstor-migration"
 
 	// OpenEBSMayaAPIServerComponentGroupLabelValue is the value of the component-group label
 	// of OpenEBS apiservers.

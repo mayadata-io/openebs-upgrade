@@ -192,6 +192,8 @@ func (p *Planner) getDesiredClusterRole(cr *unstructured.Unstructured) (*unstruc
 		err = p.updateOpenEBSClusterRole(cr)
 	case types.OpenEBSCstorOperatorRoleNameKey:
 		err = p.updateOpenEBSCstorClusterRole(cr)
+	case types.OpenEBSCstorMigrationRoleNameKey:
+		err = p.updateOpenEBSCstorMigrationRole(cr)
 	case types.CStorCSISnapshottterRoleNameKey:
 		err = p.updateCStorCSISnapshotterRole(cr)
 	case types.CStorCSIProvisionerRoleNameKey:
@@ -255,6 +257,28 @@ func (p *Planner) updateOpenEBSCstorClusterRole(sa *unstructured.Unstructured) e
 	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-operator
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
 		types.OpenEBSCstorRoleComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateOpenEBSCstorMigrationRole updates the OpenEBS cstor-migration cluster role
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateOpenEBSCstorMigrationRole(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-migration
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.OpenEBSCstorMigrationRoleComponentNameLabelValue
 
 	// set the desired labels
 	sa.SetLabels(desiredLabels)
@@ -428,6 +452,8 @@ func (p *Planner) getDesiredClusterRoleBinding(crb *unstructured.Unstructured) (
 		err = p.updateOpenEBSClusterRoleBinding(crb)
 	case types.OpenEBSCstorOperatorBindingNameKey:
 		err = p.updateOpenEBSCstorClusterRoleBinding(crb)
+	case types.OpenEBSCstorMigrationBindingNameKey:
+		err = p.updateOpenEBSCstorMigrationRoleBinding(crb)
 	case types.CStorCSISnapshottterBindingNameKey:
 		err = p.updateCStorCSISnapshotterBinding(crb)
 	case types.CStorCSIProvisionerBindingNameKey:
@@ -540,6 +566,29 @@ func (p *Planner) updateOpenEBSCstorClusterRoleBinding(sa *unstructured.Unstruct
 	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-operator
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
 		types.OpenEBSCstorRoleBindingComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateOpenEBSCstorMigrationRoleBinding updates the OpenEBS cstor-migration role
+// binding structure as per the provided values otherwise default values.
+func (p *Planner) updateOpenEBSCstorMigrationRoleBinding(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-maya-operator cluster role binding:
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-migration
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.OpenEBSCstorMigrationRoleBindingComponentNameLabelValue
 
 	// set the desired labels
 	sa.SetLabels(desiredLabels)
