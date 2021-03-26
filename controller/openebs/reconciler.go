@@ -112,6 +112,9 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 	// observedOpenEBSCRDs will store the details of all the OpenEBS
 	// related CRDs present in the cluster.
 	var observedOpenEBSCRDs []*unstructured.Unstructured
+	// observedOpenEBSClusterRoleAndRoleBindings will store the details of all the OpenEBS
+	// related cluster role and cluster role bindings present in the cluster.
+	var observedOpenEBSClusterRoleAndRoleBindings []*unstructured.Unstructured
 	var observedCStorCSIDriver *unstructured.Unstructured
 	for _, attachment := range request.Attachments.List() {
 		// this watch resource must be present in the list of attachments
@@ -131,6 +134,9 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		if attachment.GetKind() == types.KindCustomResourceDefinition {
 			observedOpenEBSCRDs = append(observedOpenEBSCRDs, attachment)
 		}
+		if attachment.GetKind() == types.KindClusterRole || attachment.GetKind() == types.KindClusterRoleBinding {
+			observedOpenEBSClusterRoleAndRoleBindings = append(observedOpenEBSClusterRoleAndRoleBindings, attachment)
+		}
 		if attachment.GetKind() == types.KindCSIDriver &&
 			attachment.GetName() == types.CStorCSIDriverNameKey {
 			observedCStorCSIDriver = attachment
@@ -149,10 +155,11 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 	reconciler, err :=
 		NewReconciler(
 			ReconcilerConfig{
-				ObservedOpenEBS:           observedOpenEBS,
-				ObservedOpenEBSComponents: observedOpenEBSComponents,
-				ObservedOpenEBSCRDs:       observedOpenEBSCRDs,
-				ObservedCStorCSIDriver:    observedCStorCSIDriver,
+				ObservedOpenEBS:                           observedOpenEBS,
+				ObservedOpenEBSComponents:                 observedOpenEBSComponents,
+				ObservedOpenEBSCRDs:                       observedOpenEBSCRDs,
+				ObservedOpenEBSClusterRoleAndRoleBindings: observedOpenEBSClusterRoleAndRoleBindings,
+				ObservedCStorCSIDriver:                    observedCStorCSIDriver,
 			})
 	if err != nil {
 		errHandler.handle(err)
@@ -210,19 +217,21 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 
 // Reconciler enables reconciliation of OpenEBS instance
 type Reconciler struct {
-	ObservedOpenEBS           *types.OpenEBS
-	ObservedOpenEBSComponents []*unstructured.Unstructured
-	ObservedOpenEBSCRDs       []*unstructured.Unstructured
-	ObservedCStorCSIDriver    *unstructured.Unstructured
+	ObservedOpenEBS                           *types.OpenEBS
+	ObservedOpenEBSComponents                 []*unstructured.Unstructured
+	ObservedOpenEBSCRDs                       []*unstructured.Unstructured
+	ObservedOpenEBSClusterRoleAndRoleBindings []*unstructured.Unstructured
+	ObservedCStorCSIDriver                    *unstructured.Unstructured
 }
 
 // ReconcilerConfig is a helper structure used to create a
 // new instance of Reconciler
 type ReconcilerConfig struct {
-	ObservedOpenEBS           *unstructured.Unstructured
-	ObservedOpenEBSComponents []*unstructured.Unstructured
-	ObservedOpenEBSCRDs       []*unstructured.Unstructured
-	ObservedCStorCSIDriver    *unstructured.Unstructured
+	ObservedOpenEBS                           *unstructured.Unstructured
+	ObservedOpenEBSComponents                 []*unstructured.Unstructured
+	ObservedOpenEBSCRDs                       []*unstructured.Unstructured
+	ObservedOpenEBSClusterRoleAndRoleBindings []*unstructured.Unstructured
+	ObservedCStorCSIDriver                    *unstructured.Unstructured
 }
 
 // ReconcileResponse is a helper struct used to form the response
@@ -237,10 +246,11 @@ type ReconcileResponse struct {
 // Planner ensures if any of the instances need
 // to be created, or updated.
 type Planner struct {
-	ObservedOpenEBS           *types.OpenEBS
-	ObservedOpenEBSComponents []*unstructured.Unstructured
-	ObservedOpenEBSCRDs       []*unstructured.Unstructured
-	ObservedCStorCSIDriver    *unstructured.Unstructured
+	ObservedOpenEBS                           *types.OpenEBS
+	ObservedOpenEBSComponents                 []*unstructured.Unstructured
+	ObservedOpenEBSCRDs                       []*unstructured.Unstructured
+	ObservedOpenEBSClusterRoleAndRoleBindings []*unstructured.Unstructured
+	ObservedCStorCSIDriver                    *unstructured.Unstructured
 
 	DesiredOpenEBSCRDs []*unstructured.Unstructured
 
@@ -263,10 +273,11 @@ func NewReconciler(config ReconcilerConfig) (*Reconciler, error) {
 	}
 	// use above constructed object to build Reconciler instance
 	return &Reconciler{
-		ObservedOpenEBS:           &openebsTyped,
-		ObservedOpenEBSComponents: config.ObservedOpenEBSComponents,
-		ObservedOpenEBSCRDs:       config.ObservedOpenEBSCRDs,
-		ObservedCStorCSIDriver:    config.ObservedCStorCSIDriver,
+		ObservedOpenEBS:                           &openebsTyped,
+		ObservedOpenEBSComponents:                 config.ObservedOpenEBSComponents,
+		ObservedOpenEBSCRDs:                       config.ObservedOpenEBSCRDs,
+		ObservedOpenEBSClusterRoleAndRoleBindings: config.ObservedOpenEBSClusterRoleAndRoleBindings,
+		ObservedCStorCSIDriver:                    config.ObservedCStorCSIDriver,
 	}, nil
 }
 
@@ -276,10 +287,11 @@ func NewReconciler(config ReconcilerConfig) (*Reconciler, error) {
 //	Due care has been taken to let this logic be idempotent
 func (r *Reconciler) Reconcile() (ReconcileResponse, error) {
 	planner := Planner{
-		ObservedOpenEBS:           r.ObservedOpenEBS,
-		ObservedOpenEBSComponents: r.ObservedOpenEBSComponents,
-		ObservedOpenEBSCRDs:       r.ObservedOpenEBSCRDs,
-		ObservedCStorCSIDriver:    r.ObservedCStorCSIDriver,
+		ObservedOpenEBS:                           r.ObservedOpenEBS,
+		ObservedOpenEBSComponents:                 r.ObservedOpenEBSComponents,
+		ObservedOpenEBSCRDs:                       r.ObservedOpenEBSCRDs,
+		ObservedOpenEBSClusterRoleAndRoleBindings: r.ObservedOpenEBSClusterRoleAndRoleBindings,
+		ObservedCStorCSIDriver:                    r.ObservedCStorCSIDriver,
 	}
 	return planner.Plan()
 }
@@ -332,6 +344,25 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 			} else {
 				response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets,
 					observedCRD)
+			}
+		}
+	}
+
+	// add the observed OpenEBS CRDs to desired OpenEBS CRDs that are not already present
+	// in the desiredOpenEBS components list.
+	if len(p.ObservedOpenEBSClusterRoleAndRoleBindings) > 0 {
+		for _, observedOpenEBSClusterRoleAndRoleBindings := range p.ObservedOpenEBSClusterRoleAndRoleBindings {
+			key := observedOpenEBSClusterRoleAndRoleBindings.GetName() + "_" + observedOpenEBSClusterRoleAndRoleBindings.GetKind()
+			if desiredClusterRoleAndRoleBinding, exist := p.ComponentManifests[key]; exist {
+				// If already exists then check if the APIVersion is same or not, if
+				// not then add it to the desired OpenEBS components list.
+				if desiredClusterRoleAndRoleBinding.GetAPIVersion() != observedOpenEBSClusterRoleAndRoleBindings.GetAPIVersion() {
+					response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets,
+						observedOpenEBSClusterRoleAndRoleBindings)
+				}
+			} else {
+				response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets,
+					observedOpenEBSClusterRoleAndRoleBindings)
 			}
 		}
 	}

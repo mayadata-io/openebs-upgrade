@@ -360,8 +360,12 @@ const (
 	OpenEBSMayaOperatorSANameKey string = "openebs-maya-operator"
 	// OpenEBSMayaOperatorRoleNameKey is the name of OpenEBS cluster role.
 	OpenEBSMayaOperatorRoleNameKey string = "openebs-maya-operator"
+	// OpenEBSCstorOperatorRoleNameKey is the name of OpenEBS cluster role.
+	OpenEBSCstorOperatorRoleNameKey string = "openebs-cstor-operator"
 	// OpenEBSMayaOperatorBindingNameKey is the name of OpenEBS cluster role binding.
 	OpenEBSMayaOperatorBindingNameKey string = "openebs-maya-operator"
+	// OpenEBSCStorOperatorBindingNameKey is the name of OpenEBS cluster role binding.
+	OpenEBSCstorOperatorBindingNameKey string = "openebs-cstor-operator"
 
 	// openebs-upgrade dao specific label, this label will be present across all the
 	// OpenEBS components whether created or adopted by openebs-upgrade.
@@ -413,10 +417,16 @@ const (
 	// OpenEBSRoleComponentNameLabelValue is the value of the component-name label
 	// of OpenEBS cluster role.
 	OpenEBSRoleComponentNameLabelValue string = "openebs-maya-operator"
+	// OpenEBSCstorRoleComponentNameLabelValue is the value of the component-name label
+	// of OpenEBS cstor cluster role.
+	OpenEBSCstorRoleComponentNameLabelValue string = "openebs-cstor-operator"
 
 	// OpenEBSRoleBindingComponentNameLabelValue is the value of the component-name label
 	// of OpenEBS cluster role.
 	OpenEBSRoleBindingComponentNameLabelValue string = "openebs-maya-operator"
+	// OpenEBSCstorRoleBindingComponentNameLabelValue is the value of the component-name label
+	// of OpenEBS cstor cluster role.
+	OpenEBSCstorRoleBindingComponentNameLabelValue string = "openebs-cstor-operator"
 
 	// OpenEBSMayaAPIServerComponentGroupLabelValue is the value of the component-group label
 	// of OpenEBS apiservers.
