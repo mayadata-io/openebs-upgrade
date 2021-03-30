@@ -171,8 +171,8 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		return nil
 	}
 	// add all the desired OpenEBS components as attachments in the response
-	if resp.DesiredOpenEBSComponets != nil {
-		for _, desiredOpenEBSComponent := range resp.DesiredOpenEBSComponets {
+	if resp.DesiredOpenEBSComponents != nil {
+		for _, desiredOpenEBSComponent := range resp.DesiredOpenEBSComponents {
 			response.Attachments = append(response.Attachments, desiredOpenEBSComponent)
 		}
 	}
@@ -237,10 +237,10 @@ type ReconcilerConfig struct {
 // ReconcileResponse is a helper struct used to form the response
 // of a successful reconciliation
 type ReconcileResponse struct {
-	DesiredOpenEBS          *unstructured.Unstructured
-	DesiredOpenEBSComponets []*unstructured.Unstructured
-	ExplicitDeletes         []*unstructured.Unstructured
-	ExplicitUpdates         []*unstructured.Unstructured
+	DesiredOpenEBS           *unstructured.Unstructured
+	DesiredOpenEBSComponents []*unstructured.Unstructured
+	ExplicitDeletes          []*unstructured.Unstructured
+	ExplicitUpdates          []*unstructured.Unstructured
 }
 
 // Planner ensures if any of the instances need
@@ -319,7 +319,7 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 		if key == "_" {
 			continue
 		}
-		response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets, value)
+		response.DesiredOpenEBSComponents = append(response.DesiredOpenEBSComponents, value)
 	}
 	// update the components that needs to be deleted
 	for _, componentToDelete := range p.ExplicitDeletes {
@@ -338,11 +338,11 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 				// If already exists then check if the APIVersion is same or not, if
 				// not then add it to the desired OpenEBS components list.
 				if desiredCRD.GetAPIVersion() != observedCRD.GetAPIVersion() {
-					response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets,
+					response.DesiredOpenEBSComponents = append(response.DesiredOpenEBSComponents,
 						observedCRD)
 				}
 			} else {
-				response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets,
+				response.DesiredOpenEBSComponents = append(response.DesiredOpenEBSComponents,
 					observedCRD)
 			}
 		}
@@ -357,11 +357,11 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 				// If already exists then check if the APIVersion is same or not, if
 				// not then add it to the desired OpenEBS components list.
 				if desiredClusterRoleAndRoleBinding.GetAPIVersion() != observedOpenEBSClusterRoleAndRoleBindings.GetAPIVersion() {
-					response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets,
+					response.DesiredOpenEBSComponents = append(response.DesiredOpenEBSComponents,
 						observedOpenEBSClusterRoleAndRoleBindings)
 				}
 			} else {
-				response.DesiredOpenEBSComponets = append(response.DesiredOpenEBSComponets,
+				response.DesiredOpenEBSComponents = append(response.DesiredOpenEBSComponents,
 					observedOpenEBSClusterRoleAndRoleBindings)
 			}
 		}
