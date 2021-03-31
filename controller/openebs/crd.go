@@ -60,12 +60,13 @@ func (p *Planner) getDesiredCustomResourceDefinition(crd *unstructured.Unstructu
 	if err != nil {
 		return crd, err
 	}
+
+	annotationsMap := crd.GetAnnotations()
+	annotationsMap[types.AnnKeyOpenEBSUID] = string(p.ObservedOpenEBS.GetUID())
 	// create annotations that refers to the instance which
 	// triggered creation of this CustomResourceDefinition
 	crd.SetAnnotations(
-		map[string]string{
-			types.AnnKeyOpenEBSUID: string(p.ObservedOpenEBS.GetUID()),
-		},
+		annotationsMap,
 	)
 	return crd, nil
 }

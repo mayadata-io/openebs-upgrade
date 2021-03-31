@@ -348,8 +348,8 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 		}
 	}
 
-	// add the observed OpenEBS CRDs to desired OpenEBS CRDs that are not already present
-	// in the desiredOpenEBS components list.
+	// add the observed OpenEBS clusterroles & clusterrolebindings to desired OpenEBS clusterroles & clusterrolebindings
+	// that are not already present in the desiredOpenEBS components list.
 	if len(p.ObservedOpenEBSClusterRoleAndRoleBindings) > 0 {
 		for _, observedOpenEBSClusterRoleAndRoleBindings := range p.ObservedOpenEBSClusterRoleAndRoleBindings {
 			key := observedOpenEBSClusterRoleAndRoleBindings.GetName() + "_" + observedOpenEBSClusterRoleAndRoleBindings.GetKind()
