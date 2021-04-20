@@ -367,6 +367,19 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 		}
 	}
 
+	// add the observed Cstor CSI Driver to desired Cstor CSI Driver that is not already present in the desiredOpenEBS
+	// components list.
+	if p.ObservedCStorCSIDriver != nil {
+		key := p.ObservedCStorCSIDriver.GetName() + "_" + p.ObservedCStorCSIDriver.GetKind()
+		if desiredCstorCSIDriver, exist := p.ComponentManifests[key]; exist {
+			// If already exists then check if the APIVersion is same or not, if
+			// not then add it to the desired OpenEBS components list.
+			if desiredCstorCSIDriver.GetAPIVersion() != p.ObservedCStorCSIDriver.GetAPIVersion() {
+				response.DesiredOpenEBSComponents = append(response.DesiredOpenEBSComponents, p.ObservedCStorCSIDriver)
+			}
+		}
+	}
+
 	return response
 }
 
