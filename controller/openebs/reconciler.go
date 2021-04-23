@@ -372,8 +372,6 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 	if len(p.ObservedCStorCSIDriver) > 0 {
 		for _, observedCStorCSIDriver := range p.ObservedCStorCSIDriver {
 			key := observedCStorCSIDriver.GetName() + "_" + observedCStorCSIDriver.GetKind()
-			glog.V(3).Infof("CSI DRIVER KEY: %s", key)
-			glog.V(3).Infof("CSI DRIVER API-VERSION: %s", observedCStorCSIDriver.GetAPIVersion())
 			if desiredCstorCSIDriver, exist := p.ComponentManifests[key]; exist {
 				// If already exists then check if the APIVersion is same or not, if
 				// not then add it to the desired OpenEBS components list.
