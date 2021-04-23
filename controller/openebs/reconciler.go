@@ -115,7 +115,7 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 	// observedOpenEBSClusterRoleAndRoleBindings will store the details of all the OpenEBS
 	// related cluster role and cluster role bindings present in the cluster.
 	var observedOpenEBSClusterRoleAndRoleBindings []*unstructured.Unstructured
-	var observedCStorCSIDriver *unstructured.Unstructured
+	var observedCStorCSIDriver []*unstructured.Unstructured
 	for _, attachment := range request.Attachments.List() {
 		// this watch resource must be present in the list of attachments
 		if request.Watch.GetUID() == attachment.GetUID() &&
@@ -139,7 +139,7 @@ func Sync(request *generic.SyncHookRequest, response *generic.SyncHookResponse) 
 		}
 		if attachment.GetKind() == types.KindCSIDriver &&
 			attachment.GetName() == types.CStorCSIDriverNameKey {
-			observedCStorCSIDriver = attachment
+			observedCStorCSIDriver = append(observedCStorCSIDriver, attachment)
 		}
 	}
 
@@ -221,7 +221,7 @@ type Reconciler struct {
 	ObservedOpenEBSComponents                 []*unstructured.Unstructured
 	ObservedOpenEBSCRDs                       []*unstructured.Unstructured
 	ObservedOpenEBSClusterRoleAndRoleBindings []*unstructured.Unstructured
-	ObservedCStorCSIDriver                    *unstructured.Unstructured
+	ObservedCStorCSIDriver                    []*unstructured.Unstructured
 }
 
 // ReconcilerConfig is a helper structure used to create a
@@ -231,7 +231,7 @@ type ReconcilerConfig struct {
 	ObservedOpenEBSComponents                 []*unstructured.Unstructured
 	ObservedOpenEBSCRDs                       []*unstructured.Unstructured
 	ObservedOpenEBSClusterRoleAndRoleBindings []*unstructured.Unstructured
-	ObservedCStorCSIDriver                    *unstructured.Unstructured
+	ObservedCStorCSIDriver                    []*unstructured.Unstructured
 }
 
 // ReconcileResponse is a helper struct used to form the response
@@ -250,7 +250,7 @@ type Planner struct {
 	ObservedOpenEBSComponents                 []*unstructured.Unstructured
 	ObservedOpenEBSCRDs                       []*unstructured.Unstructured
 	ObservedOpenEBSClusterRoleAndRoleBindings []*unstructured.Unstructured
-	ObservedCStorCSIDriver                    *unstructured.Unstructured
+	ObservedCStorCSIDriver                    []*unstructured.Unstructured
 
 	DesiredOpenEBSCRDs []*unstructured.Unstructured
 
@@ -363,6 +363,23 @@ func (p *Planner) getDesiredOpenEBSComponents() ReconcileResponse {
 			} else {
 				response.DesiredOpenEBSComponents = append(response.DesiredOpenEBSComponents,
 					observedOpenEBSClusterRoleAndRoleBindings)
+			}
+		}
+	}
+
+	// add the observed Cstor CSI Driver to desired Cstor CSI Driver that is not already present in the desiredOpenEBS
+	// components list.
+	if len(p.ObservedCStorCSIDriver) > 0 {
+		for _, observedCStorCSIDriver := range p.ObservedCStorCSIDriver {
+			key := observedCStorCSIDriver.GetName() + "_" + observedCStorCSIDriver.GetKind()
+			glog.V(3).Infof("CSI DRIVER KEY: %s", key)
+			glog.V(3).Infof("CSI DRIVER API-VERSION: %s", observedCStorCSIDriver.GetAPIVersion())
+			if desiredCstorCSIDriver, exist := p.ComponentManifests[key]; exist {
+				// If already exists then check if the APIVersion is same or not, if
+				// not then add it to the desired OpenEBS components list.
+				if desiredCstorCSIDriver.GetAPIVersion() != observedCStorCSIDriver.GetAPIVersion() {
+					response.DesiredOpenEBSComponents = append(response.DesiredOpenEBSComponents, observedCStorCSIDriver)
+				}
 			}
 		}
 	}

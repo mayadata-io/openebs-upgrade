@@ -68,6 +68,8 @@ func (p *Planner) getDesiredServiceAccount(sa *unstructured.Unstructured) (*unst
 	case types.CStorCSINodeSANameKey:
 		sa.SetNamespace(csiNamespace)
 		err = p.updateCStorCSINodeServiceAccount(sa)
+	case types.OpenEBSCstorOperatorSANameKey:
+		err = p.updateOpenEBSCstorServiceAccount(sa)
 	case types.MoacSANameKey:
 		// Overwrite the namespace to mayastor for mayastor based components.
 		// Note: mayastor based components will be installed only in mayastor namespace only.
@@ -97,6 +99,29 @@ func (p *Planner) updateOpenEBSServiceAccount(sa *unstructured.Unstructured) err
 	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-maya-operator
 	desiredLabels[types.OpenEBSComponentNameLabelKey] =
 		types.OpenEBSSAComponentNameLabelValue
+
+	// set the desired labels
+	sa.SetLabels(desiredLabels)
+
+	return nil
+}
+
+// updateOpenEBSCstorServiceAccount updates the openebs-cstor-operator service account
+// structure as per the provided values otherwise default values.
+func (p *Planner) updateOpenEBSCstorServiceAccount(sa *unstructured.Unstructured) error {
+	// desiredLabels is used to form the desired labels of a particular OpenEBS component.
+	desiredLabels := sa.GetLabels()
+	if desiredLabels == nil {
+		desiredLabels = make(map[string]string, 0)
+	}
+	// Set some component specific labels in order to identify specific components.
+	// These labels will be only set by openebs-upgrade and will help the end-users
+	// identify a particular or a set of OpenEBS components.
+	//
+	// Component specific labels for openebs-maya-operator service account:
+	// 1. openebs-upgrade.dao.mayadata.io/component-name: openebs-cstor-operator
+	desiredLabels[types.OpenEBSComponentNameLabelKey] =
+		types.OpenEBSCstorSAComponentNameLabelValue
 
 	// set the desired labels
 	sa.SetLabels(desiredLabels)

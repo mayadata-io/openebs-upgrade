@@ -75,6 +75,7 @@ spec:
       updateStrategy:
         method: InPlace
       nameSelector:
+        - openebs-maya-operator
         - openebs-cstor-operator
         - openebs-cstor-migration
         - openebs-cstor-csi-snapshotter-binding
@@ -88,6 +89,7 @@ spec:
       updateStrategy:
         method: InPlace
       nameSelector:
+        - openebs-maya-operator
         - openebs-cstor-operator
         - openebs-cstor-migration
         - openebs-cstor-csi-snapshotter-role
@@ -102,6 +104,7 @@ spec:
         method: InPlace
       nameSelector:
         - openebs-maya-operator
+        - openebs-cstor-operator
         - openebs-cstor-csi-controller-sa
         - openebs-cstor-csi-node-sa
         - moac
@@ -136,6 +139,8 @@ spec:
       updateStrategy:
         method: InPlace
       nameSelector:
+        - blockdevices.openebs.io
+        - blockdeviceclaims.openebs.io
         - cstorpoolclusters.cstor.openebs.io
         - cstorpoolinstances.cstor.openebs.io
         - cstorvolumes.cstor.openebs.io
@@ -152,6 +157,12 @@ spec:
         - volumesnapshots.snapshot.storage.k8s.io
         - upgradetasks.openebs.io
     - apiVersion: storage.k8s.io/v1beta1
+      resource: csidrivers
+      updateStrategy:
+        method: InPlace
+      nameSelector:
+        - cstor.csi.openebs.io
+    - apiVersion: storage.k8s.io/v1
       resource: csidrivers
       updateStrategy:
         method: InPlace
@@ -239,6 +250,7 @@ spec:
       updateStrategy:
         method: InPlace
       nameSelector:
+        - openebs-maya-operator
         - openebs-cstor-operator
         - openebs-cstor-migration
         - openebs-cstor-csi-snapshotter-binding
@@ -251,6 +263,7 @@ spec:
       updateStrategy:
         method: InPlace
       nameSelector:
+        - openebs-maya-operator
         - openebs-cstor-operator
         - openebs-cstor-migration
         - openebs-cstor-csi-snapshotter-role
@@ -264,6 +277,7 @@ spec:
         method: InPlace
       nameSelector:
         - openebs-maya-operator
+        - openebs-cstor-operator
         - openebs-cstor-csi-controller-sa
         - openebs-cstor-csi-node-sa
     # The apiextensions.k8s.io/v1beta1 CRD list contains all the CRDs that are
@@ -303,6 +317,8 @@ spec:
       updateStrategy:
         method: InPlace
       nameSelector:
+        - blockdevices.openebs.io
+        - blockdeviceclaims.openebs.io
         - cstorpoolclusters.cstor.openebs.io
         - cstorpoolinstances.cstor.openebs.io
         - cstorvolumes.cstor.openebs.io

@@ -337,6 +337,8 @@ const (
 	OpenEBSVersion260 string = "2.6.0"
 	// OpenEBSVersion270 is the OpenEBS version 2.7.0
 	OpenEBSVersion270 string = "2.7.0"
+	// OpenEBSVersion280 is the OpenEBS version 2.8.0
+	OpenEBSVersion280 string = "2.8.0"
 
 	// OSImageUbuntu1804 is the OS Image value of a Node.
 	OSImageUbuntu1804 string = "Ubuntu 18.04"
@@ -358,6 +360,8 @@ const (
 
 	// OpenEBSMayaOperatorSANameKey is the name of OpenEBS service account.
 	OpenEBSMayaOperatorSANameKey string = "openebs-maya-operator"
+	// OpenEBSCstorOperatorSANameKey is the name of OpenEBS cstor service account.
+	OpenEBSCstorOperatorSANameKey string = "openebs-cstor-operator"
 	// OpenEBSMayaOperatorRoleNameKey is the name of OpenEBS cluster role.
 	OpenEBSMayaOperatorRoleNameKey string = "openebs-maya-operator"
 	// OpenEBSCstorOperatorRoleNameKey is the name of OpenEBS cluster role.
@@ -405,6 +409,9 @@ const (
 	// OpenEBSSAComponentNameLabelValue is the value of the component-name label
 	// of OpenEBS service account.
 	OpenEBSSAComponentNameLabelValue string = "openebs-maya-operator"
+	// OpenEBSCstorSAComponentNameLabelValue is the value of the component-name label
+	// of OpenEBS cstor service account.
+	OpenEBSCstorSAComponentNameLabelValue string = "openebs-cstor-operator"
 	// CStorCSICtrlSAComponentNameLabelValue is the value of the component-name label
 	// of OpenEBS CStor CSI controller service account.
 	CStorCSICtrlSAComponentNameLabelValue string = "cstor-csi-controller"
