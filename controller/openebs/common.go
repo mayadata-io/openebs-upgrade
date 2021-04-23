@@ -347,20 +347,22 @@ func (p *Planner) getDesiredManifests() error {
 			p.DesiredOpenEBSCRDs = append(p.DesiredOpenEBSCRDs, value)
 		case types.KindCSIDriver:
 			if OpenEBSVersionAbove240 {
-				for _, observedCStorCSIDriver := range p.ObservedCStorCSIDriver {
-					if observedCStorCSIDriver != nil {
-						var isAttachRequired bool
-						// check the value of attachRequired, it will be true for OpenEBS
-						// versions below 2.5.0 which means it needs an upgrade which will
-						// be carried out by deletion and recreation of CSIDriver.
-						isAttachRequired, _, err = unstructured.NestedBool(observedCStorCSIDriver.Object,
-							"spec", "attachRequired")
-						if isAttachRequired {
-							// we will not add the latest CSI driver to the desired components list in
-							// this iteration so that the older CSI driver gets deleted.
-							p.ExplicitDeletes = append(p.ExplicitDeletes, observedCStorCSIDriver)
-							delete(p.ComponentManifests, key)
-							continue
+				if len(p.ObservedCStorCSIDriver) > 0 {
+					for _, observedCStorCSIDriver := range p.ObservedCStorCSIDriver {
+						if observedCStorCSIDriver != nil {
+							var isAttachRequired bool
+							// check the value of attachRequired, it will be true for OpenEBS
+							// versions below 2.5.0 which means it needs an upgrade which will
+							// be carried out by deletion and recreation of CSIDriver.
+							isAttachRequired, _, err = unstructured.NestedBool(observedCStorCSIDriver.Object,
+								"spec", "attachRequired")
+							if isAttachRequired {
+								// we will not add the latest CSI driver to the desired components list in
+								// this iteration so that the older CSI driver gets deleted.
+								p.ExplicitDeletes = append(p.ExplicitDeletes, observedCStorCSIDriver)
+								delete(p.ComponentManifests, key)
+								continue
+							}
 						}
 					}
 				}
