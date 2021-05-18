@@ -72,6 +72,13 @@ pipeline {
             deleteDir()
         }
         success {
+            script{
+              withCredentials([string(credentialsId: 'OPENEBS_UPGRADE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+                CODECOV_BASH = sh(returnStdout: true, script: "curl -s https://codecov.io/bash -o .codecov")
+		sh 'chmod +x .codecov'
+		sh "./.codecov -t ${CODECOV_TOKEN}"
+              }
+            }
             echo 'This will run only if successful'
             slackSend channel: '#jenkins-builds',
                    color: 'good',
