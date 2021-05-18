@@ -76,7 +76,7 @@ metadata:
   labels:
     name: maya-apiserver
     openebs.io/component-name: maya-apiserver
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -91,13 +91,13 @@ spec:
       labels:
         name: maya-apiserver
         openebs.io/component-name: maya-apiserver
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: maya-apiserver
           imagePullPolicy: IfNotPresent
-          image: openebs/m-apiserver:2.8.0
+          image: openebs/m-apiserver:2.9.0
           ports:
             - containerPort: 5656
           env:
@@ -176,25 +176,25 @@ spec:
             #- name: OPENEBS_IO_LOCALPV_HOSTPATH_DIR
             #  value: "/var/openebs/local"
             - name: OPENEBS_IO_JIVA_CONTROLLER_IMAGE
-              value: "openebs/jiva:2.8.0"
+              value: "openebs/jiva:2.9.0"
             - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
-              value: "openebs/jiva:2.8.0"
+              value: "openebs/jiva:2.9.0"
             - name: OPENEBS_IO_JIVA_REPLICA_COUNT
               value: "3"
             - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
-              value: "openebs/cstor-istgt:2.8.0"
+              value: "openebs/cstor-istgt:2.9.0"
             - name: OPENEBS_IO_CSTOR_POOL_IMAGE
-              value: "openebs/cstor-pool:2.8.0"
+              value: "openebs/cstor-pool:2.9.0"
             - name: OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE
-              value: "openebs/cstor-pool-mgmt:2.8.0"
+              value: "openebs/cstor-pool-mgmt:2.9.0"
             - name: OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
-              value: "openebs/cstor-volume-mgmt:2.8.0"
+              value: "openebs/cstor-volume-mgmt:2.9.0"
             - name: OPENEBS_IO_VOLUME_MONITOR_IMAGE
-              value: "openebs/m-exporter:2.8.0"
+              value: "openebs/m-exporter:2.9.0"
             - name: OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
-              value: "openebs/m-exporter:2.8.0"
+              value: "openebs/m-exporter:2.9.0"
             - name: OPENEBS_IO_HELPER_IMAGE
-              value: "openebs/linux-utils:2.8.0"
+              value: "openebs/linux-utils:2.9.0"
             # OPENEBS_IO_ENABLE_ANALYTICS if set to true sends anonymous usage
             # events to Google Analytics
             - name: OPENEBS_IO_ENABLE_ANALYTICS
@@ -247,7 +247,7 @@ metadata:
   labels:
     name: openebs-provisioner
     openebs.io/component-name: openebs-provisioner
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -262,13 +262,13 @@ spec:
       labels:
         name: openebs-provisioner
         openebs.io/component-name: openebs-provisioner
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: openebs-provisioner
           imagePullPolicy: IfNotPresent
-          image: openebs/openebs-k8s-provisioner:2.8.0
+          image: openebs/openebs-k8s-provisioner:2.9.0
           env:
             # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
             # based on this address. This is ignored if empty.
@@ -326,7 +326,7 @@ metadata:
   labels:
     name: openebs-snapshot-operator
     openebs.io/component-name: openebs-snapshot-operator
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -340,12 +340,12 @@ spec:
       labels:
         name: openebs-snapshot-operator
         openebs.io/component-name: openebs-snapshot-operator
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: snapshot-controller
-          image: openebs/snapshot-controller:2.8.0
+          image: openebs/snapshot-controller:2.9.0
           imagePullPolicy: IfNotPresent
           env:
             - name: OPENEBS_NAMESPACE
@@ -373,7 +373,7 @@ spec:
         #- name: OPENEBS_MAYA_SERVICE_NAME
         #  value: "maya-apiserver-apiservice"
         - name: snapshot-provisioner
-          image: openebs/snapshot-provisioner:2.8.0
+          image: openebs/snapshot-provisioner:2.9.0
           imagePullPolicy: IfNotPresent
           env:
             - name: OPENEBS_NAMESPACE
@@ -909,7 +909,7 @@ metadata:
   labels:
     name: openebs-ndm
     openebs.io/component-name: ndm
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -922,7 +922,7 @@ spec:
       labels:
         name: openebs-ndm
         openebs.io/component-name: ndm
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       # By default the node-disk-manager will be run on all kubernetes nodes
       # If you would like to limit this to only some nodes, say the nodes
@@ -940,7 +940,7 @@ spec:
       #hostPID: true
       containers:
         - name: node-disk-manager
-          image: openebs/node-disk-manager:1.4.0
+          image: openebs/node-disk-manager:1.4.1
           args:
             - -v=4
             # The feature-gate is used to enable the new UUID algorithm.
@@ -1032,7 +1032,7 @@ metadata:
   labels:
     name: openebs-ndm-operator
     openebs.io/component-name: ndm-operator
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -1046,12 +1046,12 @@ spec:
       labels:
         name: openebs-ndm-operator
         openebs.io/component-name: ndm-operator
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: node-disk-operator
-          image: openebs/node-disk-operator:1.4.0
+          image: openebs/node-disk-operator:1.4.1
           imagePullPolicy: IfNotPresent
           readinessProbe:
             exec:
@@ -1078,7 +1078,7 @@ spec:
             - name: OPERATOR_NAME
               value: "node-disk-operator"
             - name: CLEANUP_JOB_IMAGE
-              value: "openebs/linux-utils:2.8.0"
+              value: "openebs/linux-utils:2.9.0"
             # OPENEBS_IO_INSTALL_CRD environment variable is used to enable/disable CRD installation
             # from NDM operator. By default the CRDs will be installed
             - name: OPENEBS_IO_INSTALL_CRD
@@ -1106,7 +1106,7 @@ metadata:
   labels:
     app: admission-webhook
     openebs.io/component-name: admission-webhook
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   replicas: 1
   strategy:
@@ -1120,12 +1120,12 @@ spec:
       labels:
         app: admission-webhook
         openebs.io/component-name: admission-webhook
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: admission-webhook
-          image: openebs/admission-server:2.8.0
+          image: openebs/admission-server:2.9.0
           imagePullPolicy: IfNotPresent
           args:
             - -alsologtostderr
@@ -1163,7 +1163,7 @@ metadata:
   labels:
     name: openebs-localpv-provisioner
     openebs.io/component-name: openebs-localpv-provisioner
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -1177,13 +1177,13 @@ spec:
       labels:
         name: openebs-localpv-provisioner
         openebs.io/component-name: openebs-localpv-provisioner
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: openebs-provisioner-hostpath
           imagePullPolicy: IfNotPresent
-          image: openebs/provisioner-localpv:2.8.0
+          image: openebs/provisioner-localpv:2.9.0
           env:
             # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
             # based on this address. This is ignored if empty.
@@ -1214,7 +1214,7 @@ spec:
             - name: OPENEBS_IO_INSTALLER_TYPE
               value: "openebs-operator"
             - name: OPENEBS_IO_HELPER_IMAGE
-              value: "openebs/linux-utils:2.8.0"
+              value: "openebs/linux-utils:2.9.0"
           # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
           # leader election is enabled.
           #- name: LEADER_ELECTION_ENABLED
@@ -4310,7 +4310,7 @@ metadata:
   labels:
     name: cspc-operator
     openebs.io/component-name: cspc-operator
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -4324,13 +4324,13 @@ spec:
       labels:
         name: cspc-operator
         openebs.io/component-name: cspc-operator
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       serviceAccountName: openebs-cstor-operator
       containers:
         - name: cspc-operator
           imagePullPolicy: IfNotPresent
-          image: openebs/cspc-operator:2.8.0
+          image: openebs/cspc-operator:2.9.0
           env:
             - name: OPENEBS_NAMESPACE
               valueFrom:
@@ -4359,11 +4359,11 @@ spec:
             #- name: OPENEBS_IO_IMAGE_PULL_SECRETS
             #  value: ""
             - name: OPENEBS_IO_CSPI_MGMT_IMAGE
-              value: "openebs/cstor-pool-manager:2.8.0"
+              value: "openebs/cstor-pool-manager:2.9.0"
             - name: OPENEBS_IO_CSTOR_POOL_IMAGE
-              value: "openebs/cstor-pool:2.8.0"
+              value: "openebs/cstor-pool:2.9.0"
             - name:  OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
-              value: "openebs/m-exporter:2.8.0"
+              value: "openebs/m-exporter:2.9.0"
             - name: RESYNC_INTERVAL
               value: "30"
 ---
@@ -4375,7 +4375,7 @@ metadata:
   labels:
     name: cvc-operator
     openebs.io/component-name: cvc-operator
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -4389,13 +4389,13 @@ spec:
       labels:
         name: cvc-operator
         openebs.io/component-name: cvc-operator
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       serviceAccountName: openebs-cstor-operator
       containers:
         - name: cvc-operator
           imagePullPolicy: IfNotPresent
-          image: openebs/cvc-operator:2.8.0
+          image: openebs/cvc-operator:2.9.0
           env:
             # OPENEBS_IO_BASE_DIR is used to configure base directory for openebs on host path.
             # Where OpenEBS can store required files. Default base path will be /var/openebs
@@ -4418,11 +4418,11 @@ spec:
                 fieldRef:
                   fieldPath: spec.serviceAccountName
             - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
-              value: "openebs/cstor-istgt:2.8.0"
+              value: "openebs/cstor-istgt:2.9.0"
             - name:  OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
-              value: "openebs/cstor-volume-manager:2.8.0"
+              value: "openebs/cstor-volume-manager:2.9.0"
             - name:  OPENEBS_IO_VOLUME_MONITOR_IMAGE
-              value: "openebs/m-exporter:2.8.0"
+              value: "openebs/m-exporter:2.9.0"
 ---
 apiVersion: v1
 kind: Service
@@ -4449,7 +4449,7 @@ metadata:
   labels:
     app: cstor-admission-webhook
     openebs.io/component-name: cstor-admission-webhook
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   replicas: 1
   strategy:
@@ -4463,12 +4463,12 @@ spec:
       labels:
         app: cstor-admission-webhook
         openebs.io/component-name: cstor-admission-webhook
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       serviceAccountName: openebs-cstor-operator
       containers:
         - name: admission-webhook
-          image: openebs/cstor-webhook:2.8.0
+          image: openebs/cstor-webhook:2.9.0
           imagePullPolicy: IfNotPresent
           args:
             - -alsologtostderr
@@ -5433,7 +5433,7 @@ metadata:
   labels:
     name: openebs-cstor-csi-controller
     openebs.io/component-name: openebs-cstor-csi-controller
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -5450,7 +5450,7 @@ spec:
         role: openebs-cstor-csi
         name: openebs-cstor-csi-controller
         openebs.io/component-name: openebs-cstor-csi-controller
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       priorityClassName: openebs-csi-controller-critical
       serviceAccount: openebs-cstor-csi-controller-sa
@@ -5519,7 +5519,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: cstor-csi-plugin
-          image: openebs/cstor-csi-driver:2.8.0
+          image: openebs/cstor-csi-driver:2.9.0
           imagePullPolicy: IfNotPresent
           env:
             - name: OPENEBS_CONTROLLER_DRIVER
@@ -5531,7 +5531,9 @@ spec:
               # OpenEBS namespace where the openebs cstor operator components
               # has been installed
             - name: OPENEBS_NAMESPACE
-              value: openebs
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: OPENEBS_IO_INSTALLER_TYPE
               value: "cstor-operator"
             - name: OPENEBS_IO_ENABLE_ANALYTICS
@@ -5678,6 +5680,7 @@ data:
     else
       chroot /host iscsiadm "$@"
     fi
+
 ---
 
 kind: DaemonSet
@@ -5689,7 +5692,7 @@ metadata:
     app: openebs-cstor-csi-node
     name: openebs-cstor-csi-node
     openebs.io/component-name: openebs-cstor-csi-node
-    openebs.io/version: 2.8.0
+    openebs.io/version: 2.9.0
 spec:
   selector:
     matchLabels:
@@ -5704,7 +5707,7 @@ spec:
         role: openebs-cstor-csi
         name: openebs-cstor-csi-node
         openebs.io/component-name: openebs-cstor-csi-node
-        openebs.io/version: 2.8.0
+        openebs.io/version: 2.9.0
     spec:
       priorityClassName: openebs-csi-node-critical
       serviceAccount: openebs-cstor-csi-node-sa
@@ -5743,7 +5746,7 @@ spec:
             capabilities:
               add: ["CAP_MKNOD", "CAP_SYS_ADMIN", "SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: openebs/cstor-csi-driver:2.8.0
+          image: openebs/cstor-csi-driver:2.9.0
           imagePullPolicy: IfNotPresent
           args:
             - "--nodeid=$(OPENEBS_NODE_ID)"
@@ -5764,7 +5767,9 @@ spec:
               # OpenEBS namespace where the openebs cstor operator components
               # has been installed
             - name: OPENEBS_NAMESPACE
-              value: openebs
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
               # Enable/Disable auto-remount feature, when volumes
               # recovers form the read-only state
             - name: REMOUNT

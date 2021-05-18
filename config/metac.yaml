@@ -155,7 +155,6 @@ spec:
         - volumesnapshotclasses.snapshot.storage.k8s.io
         - volumesnapshotcontents.snapshot.storage.k8s.io
         - volumesnapshots.snapshot.storage.k8s.io
-        - upgradetasks.openebs.io
     - apiVersion: storage.k8s.io/v1beta1
       resource: csidrivers
       updateStrategy:
@@ -333,7 +332,6 @@ spec:
         - volumesnapshotclasses.snapshot.storage.k8s.io
         - volumesnapshotcontents.snapshot.storage.k8s.io
         - volumesnapshots.snapshot.storage.k8s.io
-        - upgradetasks.openebs.io
   hooks:
     sync:
       inline:
